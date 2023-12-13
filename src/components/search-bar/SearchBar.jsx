@@ -1,8 +1,4 @@
-interface Props {
-  handleInput: (text: string) => void;
-}
-
-function SearchBar({ handleInput }: Props) {
+function SearchBar({handleInput}) {
   return (
     <div className='search-bar-container'>
       <input

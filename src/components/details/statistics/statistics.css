@@ -1,0 +1,29 @@
+.statistics-container {
+  display: flex;
+  flex-direction: row;
+}
+
+.statistics-element {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.stat-value-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.stat-value-text {
+  font-size: 28px;
+}
+
+.stat-value-icon {
+  margin-right: 5%;
+}

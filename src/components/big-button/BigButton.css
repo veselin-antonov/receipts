@@ -1,0 +1,17 @@
+.big-button {
+  border: 3px solid var(--button-border);
+  background-color: white;
+  border-radius: 15px;
+  width: 30vw;
+  padding: 15px;
+  font-size: 24px;
+}
+
+.big-button.primary {
+  background-color: var(--button-background);
+}
+
+.big-button:hover {
+  transform: scale(1.05);
+  transition: all 100ms;
+}

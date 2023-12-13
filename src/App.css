@@ -1,14 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Sofia+Sans+Semi+Condensed:wght@500&display=swap');
-@import './components/create-button/CreateButton.css';
-@import './components/list-group/ListGroup.css';
+@import url('https://fonts.googleapis.com/css2?family=Sofia+Sans+Semi+Condensed:wght@400&display=swap');
+
+@import './components/big-button/BigButton.css';
+@import './components/product-list/ProductList.css';
 @import './components/search-bar/SearchBar.css';
+@import './components/details/statistics/statistics.css';
+@import './components/details/purchases/purchases.css';
+@import './components/loading-spinner/loading-spinner.css';
+@import './components/dropdown/dropdown.css';
+
 @import 'bootstrap/dist/css/bootstrap.css';
 
-* {
+*,
+ul {
   font-family: 'Sofia Sans Semi Condensed';
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  padding-left: 0;
+  padding-right: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 :root {
@@ -19,4 +30,35 @@
 
   --button-background: #22b275;
   --button-border: #1d9663;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+  justify-content: center;
+}
+
+.app > * {
+  margin: 2% auto 0 auto;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+::-webkit-scrollbar {
+  width: 20px;
+}
+
+::-webkit-scrollbar-track-piece {
+  background-color: var(--gray-100);
+}
+
+::-webkit-scrollbar-thumb:vertical {
+  background-color: var(--gray-200);
+  border: 3px solid var(--gray-100);
+  border-radius: 20px
 }

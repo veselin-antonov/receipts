@@ -1,0 +1,39 @@
+.my-dropdown {
+  cursor: pointer;
+  height: 40px;
+}
+
+.my-dropdown .options-list {
+  list-style: none;
+  position: relative;
+  border: 2px solid var(--gray-100);
+  border-radius: 5px;
+  background-color: white;
+
+  max-height: 50px;
+  overflow: hidden;
+  transition: max-height 250ms ease-in;
+}
+
+.my-dropdown .options-list.expanded {
+    transition: max-height 250ms ease-out;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.my-dropdown .option {
+  padding: 5px;
+}
+
+.my-dropdown .option:not(:first-child) {
+  border-top: 2px solid var(--gray-100);
+}
+
+.my-dropdown .option:not(:first-child):hover {
+    background-color: var(--button-background);
+    color: white;
+}
+
+.new-purchase-row ::-webkit-scrollbar {
+  width: 10px;
+}
