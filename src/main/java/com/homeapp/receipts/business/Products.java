@@ -171,4 +171,11 @@ public class Products {
 
         return statistics;
     }
+
+    public List<ResStore> getVendors() {
+        List<Store> stores = vendorRepository.findAll();
+        return stores.stream()
+            .map(s -> new ResStore(s.getName(), s.getLogoURL()))
+            .toList();
+    }
 }
