@@ -19,6 +19,10 @@
   overflow: visible;
 }
 
+.product-list > ::-webkit-scrollbar-thumb:vertical {
+  border: 3px solid var(--gray-400);
+}
+
 .list-container {
   background-color: var(--gray-400);
   border: 3px solid var(--gray-100);
@@ -72,13 +76,4 @@
 .no-results-message {
   font-size: 30px;
   text-align: center;
-}
-
-.product-list ::-webkit-scrollbar-track-piece {
-  border-top-right-radius: 10px;
-  border-bottom-right-radius: 10px;
-}
-
-.product-list ::-webkit-scrollbar-thumb:vertical {
-  box-sizing: content-box;
 }

@@ -10,8 +10,7 @@
 
 @import 'bootstrap/dist/css/bootstrap.css';
 
-*,
-ul {
+body * {
   font-family: 'Sofia Sans Semi Condensed';
   margin: 0;
   padding: 0;
@@ -20,6 +19,7 @@ ul {
   padding-right: 0;
   padding-top: 0;
   padding-bottom: 0;
+  scrollbar-gutter: 20px;
 }
 
 :root {
@@ -50,15 +50,13 @@ ul {
 }
 
 ::-webkit-scrollbar {
-  width: 20px;
+  width: 10px;
 }
-
-::-webkit-scrollbar-track-piece {
-  background-color: var(--gray-100);
-}
-
 ::-webkit-scrollbar-thumb:vertical {
   background-color: var(--gray-200);
-  border: 3px solid var(--gray-100);
-  border-radius: 20px
+  border-radius: 20px;
+}
+
+::-webkit-scrollbar-button {
+  height: 2%;
 }

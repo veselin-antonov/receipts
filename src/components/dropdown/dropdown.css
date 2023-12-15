@@ -3,6 +3,10 @@
   height: 40px;
 }
 
+.my-dropdown > ::-webkit-scrollbar-thumb:vertical {
+  border: 3px solid white;
+}
+
 .my-dropdown .options-list {
   list-style: none;
   position: relative;
