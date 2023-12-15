@@ -1,36 +1,30 @@
 import { useState, useEffect } from 'react';
 import Dropdown from '../../dropdown/Dropdown';
 
-const grayOutWhenEmpty = (inputName, event) => {
-  const input = document.getElementsByClassName('date-input')[0];
-  if (
-    event.code == 'Backspace' &&
-    (!input.validity.badInput || input.validity.valid)
-  ) {
-    input.style.color = '#757575';
-  } else {
-    input.style.color = '#000000';
+const grayOutWhenEmpty = (event) => {
+  const input = event.target;
+  if (event.code == 'Backspace') {
+    input.style.color =
+      !input.validity.badInput || input.validity.valid ? '#757575' : '#000000';
   }
 };
 
-async function getVendors(callback) {
-  return setTimeout(
-    () =>
-      callback([{name: "Избери Магазин"}].concat([
-        { name: 'Lidl', iconID: 'lidl' },
-        { name: 'Billa', iconID: 'billa' },
-        { name: 'Kaufland', iconID: 'kaufland' },
-      ])),
-    1500
-  );
-}
-
 function NewPurchaseRow() {
-  const [vendors, setVendors] = useState([{name: "Избери Магазин"}]);
+  const [vendors, setVendors] = useState([{ name: 'Избери Магазин' }]);
   console.log('Rendering NewPurchaseRow component with vendors: ', vendors);
 
   useEffect(() => {
-    getVendors(setVendors);
+    fetch('http://localhost:8080/vendors')
+      .then((data) => data.json())
+      .then((vendors) =>
+        setVendors([{ name: 'Избери Магазин' }].concat(vendors))
+      )
+      .catch((error) =>
+        console.log(
+          'Error while fetching vendors from "http://localhost:8080/vendors". Details: ',
+          error
+        )
+      );
   }, []);
 
   return (
@@ -44,16 +38,25 @@ function NewPurchaseRow() {
           type='date'
           onKeyDown={(e) => {
             setTimeout(() => {
-              grayOutWhenEmpty('date-input', e);
+              grayOutWhenEmpty(e);
             }, 5);
           }}
         />
       </td>
-      <td >
-        <Dropdown options={vendors} />
+      <td>
+        <Dropdown
+          options={vendors.map((store) => (
+            <>
+              {store.iconID && (
+                <img src={'/' + store.iconID + '-icon.svg'} alt='' />
+              )}
+              {store.name}
+            </>
+          ))}
+        />
       </td>
       <td>
-        <input type="checkbox" />
+        <input type='checkbox' />
       </td>
     </tr>
   );

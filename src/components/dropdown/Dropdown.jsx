@@ -10,27 +10,24 @@ function Dropdown({ options }) {
     <div className='my-dropdown'>
       <ul className={`options-list ${expanded ? 'expanded' : ''}`}>
         {(expanded &&
-          [selectedOption].concat(options).map((option) => {
-            return (
-              <li
-                className='option'
-                onClick={() => {
-                  setExpanded(!expanded);
-                  setSelectedOption(option);
-                }}
-              >
-                {option.iconID && (
-                  <img src={'/' + option.iconID + '-icon.svg'} alt='' />
-                )}
-                {option.name}
-              </li>
-            );
-          })) || (
+          [selectedOption]
+            .concat(options.filter((o) => o != selectedOption))
+            .map((option, index) => {
+              return (
+                <li
+                key={index}
+                  className='option'
+                  onClick={() => {
+                    setExpanded(!expanded);
+                    setSelectedOption(option);
+                  }}
+                >
+                  {option}
+                </li>
+              );
+            })) || (
           <li className='option' onClick={() => setExpanded(!expanded)}>
-            {selectedOption.iconID && (
-              <img src={'/' + selectedOption.iconID + '-icon.svg'} alt='' />
-            )}
-            {selectedOption.name}
+            {selectedOption}
           </li>
         )}
       </ul>
