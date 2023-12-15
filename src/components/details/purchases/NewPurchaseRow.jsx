@@ -1,11 +1,28 @@
 import { useState, useEffect } from 'react';
 import Dropdown from '../../dropdown/Dropdown';
 
-const grayOutWhenEmpty = (event) => {
+const handleDateKeyEvent = (event) => {
+  setTimeout(() => {
+    const input = event.target;
+    if (event.code == 'Backspace') {
+      input.style.color =
+        !input.validity.badInput || input.validity.valid
+          ? '#757575'
+          : '#000000';
+    } else if (
+      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].includes(event.key)
+    ) {
+      input.style.color = '#000000';
+    }
+  }, 5);
+};
+
+const handleDateInputEvent = (event) => {
   const input = event.target;
-  if (event.code == 'Backspace') {
-    input.style.color =
-      !input.validity.badInput || input.validity.valid ? '#757575' : '#000000';
+  if (!input.value && (!input.validity.badInput || input.validity.valid)) {
+    event.target.style.color = '#757575';
+  } else {
+    event.target.style.color = '#000000';
   }
 };
 
@@ -36,11 +53,8 @@ function NewPurchaseRow() {
         <input
           className='date-input'
           type='date'
-          onKeyDown={(e) => {
-            setTimeout(() => {
-              grayOutWhenEmpty(e);
-            }, 5);
-          }}
+          onKeyDown={handleDateKeyEvent}
+          onInput={handleDateInputEvent}
         />
       </td>
       <td>
