@@ -1,6 +1,6 @@
 import NewPurchaseRow from './NewPurchaseRow';
 
-function PurchasesTable({ purchases, showNewPurchase}) {
+function PurchasesTable({ purchases, showNewPurchase }) {
   console.log(
     'Rendering PurchasesTable component with property purchases:',
     purchases
@@ -20,7 +20,7 @@ function PurchasesTable({ purchases, showNewPurchase}) {
           </tr>
         </thead>
         <tbody>
-          {showNewPurchase && <NewPurchaseRow />}
+          <NewPurchaseRow />
           {purchases.map((purchase) => {
             return (
               <tr>

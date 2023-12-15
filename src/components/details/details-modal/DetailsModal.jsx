@@ -7,11 +7,9 @@ import LoadingSpinnner from '../../loading-spinner/LoadingSpinner';
 function fetchProductDetails(
   product,
   handleDetails,
-  handleLoading,
-  handleNewPurchase
+  handleLoading
 ) {
   handleLoading(true);
-  handleNewPurchase(false);
   console.log('Fetching details for product: ', product);
   if (product) {
     fetch(`http://localhost:8080/${product?.id}/details`)
@@ -39,7 +37,6 @@ function fetchProductDetails(
 function DetailsModal({ product }) {
   const [productDetails, setProductDetails] = useState();
   const [isLoading, setIsLoading] = useState(true);
-  const [showNewPurchase, setShowNewPurchase] = useState(false);
 
   console.log('Rendering DetailsModal with state props product: ', product);
   console.log('Rendering DetailsModal with state props isLoading: ', isLoading);
@@ -53,8 +50,7 @@ function DetailsModal({ product }) {
     fetchProductDetails(
       product,
       setProductDetails,
-      setIsLoading,
-      setShowNewPurchase
+      setIsLoading
     );
   }, [product]);
   return (
@@ -82,38 +78,13 @@ function DetailsModal({ product }) {
                   <Statistics stats={productDetails.stats} />
                   <PurchasesTable
                     purchases={productDetails.purchases || []}
-                    showNewPurchase={showNewPurchase}
                   />
                   <div className='button-container'>
-                    {(showNewPurchase && (
-                      <>
-                      <BigButton
-                        className='new-purchase-cancel'
-                        onClickHandler={() => {
-                          setShowNewPurchase(true);
-                        }}
-                      >
-                        Отказ
-                      </BigButton>
-                        <BigButton
-                          className='new-purchase-save primary'
-                          onClickHandler={() => {
-                            setShowNewPurchase(true);
-                          }}
-                        >
-                          Запази
-                        </BigButton>
-                      </>
-                    )) || (
-                      <BigButton
-                        className='new-purchase-create'
-                        onClickHandler={() => {
-                          setShowNewPurchase(true);
-                        }}
-                      >
-                        Регистрирай Покупка
-                      </BigButton>
-                    )}
+                    <BigButton
+                      className='new-purchase-save primary'
+                    >
+                      Запази
+                    </BigButton>
                   </div>
                 </>
               )) || (
