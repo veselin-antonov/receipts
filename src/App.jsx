@@ -7,9 +7,8 @@ import BigButton from './components/big-button/BigButton';
 import './App.css';
 
 async function getProducts() {
-  const response = await fetch('http://localhost:8080/products');
-  const products = await response.json();
-  return products;
+  const response = await fetch('http://localhost:8080/');
+  return await response.json();
 }
 
 function App() {
@@ -48,7 +47,7 @@ function App() {
     <div className='app'>
       <SearchBar handleInput={filterItems} />
       <ProductList items={filteredItems} />
-      <BigButton onClickHandler={() => {}}>
+      <BigButton className='primary' onClickHandler={() => {}}>
         РЕГИСТРИРАЙ НОВ ПРОДУКТ
       </BigButton>
     </div>

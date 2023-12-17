@@ -1,13 +1,13 @@
 import NewPurchaseRow from './NewPurchaseRow';
+import BigButton from '../../big-button/BigButton';
+import { publish } from '../../../events';
 
-function PurchasesTable({ purchases, showNewPurchase }) {
+function PurchasesTable({ purchases, addNewPurchase }) {
   console.log(
     'Rendering PurchasesTable component with property purchases:',
     purchases
   );
-  console.log(
-    'Rendering PurchasesTable component with property showNewPurchase:', showNewPurchase
-  );
+
   return (
     <div className='purchases-table'>
       <table>
@@ -20,7 +20,9 @@ function PurchasesTable({ purchases, showNewPurchase }) {
           </tr>
         </thead>
         <tbody>
-          <NewPurchaseRow />
+          <NewPurchaseRow
+            addNewPurchase={addNewPurchase}
+          />
           {purchases.map((purchase) => {
             return (
               <tr>
@@ -40,6 +42,12 @@ function PurchasesTable({ purchases, showNewPurchase }) {
           })}
         </tbody>
       </table>
+      <BigButton
+        className='new-purchase-save primary'
+        onClickHandler={() => publish('createNewPurchase')}
+      >
+        Запази
+      </BigButton>
     </div>
   );
 }

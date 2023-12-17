@@ -4,11 +4,7 @@ import Statistics from '../statistics/Statistics';
 import BigButton from '../../big-button/BigButton';
 import LoadingSpinnner from '../../loading-spinner/LoadingSpinner';
 
-function fetchProductDetails(
-  product,
-  handleDetails,
-  handleLoading
-) {
+function fetchProductDetails(product, handleDetails, handleLoading) {
   handleLoading(true);
   console.log('Fetching details for product: ', product);
   if (product) {
@@ -47,12 +43,9 @@ function DetailsModal({ product }) {
   );
 
   useEffect(() => {
-    fetchProductDetails(
-      product,
-      setProductDetails,
-      setIsLoading
-    );
+    fetchProductDetails(product, setProductDetails, setIsLoading);
   }, [product]);
+
   return (
     <div
       className='modal fade'
@@ -78,14 +71,30 @@ function DetailsModal({ product }) {
                   <Statistics stats={productDetails.stats} />
                   <PurchasesTable
                     purchases={productDetails.purchases || []}
+                    addNewPurchase={(purchase) => {
+                      fetch(`http://localhost:8080/${product.id}/details`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(purchase),
+                      })
+                        .then((response) => response.json())
+                        .then((newPurchase) =>
+                          setProductDetails({
+                            ...productDetails,
+                            purchases:
+                              [newPurchase, ...productDetails.purchases]
+                          })
+                        )
+                        .catch((error) =>
+                          console.log(
+                            'Error in POST request when creating new purchase. Details: ',
+                            error
+                          )
+                        );
+                    }}
                   />
-                  <div className='button-container'>
-                    <BigButton
-                      className='new-purchase-save primary'
-                    >
-                      Запази
-                    </BigButton>
-                  </div>
                 </>
               )) || (
                 <div className='modal-body'>Няма детайли за този продукт</div>

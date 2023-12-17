@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { subscribe, unsubscribe } from '../../../events';
 import Dropdown from '../../dropdown/Dropdown';
 
 const handleDateKeyEvent = (event) => {
@@ -9,9 +10,7 @@ const handleDateKeyEvent = (event) => {
         !input.validity.badInput || input.validity.valid
           ? '#757575'
           : '#000000';
-    } else if (
-      ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].includes(event.key)
-    ) {
+    } else if (isFinite(event.key)) {
       input.style.color = '#000000';
     }
   }, 5);
@@ -26,16 +25,30 @@ const handleDateInputEvent = (event) => {
   }
 };
 
-function NewPurchaseRow() {
-  const [vendors, setVendors] = useState([{ name: 'Избери Магазин' }]);
+function NewPurchaseRow({ addNewPurchase }) {
+  const [vendors, setVendors] = useState([]);
+  const [newPurchase, setNewPurchase] = useState({
+    price: '',
+    date: '',
+    storeID: '',
+    discount: false,
+  });
+
+  const createNewPurchase = () => {
+    console.log('Creating new purchase: ', newPurchase);
+    addNewPurchase(newPurchase);
+  };
+
   console.log('Rendering NewPurchaseRow component with vendors: ', vendors);
+  console.log(
+    'Rendering NewPurchaseRow component with newPurchase: ',
+    newPurchase
+  );
 
   useEffect(() => {
     fetch('http://localhost:8080/vendors')
       .then((data) => data.json())
-      .then((vendors) =>
-        setVendors([{ name: 'Избери Магазин' }].concat(vendors))
-      )
+      .then((vendors) => setVendors(vendors))
       .catch((error) =>
         console.log(
           'Error while fetching vendors from "http://localhost:8080/vendors". Details: ',
@@ -44,33 +57,72 @@ function NewPurchaseRow() {
       );
   }, []);
 
+  useEffect(() => {
+    subscribe('createNewPurchase', createNewPurchase);
+
+    return () => {
+      unsubscribe('createNewPurchase', createNewPurchase)
+    }
+  }, [newPurchase]);
+
   return (
     <tr className='new-purchase-row'>
       <td>
-        <input className='price-input' type='text' placeholder='Цена' />
+        <input
+          className='price-input'
+          type='number'
+          step={0.01}
+          lang='bg'
+          placeholder='Цена'
+          onInput={(event) => {
+            console.log('Setting newPurchase price to: ', event.target);
+            setNewPurchase({ ...newPurchase, price: event.target.value });
+          }}
+        />
       </td>
       <td>
         <input
           className='date-input'
           type='date'
           onKeyDown={handleDateKeyEvent}
-          onInput={handleDateInputEvent}
+          onInput={(event) => {
+            handleDateInputEvent(event);
+            setNewPurchase({ ...newPurchase, date: event.target.value });
+          }}
         />
       </td>
       <td>
         <Dropdown
-          options={vendors.map((store) => (
-            <>
-              {store.iconID && (
-                <img src={'/' + store.iconID + '-icon.svg'} alt='' />
-              )}
-              {store.name}
-            </>
-          ))}
+          onInput={(storeID) => setNewPurchase({ ...newPurchase, storeID: storeID })}
+          s
+          options={[
+            { content: 'Избери Магазин' },
+            ...vendors.map((store) => {
+              return {
+                value: store.id,
+                content: (
+                  <>
+                    {store.iconID && (
+                      <img src={'/' + store.iconID + '-icon.svg'} alt='' />
+                    )}
+                    {store.name}
+                  </>
+                ),
+              };
+            }),
+          ]}
         />
       </td>
       <td>
-        <input type='checkbox' />
+        <input
+          type='checkbox'
+          onInput={(event) =>
+            setNewPurchase({
+              ...newPurchase,
+              discount: event.target.value == 'on' ? true : false,
+            })
+          }
+        />
       </td>
     </tr>
   );
