@@ -1,7 +1,9 @@
 package com.homeapp.receipts.api.controllers;
 
+import com.homeapp.receipts.api.request.ReqPurchase;
 import com.homeapp.receipts.api.response.ResProduct;
 import com.homeapp.receipts.api.response.ResProductDetails;
+import com.homeapp.receipts.api.response.ResPurchase;
 import com.homeapp.receipts.api.response.ResStore;
 import com.homeapp.receipts.business.Products;
 import com.homeapp.receipts.model.entities.Product;
@@ -9,11 +11,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -29,7 +29,7 @@ public class ProductController {
     }
 
     @CrossOrigin(origins = "http://localhost:5173")
-    @GetMapping("/products")
+    @GetMapping("/")
     public ResponseEntity<List<ResProduct>> root() {
         return new ResponseEntity<>(productsLogic.getAllProducts(), HttpStatus.OK);
     }
@@ -49,5 +49,14 @@ public class ProductController {
 
         return productDetails != null ? ResponseEntity.ok(productDetails) : new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @CrossOrigin(origins = "http://localhost:5173")
+    @PostMapping(value = "/{productId}/details")
+    public ResPurchase registerPurchase(@RequestBody ReqPurchase reqPurchase, @PathVariable String productId) {
+        ResPurchase resPurchase = productsLogic.registerPurchase(reqPurchase, productId);
+        logger.info(resPurchase.toString());
+        return resPurchase;
+    }
+
 }
 

@@ -1,6 +1,7 @@
 package com.homeapp.receipts.business;
 
 import com.homeapp.receipts.api.controllers.ProductController;
+import com.homeapp.receipts.api.request.ReqPurchase;
 import com.homeapp.receipts.api.response.*;
 import com.homeapp.receipts.model.entities.Product;
 import com.homeapp.receipts.model.entities.Purchase;
@@ -100,6 +101,7 @@ public class Products {
         }
 
         ResStore resMostFrequentStore = statistics.getUsualStore() != null ? new ResStore(
+            statistics.getUsualStore().getId(),
             statistics.getUsualStore().getName(),
             statistics.getUsualStore().getLogoURL()
         ) : null;
@@ -121,7 +123,7 @@ public class Products {
             p -> new ResPurchase(
                 String.format("%.2f лв.", p.getPrice()),
                 p.getDate().format(DateTimeFormatter.ofPattern("dd.MM.yy")) + "г.",
-                new ResStore(p.getStore().getName(), p.getStore().getLogoURL()),
+                new ResStore(p.getStore().getId(), p.getStore().getName(), p.getStore().getLogoURL()),
                 p.getDiscount())
         ).toList());
         resProductDetails.setStats(
@@ -175,7 +177,37 @@ public class Products {
     public List<ResStore> getVendors() {
         List<Store> stores = vendorRepository.findAll();
         return stores.stream()
-            .map(s -> new ResStore(s.getName(), s.getLogoURL()))
+            .map(s -> new ResStore(s.getId(), s.getName(), s.getLogoURL()))
             .toList();
+    }
+
+    public ResPurchase registerPurchase(ReqPurchase reqPurchase, String productId) {
+        Store store = vendorRepository.findById(reqPurchase.getStoreID()).orElse(null);
+        savePurchase(productId, store, reqPurchase);
+        return new ResPurchase(
+            String.format("%.2f лв.", reqPurchase.getPrice()),
+            reqPurchase.getDate().format(DateTimeFormatter.ofPattern("dd.MM.yy")) + "г.",
+            new ResStore(
+                store.getId(),
+                store.getName(),
+                store.getLogoURL()
+            ),
+            reqPurchase.getDiscount()
+        );
+    }
+
+    private synchronized void savePurchase(String productId, Store store, ReqPurchase reqPurchase) {
+        Product product = productRepository.findById(productId).get();
+        Purchase purchase = purchasesRepository.save(
+            new Purchase(
+                product,
+                reqPurchase.getPrice(),
+                reqPurchase.getDate(),
+                store,
+                reqPurchase.getDiscount()
+            )
+        );
+        product.getPurchases().add(purchase);
+        productRepository.save(product);
     }
 }
