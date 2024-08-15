@@ -3,5 +3,8 @@ package com.homeapp.receipts.model.repositories;
 import com.homeapp.receipts.model.entities.Store;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
-public interface VendorRepository extends MongoRepository<Store, String> {
+import java.util.Optional;
+
+public interface StoresRepository extends MongoRepository<Store, String> {
+	Optional<Store> findByName(String name);
 }

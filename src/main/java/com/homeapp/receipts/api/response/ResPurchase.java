@@ -1,11 +1,11 @@
 package com.homeapp.receipts.api.response;
 
-import lombok.Data;
-
-@Data
-public class ResPurchase {
-    private final String price;
-    private final String date;
-    private final ResStore store;
-    private final Boolean discount;
+public record ResPurchase(
+		String id,
+		ResProduct product,
+		String price,
+		String date,
+		ResStore store,
+		Boolean discount
+) {
 }

@@ -1,13 +1,14 @@
 package com.homeapp.receipts.api.request;
 
-import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.time.LocalDate;
 
-@Data
-public class ReqPurchase {
-    private final Double price;
-    private final LocalDate date;
-    private final String storeID;
-    private final Boolean discount;
+public record ReqPurchase(
+		String product,
+		String store,
+		double price,
+		@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy") LocalDate date,
+		boolean discount
+) {
 }
