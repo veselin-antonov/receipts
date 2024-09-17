@@ -1,38 +1,102 @@
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.2.0'
-	id 'io.spring.dependency-management' version '1.1.4'
+    id 'java'
+    id 'org.springframework.boot' version '3.2.0'
+    id 'io.spring.dependency-management' version '1.1.4'
 }
 
-group = 'com.homeapp'
-version = '0.0.3'
+group = 'dev.vasoft.homeapp'
+version = file('VERSION').text.trim()
 
 java {
-	sourceCompatibility = '21'
+    sourceCompatibility = '21'
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
-	implementation 'org.springframework.boot:spring-boot-devtools'
-	implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+    implementation 'org.springframework.boot:spring-boot-devtools'
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 
-	compileOnly 'org.projectlombok:lombok:1.18.32'
+    compileOnly 'org.projectlombok:lombok:1.18.32'
 
-	annotationProcessor 'org.projectlombok:lombok:1.18.32'
+    annotationProcessor 'org.projectlombok:lombok:1.18.32'
 
-	testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.4'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.4'
 
-	testCompileOnly 'org.projectlombok:lombok:1.18.32'
+    testCompileOnly 'org.projectlombok:lombok:1.18.32'
 
-	testAnnotationProcessor 'org.projectlombok:lombok:1.18.32'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.32'
+}
+
+// Define a task for building the Docker image
+tasks.register('buildImage', Exec) {
+    group "Docker Images"
+    description "Builds docker image and tags them with :latest>"
+
+    def repositoryName = project.findProperty('repositoryName')
+    def imageName = "ghcr.io/${repositoryName}:${version}"
+
+    commandLine 'docker', 'build', '-t', imageName, '--build-arg', "VERSION=${version}", '.'
+}
+
+tasks.register('tagImage', Exec) {
+    group "Docker Images"
+    description "Tags the versioned docker image with :latest>"
+    dependsOn buildImage
+
+    def repositoryName = project.findProperty('repositoryName')
+    def imageName = "ghcr.io/${repositoryName}"
+
+    commandLine 'docker', 'tag', "${imageName}:${version}", "${imageName}:latest"
+
+    doLast {
+        println("Created images:")
+
+        exec {
+            commandLine 'docker', 'images'
+        }
+    }
+}
+
+tasks.register('publishVersionedImage', Exec) {
+    group "Docker Images"
+    description "Publishes the docker image with tag :\\<version\\>"
+    dependsOn buildImage
+
+    def repositoryName = project.findProperty('repositoryName')
+    def imageName = "ghcr.io/${repositoryName}:${version}"
+
+    doFirst {
+        println("Pushing image: ${imageName}")
+    }
+
+    commandLine 'docker', 'push', imageName
+}
+
+// Define a task for publishing the Docker image with tag :latest
+tasks.register('publishLatestImage', Exec) {
+    group "Docker Images"
+    description "Publishes the docker image with tag :latest"
+    dependsOn tagImage
+
+    def repositoryName = project.findProperty('repositoryName')
+    def imageName = "ghcr.io/${repositoryName}:latest"
+
+    doFirst {
+        println("Pushing image: ${imageName}")
+    }
+
+    commandLine 'docker', 'push', imageName
 
 }
 
-tasks.named('test') {
-	useJUnitPlatform()
+// Define a task that combines both publish actions
+tasks.register('publishImage') {
+    group "Docker Images"
+    description "Publishes the docker images with tags :\\<version\\> :latest"
+    dependsOn publishVersionedImage, publishLatestImage
 }

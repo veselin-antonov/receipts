@@ -9,7 +9,7 @@ services:
     command:
       - "--auth"
   receipts-api:
-    image: ghcr.io/veselin.antonov/receipts-api/receipts-api:latest
+    image: ghcr.io/veselin.antonov/receipts-api:latest
     container_name: receipts-api
     ports:
       - "${PORT}:${PORT}"
