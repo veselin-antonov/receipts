@@ -1,0 +1,61 @@
+name: Build and Deploy React App
+
+on:
+  push:
+    branches:
+      - master # Change this to your main branch if different
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.9.0
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build the React app
+        run: npm run build
+
+      - name: Add server to known_hosts
+        env:
+          SSH_SERVER: ${{ secrets.SSH_SERVER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p $SSH_PORT -H $SSH_SERVER >> ~/.ssh/known_hosts
+
+      - name: Clean the target directory on the server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_SERVER: ${{ secrets.SSH_SERVER }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+          echo "Cleaning the target directory on the server....."
+          ssh -p $SSH_PORT -i private_key $SSH_USERNAME@$SSH_SERVER "rm -rf ${{ secrets.DESTINATION_PATH }}/*"
+
+      - name: Deploy to server
+        if: success()
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SERVER_HOST: ${{ secrets.SSH_SERVER }}
+          SERVER_USERNAME: ${{ secrets.SSH_USERNAME }}
+        run: |
+          echo "Starting deployment....."
+          scp -i private_key -P $SSH_PORT -r ./dist/* $SERVER_USERNAME@$SERVER_HOST:${{ secrets.DESTINATION_PATH }}
+          echo "Deployment completed."
+
+      - name: Cleanup
+        if: always() # Ensures cleanup always runs
+        run: rm -f private_key
