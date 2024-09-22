@@ -20,13 +20,21 @@ import {
   CheckIcon,
   CookieIcon,
   Cross1Icon,
+  Cross2Icon,
 } from '@radix-ui/react-icons';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/common/input';
 import PageSelector from '@/components/common/page-selector';
 import StoreIcon from '@/components/common/store-icon';
-import FormDialog from '@/components/forms/form-modal';
+// import FormDialog from '@/components/forms/form-modal';
 import { API_URL } from '@/lib/utils';
+import FormInput from '@/components/forms/form-input';
+import { Form } from '@/components/forms/form';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Button } from '@/components/ui/button';
+import { DialogClose } from '@/components/ui/dialog';
 
 const purchasesPage = signal();
 
@@ -94,7 +102,7 @@ effect(() => {
     searchQuery.value
   );
   let timer = setTimeout(() => {
-    fetchPurchases(0, 10, searchQuery.value);
+    // fetchPurchases(0, 10, searchQuery.value);
   }, 1500);
 
   return () => clearTimeout(timer);
@@ -106,8 +114,24 @@ const App = () => {
   useSignals();
   console.log('Rendering App with purchases:', purchasesPage.value);
 
+  const formSchema = z.object({
+    email: z.string().email("That's not a valid email."),
+    password: z.string(),
+  });
+
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      product: '',
+      price: '',
+      discount: false,
+      date: '',
+      store: '',
+    },
+  });
+
   return (
-    <div>
+    /*<div>
       <Card className='w-[800px] mx-auto my-[5vh]'>
         <CardHeader className='px-7'>
           <div className='relative'>
@@ -166,6 +190,31 @@ const App = () => {
             />
           </CardFooter>
         )}
+      </Card>
+    </div>*/
+    <div>
+      <Card className='w-[60%] mx-auto mt-10 px-20 py-10'>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit()} className='grid gap-4'>
+            <FormInput
+              form={form}
+              label='Имейл'
+              fieldName={'email'}
+              placeholder={'Имейл'}
+              className='row-start-1'
+            />
+            <FormInput
+              form={form}
+              label='Парола'
+              fieldName={'password'}
+              placeholder={'Парола'}
+              className='row-start-2'
+            />
+            <Button type='submit' className='row-start-3'>
+              Submit
+            </Button>
+          </form>
+        </Form>
       </Card>
     </div>
   );
