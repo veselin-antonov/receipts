@@ -6,7 +6,7 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from '@/components/ui/pagination';
+} from '@/components/common/pagination';
 
 const PageSelector = ({ pagesCount, currentPage, onClick }) => {
   console.log(

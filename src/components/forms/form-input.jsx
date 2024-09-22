@@ -4,8 +4,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/forms/form';
-import { Input } from '@/components/ui/input';
+} from '@/components/common/form';
+import { Input } from '@/components/common/input';
 import { forwardRef } from 'react';
 
 const FormInput = forwardRef(

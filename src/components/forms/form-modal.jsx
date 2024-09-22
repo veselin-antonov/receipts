@@ -5,12 +5,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/forms/form';
+} from '@/components/common/form';
 import FormAutocomplete from '@/components/forms/form-autocomplete';
 import FormCheckbox from '@/components/forms/form-checkbox';
 import FormDatePicker from '@/components/forms/form-date-picker';
 import FormInput from '@/components/forms/form-input';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/common/button';
 import {
   Command,
   CommandEmpty,
@@ -18,7 +18,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
+} from '@/components/common/command';
 import {
   Dialog,
   DialogClose,
@@ -27,13 +27,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@/components/common/dialog';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import StoreIcon from '@/components/ui/store-icon';
+} from '@/components/common/popover';
+import StoreIcon from '@/components/common/store-icon';
 import { API_URL, cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { signal } from '@preact/signals-react';

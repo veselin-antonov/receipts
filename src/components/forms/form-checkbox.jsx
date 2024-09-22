@@ -1,11 +1,11 @@
-import { Checkbox } from '@/components/ui/checkbox';
+import { Checkbox } from '@/components/common/checkbox';
 import {
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/forms/form';
+} from '@/components/common/form';
 import { cn } from '@/lib/utils';
 
 const FormCheckbox = ({

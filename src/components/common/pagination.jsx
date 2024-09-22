@@ -6,7 +6,7 @@ import {
 } from "@radix-ui/react-icons"
 
 import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/common/button";
 
 const Pagination = ({
   className,
@@ -44,7 +44,7 @@ const PaginationLink = ({
     className={cn(buttonVariants({
       variant: isActive ? "outline" : "ghost",
       size,
-    }), isActive ? "cursor-default" : "cursor-pointer", className)}
+    }), className)}
     {...props} />
 )
 PaginationLink.displayName = "PaginationLink"

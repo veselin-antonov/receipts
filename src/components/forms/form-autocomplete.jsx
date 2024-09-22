@@ -1,10 +1,10 @@
-import { FormField, FormItem, FormLabel } from '@/components/forms/form';
+import { FormField, FormItem, FormLabel } from '@/components/common/form';
 import {
   Command,
   CommandGroup,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
+} from '@/components/common/command';
 import { cn } from '@/lib/utils';
 import {
   useSignal,

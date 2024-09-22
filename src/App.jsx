@@ -8,13 +8,13 @@ import {
   TableHead,
   TableRow,
   TableCell,
-} from '@/components/ui/table';
+} from '@/components/common/table';
 import {
   Card,
   CardHeader,
   CardContent,
   CardFooter,
-} from '@/components/ui/card';
+} from '@/components/common/card';
 import {
   CheckCircledIcon,
   CheckIcon,
@@ -22,9 +22,9 @@ import {
   Cross1Icon,
 } from '@radix-ui/react-icons';
 import { Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import PageSelector from '@/components/ui/page-selector';
-import StoreIcon from '@/components/ui/store-icon';
+import { Input } from '@/components/common/input';
+import PageSelector from '@/components/common/page-selector';
+import StoreIcon from '@/components/common/store-icon';
 import FormDialog from '@/components/forms/form-modal';
 import { API_URL } from '@/lib/utils';
 
