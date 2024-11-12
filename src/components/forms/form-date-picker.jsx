@@ -13,8 +13,20 @@ import {
   PopoverTrigger,
 } from '@/components/common/popover';
 import { format } from 'date-fns';
+import { bg } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/common/button';
+
+const customBg = {
+  ...bg,
+  localize: {
+    ...bg.localize,
+    month: (n) => {
+      const month = bg.localize.month(n);
+      return month.charAt(0).toUpperCase() + month.slice(1);
+    },
+  },
+};
 
 const FormDatePicker = ({
   containerClassName,
@@ -41,7 +53,7 @@ const FormDatePicker = ({
                   )}
                 >
                   {field.value ? (
-                    format(field.value, 'PPP')
+                    format(field.value, 'dd MMM yyyy', { locale: customBg })
                   ) : (
                     <span>{placeholder}</span>
                   )}
@@ -52,6 +64,7 @@ const FormDatePicker = ({
             <PopoverContent className='w-auto p-0' align='start'>
               <Calendar
                 mode='single'
+                locale={customBg}
                 selected={field.value}
                 onSelect={field.onChange}
                 disabled={(date) =>
