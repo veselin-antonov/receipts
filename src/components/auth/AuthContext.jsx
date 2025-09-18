@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
       method: 'GET',
     })
       .then((response) => {
-        if (response.ok) {
+        if (response.ok || response.status === 403) {
           return response.text();
         } else {
           throw new Error(

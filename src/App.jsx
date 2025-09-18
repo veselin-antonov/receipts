@@ -1,35 +1,36 @@
-import { AuthLayout } from '@/components/auth/AuthLayout';
 import { PrivateRoute } from '@/components/auth/PrivateRoute';
-import { Login } from '@/pages/login/Login';
-import { Purchases } from '@/pages/purchases/Purchases';
-import { Register } from '@/pages/register/Register';
+import { Login } from '@/pages/Login';
+import { Purchases } from '@/pages/Purchases';
+import { Register } from '@/pages/Register';
 import { Root } from '@/pages/Root';
-import {
-  createBrowserRouter,
-  createRoutesFromElements,
-  RouterProvider,
-  Route,
-} from 'react-router-dom';
-import { PublicRoute } from "@/components/auth/PublicRoute.jsx";
-
-const router = createBrowserRouter(
-  createRoutesFromElements(
-    <Route element={<AuthLayout />}>
-      <Route path='/' element={<Root />} />
-      <Route element={<PublicRoute />}>
-        <Route path='/login' element={<Login />} />
-        <Route path='/register' element={<Register />} />
-      </Route>
-
-      <Route element={<PrivateRoute />}>
-        <Route path='/purchases' element={<Purchases />} />
-      </Route>
-    </Route>
-  )
-);
+import { BrowserRouter, Route, Routes } from 'react-router';
+import { PublicRoute } from '@/components/auth/PublicRoute.jsx';
+import VerifyAccount from '@/pages/VerifyAccount';
+import { AuthProvider } from '@/components/auth/AuthContext';
+import { NotVerified } from '@/pages/NotVerified';
+import SendVerification from '@/pages/SendVerification';
 
 const App = () => {
-  return <RouterProvider router={router} />;
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path='/*' element={<Root />} />
+          <Route element={<PublicRoute />}>
+            <Route path='/login' element={<Login />} />
+            <Route path='/register' element={<Register />} />
+            <Route path='/verify' element={<VerifyAccount />} />
+            <Route path='/resend-verification' element={<SendVerification />} />
+            <Route path='/not-verified' element={<NotVerified />} />
+          </Route>
+
+          <Route element={<PrivateRoute />}>
+            <Route path='/purchases' element={<Purchases />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  );
 };
 
 export default App;

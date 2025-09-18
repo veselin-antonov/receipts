@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { z } from 'zod';
 
 const formSchema = z.object({
@@ -40,6 +40,10 @@ const LoginForm = () => {
         .then((response) => {
           if (response.ok) {
             return response.text();
+          } else if (response.status === 403) {
+            console.log('Navigating to /not-verified')
+            navigate('/not-verified')
+            return Promise.reject(new Error('Account not verified!'))
           } else {
             throw new Error(
               'Неправилни имейл и/или парола. Моля опитайте отново.'
@@ -91,14 +95,14 @@ const LoginForm = () => {
       <form onSubmit={onSubmit} className='grid gap-4'>
         <FormInput
           label='Имейл'
-          fieldName={'email'}
-          className='row-start-1'
+          fieldName='email'
           autoComplete='username'
         />
         <PasswordInput
-          label='Парола'
-          fieldName={'password'}
-          className='row-start-2'
+          inputProps={{
+            label: 'Парола',
+            fieldName: 'password',
+          }}
         />
         <Button disabled={isAuthInProgress} type='submit' className='text-lg'>
           {isAuthInProgress ? <Loader2 className='animate-spin' /> : 'Влизане'}

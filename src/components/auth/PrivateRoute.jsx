@@ -1,6 +1,6 @@
 import { useAuth } from '@/components/auth/AuthContext';
 import { PageLoader } from '@/components/common/page-loader';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router';
 
 export const PrivateRoute = () => {
   const { isAuthInProgress, isAuthenticated } = useAuth();

@@ -1,5 +1,5 @@
 import { useAuth } from '@/components/auth/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router';
 
 export const Root = () => {
   const { isAuthenticated } = useAuth();
