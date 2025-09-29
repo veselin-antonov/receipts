@@ -1,4 +1,4 @@
-import { useAuth } from '@/components/auth/AuthContext';
+import { useAuth, AUTH_STATUS } from '@/components/auth/AuthContext';
 import { Alert, AlertDescription } from '@/components/common/alert';
 import { Button } from '@/components/common/button';
 import { Form } from '@/components/common/form';
@@ -20,7 +20,7 @@ const formSchema = z.object({
 const LoginForm = () => {
   console.log('Rendering LoginForm component...');
   const [loginError, setLoginError] = useState();
-  const { isAuthInProgress, setIsAuthInProgress, saveAuthExpiration } =
+  const { authStatus, setAuthStatus, isAuthInProgress, saveAuthExpiration } =
     useAuth();
 
   const navigate = useNavigate();
@@ -28,7 +28,8 @@ const LoginForm = () => {
   // Authenticate via the API
   const login = useCallback(
     async (email, password) => {
-      setIsAuthInProgress(true);
+      setAuthStatus(AUTH_STATUS.PENDING); // Set status to PENDING
+      setLoginError(null); // Clear any previous errors
 
       fetch(API_URL + '/auth/token', {
         method: 'POST',
@@ -41,9 +42,9 @@ const LoginForm = () => {
           if (response.ok) {
             return response.text();
           } else if (response.status === 403) {
-            console.log('Navigating to /not-verified')
-            navigate('/not-verified')
-            return Promise.reject(new Error('Account not verified!'))
+            console.log('Navigating to /not-verified');
+            navigate('/not-verified');
+            return Promise.reject(new Error('Account not verified!'));
           } else {
             throw new Error(
               'Неправилни имейл и/или парола. Моля опитайте отново.'
@@ -55,17 +56,17 @@ const LoginForm = () => {
 
           console.log('Authenticated for', expirationPeriod / 1000, 'seconds');
 
+          // Save expiration (this will set status to AUTHENTICATED)
           saveAuthExpiration(expirationPeriod);
-          setIsAuthInProgress(false);
           navigate('/purchases');
         })
         .catch((error) => {
-          console.error('Error:', error);
+          console.error('Login error:', error);
           setLoginError(error.message);
-        })
-        .finally(() => setIsAuthInProgress(false));
+          setAuthStatus(AUTH_STATUS.UNAUTHENTICATED); // Set error status
+        });
     },
-    [setIsAuthInProgress, saveAuthExpiration, navigate]
+    [setAuthStatus, saveAuthExpiration, navigate]
   );
 
   const form = useForm({
@@ -89,23 +90,25 @@ const LoginForm = () => {
     <Form {...form}>
       {loginError && (
         <Alert variant='destructive' className='border-2 mb-2 text-center'>
-          <AlertDescription className="font-semibold">{loginError}</AlertDescription>
+          <AlertDescription className='font-semibold'>
+            {loginError}
+          </AlertDescription>
         </Alert>
       )}
       <form onSubmit={onSubmit} className='grid gap-4'>
-        <FormInput
-          label='Имейл'
-          fieldName='email'
-          autoComplete='username'
-        />
+        <FormInput label='Имейл' fieldName='email' autoComplete='username' />
         <PasswordInput
           inputProps={{
             label: 'Парола',
             fieldName: 'password',
           }}
         />
-        <Button disabled={isAuthInProgress} type='submit' className='text-lg'>
-          {isAuthInProgress ? <Loader2 className='animate-spin' /> : 'Влизане'}
+        <Button disabled={isAuthInProgress()} type='submit' className='text-lg'>
+          {isAuthInProgress() ? (
+            <Loader2 className='animate-spin' />
+          ) : (
+            'Влизане'
+          )}
         </Button>
       </form>
     </Form>

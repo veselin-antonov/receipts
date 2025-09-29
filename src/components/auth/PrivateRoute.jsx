@@ -5,7 +5,7 @@ import { Navigate, Outlet } from 'react-router';
 export const PrivateRoute = () => {
   const { isAuthInProgress, isAuthenticated } = useAuth();
 
-  if (isAuthInProgress) {
+  if (isAuthInProgress()) {
     console.log('Auth in progress.. waiting to render the private route');
     return <PageLoader className='animate-spin' />;
   } else if (isAuthenticated()) {
