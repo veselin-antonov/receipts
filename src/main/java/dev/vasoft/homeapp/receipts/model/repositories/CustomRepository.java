@@ -72,7 +72,7 @@ public class CustomRepository {
 
 		// Add pagination to the original operations
 		operations.add(
-				Aggregation.sort(Sort.by(Sort.Order.desc("purchaseDate"))));
+				Aggregation.sort(pageable.getSort()));
 		operations.add(Aggregation.skip(pageable.getOffset()));
 		operations.add(Aggregation.limit(pageable.getPageSize()));
 

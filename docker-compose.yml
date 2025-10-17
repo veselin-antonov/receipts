@@ -3,20 +3,15 @@ services:
     image: mongo:latest
     container_name: receipts-db
     ports:
-      - "${MONGODB_PORT}:${MONGODB_PORT}"
+      - ${MONGODB_PORT}:${MONGODB_PORT}
     volumes:
-      - receipts-db:/data/db
+      - ${MONGODB_DATAPATH}:/data/db
     command:
       - "--auth"
   receipts-api:
-    image: ghcr.io/veselin.antonov/receipts-api:latest
+    image: ghcr.io/veselin-antonov/receipts-api:latest
     container_name: receipts-api
     ports:
-      - "${PORT}:${PORT}"
+      - ${SERVER_PORT}:${SERVER_PORT}
     depends_on:
       - receipts-db
-    env_file: "./.env"
-
-volumes:
-  receipts-db:
-    name: receipts-db

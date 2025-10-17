@@ -1,4 +1,4 @@
-package dev.vasoft.homeapp.receipts.business.mappers;
+package dev.vasoft.homeapp.receipts.services.mappers;
 
 import dev.vasoft.homeapp.receipts.api.response.ResStore;
 import dev.vasoft.homeapp.receipts.model.entities.Store;

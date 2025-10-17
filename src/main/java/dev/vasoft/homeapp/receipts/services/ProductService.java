@@ -1,8 +1,8 @@
-package dev.vasoft.homeapp.receipts.business;
+package dev.vasoft.homeapp.receipts.services;
 
 import dev.vasoft.homeapp.receipts.api.controllers.ProductController;
 import dev.vasoft.homeapp.receipts.api.response.ResProduct;
-import dev.vasoft.homeapp.receipts.business.mappers.ProductMapper;
+import dev.vasoft.homeapp.receipts.services.mappers.ProductMapper;
 import dev.vasoft.homeapp.receipts.model.entities.Product;
 import dev.vasoft.homeapp.receipts.model.repositories.ProductRepository;
 import org.slf4j.Logger;
@@ -13,12 +13,12 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-public class Products {
+public class ProductService {
 	private final ProductRepository productRepository;
 	private final Logger logger;
 
 	@Autowired
-	public Products(ProductRepository productRepository) {
+	public ProductService(ProductRepository productRepository) {
 		this.productRepository = productRepository;
 		this.logger = LoggerFactory.getLogger(ProductController.class);
 	}

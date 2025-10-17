@@ -1,4 +1,6 @@
+# Spring specific
 spring:
+  # Spring data
   data:
     mongodb:
       host: ${MONGODB_HOST}
@@ -8,13 +10,117 @@ spring:
       authentication-database: ${MONGODB_AUTH_DB}
       username: ${MONGODB_USER}
       password: ${MONGODB_PASS}
-logging:
-  level:
-    org:
-      springframework:
-        data:
-          mongodb:
-            core:
-              MongoTemplate: DEBUG
+
+      auto-index-creation: true
+  # Spring caching
+  cache:
+    jcache:
+      provider: com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider
+    cache-names:
+      - rate-limit-buckets
+    caffeine:
+      spec: maximumSize=100000,expireAfterAccess=3600s
+  # Spring mail
+  mail:
+    protocol: smtps
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT}
+    username: ${SMTP_USER}
+    password: ${SMTP_PASS}
+    properties.mail.smtps:
+      auth: true
+
+# Server
 server:
-  port: ${PORT}
+  port: ${SERVER_PORT}
+  ssl:
+    key-store: ${SSL_STORE}
+    key-store-type: ${SSL_STORE_TYPE}
+    key-store-password: ${SSL_STORE_PASS}
+    key-alias: ${SSL_ALIAS}
+
+# RSA keys
+rsa:
+  private-key: ${RSA_PRIVATE}
+  public-key: ${RSA_PUBLIC}
+
+# Application
+app:
+  host-url: ${APP_HOST_URL}
+
+# Rate limiting
+bucket4j:
+  enabled: true
+  filters:
+    # Public endpoints - strict limits
+    - cache-name: rate-limit-buckets
+      url: ^/api/users/register$
+      filter-method: servlet
+      http-response-body: >
+        {
+          "error": "RATE_LIMIT_EXCEEDED",
+          "message": "Too many registration attempts. Please try again later."
+        }
+      rate-limits:
+        - cache-key: "getRemoteAddr()"  # By IP
+          bandwidths:
+            - capacity: 3
+              time: 1
+              unit: hours
+              refill-speed: interval
+
+    - cache-name: rate-limit-buckets
+      url: ^/api/users/verify$
+      filter-method: servlet
+      http-response-body: >
+        {
+          "error": "RATE_LIMIT_EXCEEDED",
+          "message": "Too many verification attempts. Please try again later."
+        }
+      rate-limits:
+        - cache-key: "getRemoteAddr()"
+          bandwidths:
+            - capacity: 10
+              time: 1
+              unit: hours
+
+    # Auth endpoints
+    - cache-name: rate-limit-buckets
+      url: ^/api/auth/token$
+      filter-method: servlet
+      http-response-body: >
+        {
+          "error": "RATE_LIMIT_EXCEEDED",
+          "message": "Too many login attempts. Please try again in a few minutes."
+        }
+      rate-limits:
+        - cache-key: "getRemoteAddr()"
+          bandwidths:
+            - capacity: 5
+              time: 1
+              unit: minutes
+
+    # Protected endpoints - per user
+    - cache-name: rate-limit-buckets
+      url: ^/api/.*
+      filter-method: servlet
+      rate-limits:
+        - cache-key: "@rateLimitUserService.getUserId()"  # Extract from JWT
+          skip-condition: "@rateLimitUserService.isInactiveUser()"  # Skip for inactive
+          bandwidths:
+            - capacity: 100
+              time: 1
+              unit: minutes
+              refill-speed: greedy
+
+    # Inactive users - different limit
+    - cache-name: rate-limit-buckets
+      url: ^/api/users/resend-verification$
+      filter-method: servlet
+      rate-limits:
+        - cache-key: "@rateLimitUserService.getUserId()"
+          execute-condition: "@rateLimitUserService.isInactiveUser()"
+          bandwidths:
+            - capacity: 2
+              time: 1
+              unit: hours

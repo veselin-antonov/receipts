@@ -1,7 +1,7 @@
 package dev.vasoft.homeapp.receipts.api.controllers;
 
 import dev.vasoft.homeapp.receipts.api.response.ResProduct;
-import dev.vasoft.homeapp.receipts.business.Products;
+import dev.vasoft.homeapp.receipts.services.ProductService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,25 +14,25 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/products")
+@RequestMapping("/api/products")
 public class ProductController {
 	private final Logger logger;
-	private final Products productsLogic;
+	private final ProductService productServiceLogic;
 
 	@Autowired
-	public ProductController(Products productsLogic) {
+	public ProductController(ProductService productServiceLogic) {
 		this.logger = LoggerFactory.getLogger(ProductController.class);
-		this.productsLogic = productsLogic;
+		this.productServiceLogic = productServiceLogic;
 	}
 
 	@GetMapping
 	public List<ResProduct> getAllProducts() {
-		return productsLogic.getAllProducts();
+		return productServiceLogic.getAllProducts();
 	}
 
 	@PostMapping
 	public ResProduct registerProduct(@RequestParam String name) {
-		return productsLogic.registerProduct(name);
+		return productServiceLogic.registerProduct(name);
 	}
 
 // TODO - Reimplement product details page

@@ -1,30 +1,30 @@
 package dev.vasoft.homeapp.receipts.api.controllers;
 
 import dev.vasoft.homeapp.receipts.api.response.ResStore;
-import dev.vasoft.homeapp.receipts.business.Stores;
+import dev.vasoft.homeapp.receipts.services.StoreService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
 @RestController
+@RequestMapping("/api/stores")
 public class StoresController {
 	private final Logger logger;
-	private final Stores storesLogic;
+	private final StoreService storeServiceLogic;
 
 	@Autowired
-	public StoresController(Stores storesLogic) {
-		this.logger = LoggerFactory.getLogger(ProductController.class);
-		this.storesLogic = storesLogic;
+	public StoresController(StoreService storeServiceLogic) {
+		this.logger = LoggerFactory.getLogger(StoresController.class);
+		this.storeServiceLogic = storeServiceLogic;
 	}
 
-	@CrossOrigin(origins = "http://localhost:5173")
-	@GetMapping("/stores")
-	public List<ResStore> stores() {
-		return storesLogic.getALl();
+	@GetMapping("")
+	public List<ResStore> getStores() {
+		return storeServiceLogic.getAll();
 	}
 }
