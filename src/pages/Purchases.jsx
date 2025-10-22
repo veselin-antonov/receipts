@@ -4,10 +4,10 @@ import {
   CardContent,
   CardFooter,
   CardHeader,
-} from '@/components/common/card';
-import { Input } from '@/components/common/input';
-import PageSelector from '@/components/common/page-selector';
-import StoreIcon from '@/components/common/store-icon';
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import PageSelector from '@/components/ui/page-selector';
+import StoreIcon from '@/components/ui/store-icon';
 import {
   Table,
   TableBody,
@@ -15,7 +15,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/common/table';
+} from '@/components/ui/table';
 import FormDialog from '@/components/forms/form-modal';
 import { API_URL } from '@/lib/utils';
 import {

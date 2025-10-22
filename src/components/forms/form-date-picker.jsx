@@ -1,21 +1,21 @@
-import { Calendar } from '@/components/common/calendar';
+import { Calendar } from '@/components/ui/calendar';
 import {
   FormControl,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/common/form';
+} from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/common/popover';
+} from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { bg } from 'date-fns/locale';
 import { CalendarIcon } from 'lucide-react';
-import { Button } from '@/components/common/button';
+import { Button } from '@/components/ui/button';
 
 const customBg = {
   ...bg,

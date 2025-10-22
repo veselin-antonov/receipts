@@ -5,12 +5,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/common/form';
+} from '@/components/ui/form';
 import FormAutocomplete from '@/components/forms/form-autocomplete';
 import FormCheckbox from '@/components/forms/form-checkbox';
 import FormDatePicker from '@/components/forms/form-date-picker';
 import FormInput from '@/components/forms/form-input';
-import { Button } from '@/components/common/button';
+import { Button } from '@/components/ui/button';
 import {
   Command,
   CommandEmpty,
@@ -18,7 +18,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/common/command';
+} from '@/components/ui/command';
 import {
   Dialog,
   DialogClose,
@@ -27,13 +27,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/common/dialog';
+} from '@/components/ui/dialog';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/common/popover';
-import StoreIcon from '@/components/common/store-icon';
+} from '@/components/ui/popover';
+import StoreIcon from '@/components/ui/store-icon';
 import { API_URL, cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CaretSortIcon, CheckIcon, Cross2Icon } from '@radix-ui/react-icons';

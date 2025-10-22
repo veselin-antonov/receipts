@@ -1,5 +1,5 @@
 import { useAuth } from '@/components/auth/AuthContext';
-import { PageLoader } from '@/components/common/page-loader';
+import { PageLoader } from '@/components/ui/page-loader';
 import { Navigate, Outlet } from 'react-router';
 
 export const PrivateRoute = () => {

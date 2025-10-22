@@ -4,8 +4,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/common/form';
-import { Input } from '@/components/common/input';
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import { EyeIcon, EyeOffIcon } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useFormContext } from 'react-hook-form';

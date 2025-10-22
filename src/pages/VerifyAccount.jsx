@@ -1,10 +1,5 @@
-import { buttonVariants } from '@/components/common/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/common/card';
+import { buttonVariants } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { API_URL, cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';

@@ -1,12 +1,7 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/common/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import React from 'react';
 import { Link } from 'react-router';
-import { Separator } from '@/components/common/separator';
+import { Separator } from '@/components/ui/separator';
 import LoginForm from '@/components/login/LoginForm';
 
 export const Login = React.memo(() => {

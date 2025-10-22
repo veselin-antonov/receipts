@@ -15,7 +15,7 @@ This is a React/Vite frontend for a receipts management application that tracks 
 
 ### Component Organization
 
-- `src/components/common/` - Reusable shadcn/ui components (form, button, card, etc.)
+- `src/components/ui/` - Reusable shadcn/ui components (form, button, card, etc.)
 - `src/components/forms/` - Form-specific wrappers (form-input, form-modal, etc.)
 - `src/components/auth/` - Authentication components (AuthContext, PrivateRoute, PublicRoute)
 - `src/pages/` - Route components (Login, Purchases, Register, etc.)
@@ -25,7 +25,7 @@ This is a React/Vite frontend for a receipts management application that tracks 
 Use the `@/` alias for all internal imports:
 
 ```jsx
-import { Button } from '@/components/common/button';
+import { Button } from '@/components/ui/button';
 import { API_URL } from '@/lib/utils';
 ```
 

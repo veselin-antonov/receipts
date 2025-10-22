@@ -1,5 +1,5 @@
-import { Button } from '@/components/common/button';
-import { Form } from '@/components/common/form';
+import { Button } from '@/components/ui/button';
+import { Form } from '@/components/ui/form';
 import FormInput from '@/components/forms/form-input';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
@@ -7,13 +7,8 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Link } from 'react-router';
 import { Loader2 } from 'lucide-react';
-import { Separator } from '@/components/common/separator';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/common/card';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { API_URL } from '@/lib/utils';
 import PasswordInput from '@/components/forms/password-input';
 

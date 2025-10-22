@@ -1,7 +1,7 @@
 import { useAuth, AUTH_STATUS } from '@/components/auth/AuthContext';
-import { Alert, AlertDescription } from '@/components/common/alert';
-import { Button } from '@/components/common/button';
-import { Form } from '@/components/common/form';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Form } from '@/components/ui/form';
 import FormInput from '@/components/forms/form-input';
 import PasswordInput from '@/components/forms/password-input';
 import { API_URL } from '@/lib/utils';

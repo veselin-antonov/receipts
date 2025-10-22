@@ -3,13 +3,13 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/common/form';
+} from '@/components/ui/form';
 import {
   Command,
   CommandGroup,
   CommandItem,
   CommandList,
-} from '@/components/common/command';
+} from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { Command as CommandPrimitive } from 'cmdk';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
