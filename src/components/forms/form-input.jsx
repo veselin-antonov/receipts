@@ -7,23 +7,34 @@ import {
 } from '@/components/common/form';
 import { Input } from '@/components/common/input';
 import { forwardRef } from 'react';
+import { useFormContext } from 'react-hook-form';
 
 const FormInput = forwardRef(
   (
-    { containerClassName, form, label, fieldName, parseInput, ...props },
+    { containerClassName, label, fieldName, parseInput, mandatory, ...props },
     ref
   ) => {
+    const form = useFormContext();
+    const { getFieldState } = form;
+
+    const hasError = getFieldState(fieldName).error;
+
     return (
       <FormField
         control={form.control}
         name={fieldName}
         render={({ field }) => (
           <FormItem className={containerClassName}>
-            <FormLabel>{label}</FormLabel>
+            <FormLabel mandatory={mandatory}>{label}</FormLabel>
             <FormControl>
               <Input
                 {...field}
                 {...props}
+                className={
+                  hasError
+                    ? 'border-destructive focus-visible:ring-destructive'
+                    : ''
+                }
                 ref={ref}
                 onChange={(e) => {
                   let input = e.target.value;
@@ -41,5 +52,5 @@ const FormInput = forwardRef(
     );
   }
 );
-
+FormInput.displayName = 'FormInput';
 export default FormInput;

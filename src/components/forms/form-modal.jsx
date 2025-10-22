@@ -36,44 +36,22 @@ import {
 import StoreIcon from '@/components/common/store-icon';
 import { API_URL, cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { signal } from '@preact/signals-react';
-import { useSignal, useSignals } from '@preact/signals-react/runtime';
 import { CaretSortIcon, CheckIcon, Cross2Icon } from '@radix-ui/react-icons';
 import { PlusIcon } from 'lucide-react';
-import { useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { useAuth } from '@/components/auth/AuthContext';
 
 const priceRegex = new RegExp('^\\d*[.,]?\\d{0,2}$');
-const dialogOpen = signal(false);
 
 const formSchema = z.object({
-  product: z
-    .string()
-    .min(1, { message: 'Моля въведете име на продукта!' })
-    .max(50),
-  price: z.string().regex(priceRegex, 'Невалидна сума!'),
-  store: z.string().min(1, 'Моля въведете име на магазина!'),
+  product: z.string().min(1, '').max(50),
+  price: z.string().min(1, '').regex(priceRegex, 'Невалидна сума!'),
+  store: z.string().min(1, ''),
   discount: z.boolean().optional(),
-  date: z.date({ message: 'Моля въведете дата на покупката!' }),
+  date: z.date({ message: '' }),
 });
-
-const storesSignal = signal([]);
-const fetchStores = async () => {
-  const response = await fetch(`${API_URL}/stores`);
-  const stores = await response.json();
-  storesSignal.value = stores;
-};
-fetchStores();
-
-const productsSignal = signal([]);
-const fetchProducts = async () => {
-  const response = await fetch(`${API_URL}/products`);
-  const products = await response.json();
-  productsSignal.value = products;
-  console.log(products);
-};
-fetchProducts();
 
 const productToOption = (form, p) => {
   const option = {
@@ -98,8 +76,10 @@ const FormDialog = ({
   dialogDescription = 'Description',
   handlePurchaseCreation,
 }) => {
-  useSignals();
-  const showNewStoreInput = useSignal(false);
+  const { isAuthenticated } = useAuth();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [showNewStoreInput, setShowNewStoreInput] = useState(false);
 
   const newStoreInputRef = useRef(null);
 
@@ -112,7 +92,46 @@ const FormDialog = ({
       date: '',
       store: '',
     },
+    reValidateMode: 'onChange',
   });
+  const { trigger, getFieldState } = form;
+
+  const [stores, setStores] = useState([]);
+
+  const fetchStores = useCallback(async () => {
+    if (!isAuthenticated()) {
+      console.log('Cannot fetch stores. User is not authenticated.');
+      return;
+    }
+
+    const response = await fetch(`${API_URL}/stores`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    });
+    const stores = await response.json();
+    setStores(stores);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchStores();
+  }, [fetchStores]);
+
+  const [products, setProducts] = useState([]);
+
+  const fetchProducts = useCallback(async () => {
+    if (!isAuthenticated()) {
+      console.log('Cannot fetch products. User is not authenticated.');
+      return;
+    }
+    const response = await fetch(`${API_URL}/products`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    });
+    const products = await response.json();
+    setProducts(products);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   async function onSubmit(values) {
     const date = String(values.date.getDate()).padStart(2, '0');
@@ -126,25 +145,23 @@ const FormDialog = ({
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
       body: JSON.stringify(values),
     })
       .then((response) => response.json())
       .then((purchase) => {
-        dialogOpen.value = false;
+        setDialogOpen(false);
         handlePurchaseCreation(purchase);
       })
       .catch((error) => console.error('Error submitting form: ', error));
   }
-  const stores = storesSignal.value;
-
-  const products = productsSignal.value;
 
   return (
     <Dialog
-      open={dialogOpen.value}
+      open={dialogOpen}
       onOpenChange={(b) => {
-        dialogOpen.value = b;
+        setDialogOpen(b);
       }}
     >
       <DialogTrigger asChild>
@@ -166,14 +183,15 @@ const FormDialog = ({
               placeholder='Име на продукта'
               fieldName='product'
               options={products.map((p) => productToOption(form, p))}
+              mandatory={true}
             />
             <FormInput
               form={form}
               label='Сума'
               fieldName={'price'}
               placeholder={'Сума на покупка'}
+              mandatory={true}
               parseInput={(input, currentValue) => {
-                console.log('Parsing input:', input);
                 return priceRegex.test(input) ? input : currentValue;
               }}
             />
@@ -183,7 +201,7 @@ const FormDialog = ({
                 name='store'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Магазин</FormLabel>
+                    <FormLabel mandatory={true}>Магазин</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -192,12 +210,13 @@ const FormDialog = ({
                             role='combobox'
                             className={cn(
                               'w-full justify-between',
-                              (!field.value || showNewStoreInput.value) &&
-                                'text-muted-foreground'
+                              (!field.value || showNewStoreInput) &&
+                                'text-muted-foreground',
+                              getFieldState('store').error && 'border-destructive'
                             )}
                           >
                             <div className='flex flex-row gap-2'>
-                              {field.value && !showNewStoreInput.value && (
+                              {field.value && !showNewStoreInput && (
                                 <StoreIcon
                                   iconId={
                                     stores.find((s) => s.name === field.value)
@@ -205,7 +224,7 @@ const FormDialog = ({
                                   }
                                 />
                               )}
-                              {!showNewStoreInput.value && field.value
+                              {!showNewStoreInput && field.value
                                 ? field.value
                                 : 'Избери магазин'}
                             </div>
@@ -216,7 +235,7 @@ const FormDialog = ({
                       <PopoverContent className='w-[200px] p-0'>
                         <Command>
                           <CommandInput
-                            placeholder='Search framework...'
+                            placeholder='Търсене...'
                             className='h-9'
                           />
                           <CommandEmpty>No framework found.</CommandEmpty>
@@ -227,7 +246,7 @@ const FormDialog = ({
                                 type='button'
                                 onClick={() => {
                                   field.onChange('');
-                                  showNewStoreInput.value = true;
+                                  setShowNewStoreInput(true);
                                   setTimeout(
                                     () => newStoreInputRef.current.focus(),
                                     100
@@ -247,6 +266,8 @@ const FormDialog = ({
                                   key={store.id}
                                   onSelect={() => {
                                     form.setValue('store', store.name);
+                                    trigger('store');
+                                    setShowNewStoreInput(false);
                                   }}
                                 >
                                   <div className='flex flex-row gap-2'>
@@ -268,11 +289,11 @@ const FormDialog = ({
                         </Command>
                       </PopoverContent>
                     </Popover>
-                    <FormMessage />
+                    {!showNewStoreInput && <FormMessage />}
                   </FormItem>
                 )}
               />
-              {showNewStoreInput.value && (
+              {showNewStoreInput && (
                 <FormInput
                   form={form}
                   fieldName='store'

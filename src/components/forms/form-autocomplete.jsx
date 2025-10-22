@@ -1,4 +1,9 @@
-import { FormField, FormItem, FormLabel } from '@/components/common/form';
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/common/form';
 import {
   Command,
   CommandGroup,
@@ -6,13 +11,9 @@ import {
   CommandList,
 } from '@/components/common/command';
 import { cn } from '@/lib/utils';
-import {
-  useSignal,
-  useSignalEffect,
-  useSignals,
-} from '@preact/signals-react/runtime';
 import { Command as CommandPrimitive } from 'cmdk';
-import React, { useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useFormContext } from 'react-hook-form';
 
 /**
  * @typedef {Object} Option
@@ -45,57 +46,56 @@ const OptionItem = React.memo(({ option, handleItemSelect }) => (
  * @param {Option[]} [props.options=[]] - The list of options
  */
 const FormAutocomplete = ({
-  form,
+  mandatory,
   label,
   fieldName,
   placeholder,
   options = [],
 }) => {
-  const filterItems = () => {
-    return search.value && search.value.length > 2
-      ? options.filter((o) =>
-          o.value.toLowerCase().includes(search.value.toLowerCase())
-        )
-      : [];
-  };
-
   const inputRef = useRef(null);
   const documentRef = useRef(null);
 
-  useSignals();
-  const search = useSignal('');
-  const showOptions = useSignal(false);
-  const filteredOptions = useSignal([]);
+  const [search, setSearch] = useState('');
+  const [showOptions, setShowOptions] = useState(false);
+  const [filteredOptions, setFilteredOptions] = useState([]);
 
-  useSignalEffect(() => {
+  const form = useFormContext();
+  const { getFieldState } = form;
+
+  const hasError = getFieldState(fieldName).error;
+
+  const filterItems = useCallback(() => {
+    return search && search.length > 2
+      ? options.filter((o) =>
+          o.value.toLowerCase().includes(search.toLowerCase())
+        )
+      : [];
+  });
+
+  useEffect(() => {
     console.log('Filtering items');
-    filteredOptions.value = filterItems();
-  });
+    setFilteredOptions(filterItems());
+  }, [search]);
 
-  const handleInput = (input, field) => {
+  const handleInput = useCallback((input, field) => {
     field.onChange(input);
-    search.value = input;
-  };
-
-  const handleItemSelect = (value, field) => {
-    showOptions.value = false;
-    search.value = value;
-    field.onChange(value);
-  };
-
-  const handleFocus = () => {
-    showOptions.value = true;
-    if (!search.peek()) {
-      search.value = inputRef.current.value;
-    }
-  };
-
-  const handleBlur = () => (showOptions.value = false);
-
-  useSignalEffect(() => {
-    console.log('search.value:', search.value);
-    console.log('showItems.value', showOptions.value);
+    setSearch(input);
   });
+
+  const handleItemSelect = useCallback((value, field) => {
+    setShowOptions(false);
+    setSearch(value);
+    field.onChange(value);
+  });
+
+  const handleFocus = useCallback(() => {
+    setShowOptions(true);
+    if (!search) {
+      setSearch(inputRef.current.value);
+    }
+  });
+
+  const handleBlur = () => setShowOptions(false);
 
   return (
     <FormField
@@ -103,11 +103,17 @@ const FormAutocomplete = ({
       name={fieldName}
       render={({ field }) => (
         <FormItem>
-          <FormLabel>{label}</FormLabel>
+          <FormLabel mandatory={mandatory}>{label}</FormLabel>
           <Command shouldFilter={false} className='overflow-visible'>
             <CommandPrimitive.Input
               ref={inputRef}
-              className='flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50'
+              className={`flex h-9 w-full rounded-md border ${
+                'border-' + (hasError ? 'destructive' : 'input')
+              } bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none ${
+                hasError
+                  ? 'focus-visible:ring-destructive'
+                  : 'focus-visible:ring-ring'
+              } focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50`}
               onValueChange={(input) => handleInput(input, field)}
               value={field.value}
               placeholder={placeholder}
@@ -119,15 +125,13 @@ const FormAutocomplete = ({
                 ref={documentRef}
                 className={cn(
                   'animate-in fade-in-0 zoom-in-95 absolute top-0 z-10 w-full bg-white rounded-lg ring-1 ring-slate-200 overflow-visible',
-                  showOptions.value && filteredOptions.value.length > 0
-                    ? 'block'
-                    : 'hidden'
+                  showOptions && filteredOptions.length > 0 ? 'block' : 'hidden'
                 )}
                 onMouseDown={(e) => e.preventDefault()}
               >
                 <CommandList>
                   <CommandGroup>
-                    {filteredOptions.value.map((o) => (
+                    {filteredOptions.map((o) => (
                       <OptionItem
                         key={o.key}
                         option={o}
@@ -140,6 +144,7 @@ const FormAutocomplete = ({
                 </CommandList>
               </div>
             </div>
+            <FormMessage />
           </Command>
         </FormItem>
       )}
