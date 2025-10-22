@@ -39,7 +39,7 @@ const VerifyAccount = () => {
     }
 
     verifyAccount();
-  });
+  }, [queryString, navigate, verifyAccount]);
 
   return (
     <Card className="min-w-[400px] w-[90%] max-w-[600px] mx-auto my-10 sm:mt-24 px-12 py-5">

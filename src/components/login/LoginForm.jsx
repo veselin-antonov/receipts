@@ -84,7 +84,7 @@ const LoginForm = () => {
   );
 
   const onSubmit = useCallback(
-    () => form.handleSubmit(onValidForm),
+    (data) => form.handleSubmit(onValidForm)(data),
     [form, onValidForm]
   );
 
@@ -105,8 +105,12 @@ const LoginForm = () => {
             fieldName: 'password',
           }}
         />
-        <Button disabled={isAuthInProgress} type="submit" className="text-lg">
-          {isAuthInProgress ? <Loader2 className="animate-spin" /> : 'Влизане'}
+        <Button disabled={isAuthInProgress()} type="submit" className="text-lg">
+          {isAuthInProgress() ? (
+            <Loader2 className="animate-spin" />
+          ) : (
+            'Влизане'
+          )}
         </Button>
       </form>
     </Form>

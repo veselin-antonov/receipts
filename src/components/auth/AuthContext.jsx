@@ -1,5 +1,11 @@
 import { API_URL } from '@/lib/utils';
-import { createContext, useContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from 'react';
 
 const AuthContext = createContext();
 
@@ -20,41 +26,6 @@ const AUTH_EXPIRATION = 'authExpiration';
 export const AuthProvider = ({ children }) => {
   const [authStatus, setAuthStatus] = useState(AUTH_STATUS.PENDING);
   const [authExpirationDate, setAuthExpirationState] = useState(null);
-
-  async function fetchAuthStatus() {
-    console.log('Fetching auth status from server...');
-    setAuthStatus(AUTH_STATUS.PENDING);
-
-    fetch(API_URL + '/auth/status', {
-      method: 'GET',
-    })
-      .then((response) => {
-        if (response.ok || response.status === 403) {
-          return response.text();
-        } else {
-          throw new Error(
-            response.status === 401
-              ? 'Invalid or expired token'
-              : 'Unknown server error'
-          );
-        }
-      })
-      .then((responseText) => {
-        const expirationPeriod = Number.parseInt(responseText);
-        console.log(
-          'Fetched status. Auth expires in',
-          expirationPeriod / 1000,
-          'seconds'
-        );
-        saveAuthExpiration(expirationPeriod);
-        setAuthStatus(AUTH_STATUS.AUTHENTICATED);
-      })
-      .catch((error) => {
-        console.error('Error fetching auth status:', error);
-        invalidateAuthExpiration();
-        setAuthStatus(AUTH_STATUS.UNAUTHENTICATED);
-      });
-  }
 
   function saveAuthExpiration(expirationPeriod) {
     const expirationDateInMS = Date.now() + expirationPeriod;
@@ -105,6 +76,41 @@ export const AuthProvider = ({ children }) => {
   function isExpired() {
     return authStatus === AUTH_STATUS.EXPIRED;
   }
+
+  const fetchAuthStatus = useCallback(async () => {
+    console.log('Fetching auth status from server...');
+    setAuthStatus(AUTH_STATUS.PENDING);
+
+    fetch(API_URL + '/auth/status', {
+      method: 'GET',
+    })
+      .then((response) => {
+        if (response.ok || response.status === 403) {
+          return response.text();
+        } else {
+          throw new Error(
+            response.status === 401
+              ? 'Invalid or expired token'
+              : 'Unknown server error'
+          );
+        }
+      })
+      .then((responseText) => {
+        const expirationPeriod = Number.parseInt(responseText);
+        console.log(
+          'Fetched status. Auth expires in',
+          expirationPeriod / 1000,
+          'seconds'
+        );
+        saveAuthExpiration(expirationPeriod);
+        setAuthStatus(AUTH_STATUS.AUTHENTICATED);
+      })
+      .catch((error) => {
+        console.error('Error fetching auth status:', error);
+        invalidateAuthExpiration();
+        setAuthStatus(AUTH_STATUS.UNAUTHENTICATED);
+      });
+  }, []);
 
   const value = {
     // Auth status and helpers
@@ -159,7 +165,7 @@ export const AuthProvider = ({ children }) => {
         // Could call handleExpiredAuth() here for refresh token logic
       }
     }
-  }, []);
+  }, [authExpirationDate, authStatus, fetchAuthStatus]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -34,7 +34,7 @@ const SendVerification = () => {
 
   useEffect(() => {
     sendNewEmail();
-  });
+  }, [sendNewEmail]);
 
   const renderContent = () => {
     switch (actionStatus) {
