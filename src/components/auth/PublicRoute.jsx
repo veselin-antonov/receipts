@@ -12,5 +12,5 @@ export const PublicRoute = () => {
       : 'Not authenticated. Rendering public page...'
   );
 
-  return !authenticated ? <Outlet /> : <Navigate to='/purchases' />;
+  return !authenticated ? <Outlet /> : <Navigate to="/purchases" />;
 };

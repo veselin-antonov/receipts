@@ -20,8 +20,7 @@ const formSchema = z.object({
 const LoginForm = () => {
   console.log('Rendering LoginForm component...');
   const [loginError, setLoginError] = useState();
-  const { authStatus, setAuthStatus, isAuthInProgress, saveAuthExpiration } =
-    useAuth();
+  const { setAuthStatus, isAuthInProgress, saveAuthExpiration } = useAuth();
 
   const navigate = useNavigate();
 
@@ -84,31 +83,30 @@ const LoginForm = () => {
     [login]
   );
 
-  const onSubmit = useCallback(form.handleSubmit(onValidForm), [onValidForm]);
+  const onSubmit = useCallback(
+    () => form.handleSubmit(onValidForm),
+    [form, onValidForm]
+  );
 
   return (
     <Form {...form}>
       {loginError && (
-        <Alert variant='destructive' className='border-2 mb-2 text-center'>
-          <AlertDescription className='font-semibold'>
+        <Alert variant="destructive" className="border-2 mb-2 text-center">
+          <AlertDescription className="font-semibold">
             {loginError}
           </AlertDescription>
         </Alert>
       )}
-      <form onSubmit={onSubmit} className='grid gap-4'>
-        <FormInput label='Имейл' fieldName='email' autoComplete='username' />
+      <form onSubmit={onSubmit} className="grid gap-4">
+        <FormInput label="Имейл" fieldName="email" autoComplete="username" />
         <PasswordInput
           inputProps={{
             label: 'Парола',
             fieldName: 'password',
           }}
         />
-        <Button disabled={isAuthInProgress()} type='submit' className='text-lg'>
-          {isAuthInProgress() ? (
-            <Loader2 className='animate-spin' />
-          ) : (
-            'Влизане'
-          )}
+        <Button disabled={isAuthInProgress} type="submit" className="text-lg">
+          {isAuthInProgress ? <Loader2 className="animate-spin" /> : 'Влизане'}
         </Button>
       </form>
     </Form>

@@ -2,7 +2,7 @@ import { Button } from '@/components/common/button';
 import { Form } from '@/components/common/form';
 import FormInput from '@/components/forms/form-input';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Link } from 'react-router';
@@ -83,17 +83,17 @@ export const Register = () => {
     if (registrationStatus === 'SUCCESS') {
       return (
         <div className="grid gap-4 text-center">
-            <p className='text-lg'>
-              Регистрацията е успешна! Потвърдителен линк е изпратен на вашия
-              имейл.
-            </p>
-            <p>
-              Моля проверете вашата пощенска кутия и последвайте инструкциите в
-              полученото съобщение, за да завършите регистрацията.
-            </p>
+          <p className="text-lg">
+            Регистрацията е успешна! Потвърдителен линк е изпратен на вашия
+            имейл.
+          </p>
+          <p>
+            Моля проверете вашата пощенска кутия и последвайте инструкциите в
+            полученото съобщение, за да завършите регистрацията.
+          </p>
           <Separator />
-          <div className='w-full text-center'>
-            <Link to='/login' className='text-primary'>
+          <div className="w-full text-center">
+            <Link to="/login" className="text-primary">
               Обратно към вход
             </Link>
           </div>
@@ -104,16 +104,16 @@ export const Register = () => {
     return (
       <>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className='grid gap-4'>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             {form.formState.errors.root && (
-              <div className='text-sm text-destructive text-center'>
+              <div className="text-sm text-destructive text-center">
                 {form.formState.errors.root.message}
               </div>
             )}
             <FormInput
-              label='Имейл'
-              fieldName='email'
-              autoComplete='username'
+              label="Имейл"
+              fieldName="email"
+              autoComplete="username"
             />
             <PasswordInput
               inputProps={{
@@ -127,23 +127,23 @@ export const Register = () => {
               }}
             />
             <Button
-              type='submit'
-              className='text-lg'
+              type="submit"
+              className="text-lg"
               disabled={registrationStatus === 'PENDING'}
             >
               {registrationStatus === 'PENDING' ? (
-                <Loader2 className='animate-spin' />
+                <Loader2 className="animate-spin" />
               ) : (
                 'Регистриране'
               )}
             </Button>
           </form>
         </Form>
-        <Separator className='mt-4' />
-        <div className='flex justify-center items-center mt-4'>
-          <span className='text-center'>
+        <Separator className="mt-4" />
+        <div className="flex justify-center items-center mt-4">
+          <span className="text-center">
             Имате акаунт?{' '}
-            <Link to='/login' className='text-center text-primary'>
+            <Link to="/login" className="text-center text-primary">
               Влезте
             </Link>
           </span>
@@ -154,10 +154,10 @@ export const Register = () => {
 
   return (
     <div>
-      <Card className='min-w-[400px] w-[90%] max-w-[600px] mx-auto my-10 sm:mt-24 px-12 py-5'>
-        <CardHeader className='items-center gap-1'>
-          <img src='logo.svg' alt='logo-image' className='w-12' />
-          <CardTitle className='text-3xl font-semibold'>Регистрация</CardTitle>
+      <Card className="min-w-[400px] w-[90%] max-w-[600px] mx-auto my-10 sm:mt-24 px-12 py-5">
+        <CardHeader className="items-center gap-1">
+          <img src="logo.svg" alt="logo-image" className="w-12" />
+          <CardTitle className="text-3xl font-semibold">Регистрация</CardTitle>
         </CardHeader>
         <CardContent>{renderContent()}</CardContent>
       </Card>

@@ -57,13 +57,13 @@ const FormDatePicker = ({
                   ) : (
                     <span>{placeholder}</span>
                   )}
-                  <CalendarIcon className='ml-4 h-4 w-4 opacity-50' />
+                  <CalendarIcon className="ml-4 h-4 w-4 opacity-50" />
                 </Button>
               </FormControl>
             </PopoverTrigger>
-            <PopoverContent className='w-auto p-0' align='start'>
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
-                mode='single'
+                mode="single"
                 locale={customBg}
                 selected={field.value}
                 onSelect={field.onChange}

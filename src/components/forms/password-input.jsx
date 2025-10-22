@@ -27,14 +27,14 @@ const PasswordField = ({
         <FormItem className={containerClassName}>
           <FormLabel>{label}</FormLabel>
           <FormControl>
-            <div className='relative'>
+            <div className="relative">
               <Input
                 {...field}
                 onChange={field.onChange}
                 type={hidden ? 'password' : 'text'}
               />
               <div
-                className='absolute top-2.5 right-4'
+                className="absolute top-2.5 right-4"
                 onClick={toggleVisibility}
               >
                 {hidden ? (
@@ -59,7 +59,7 @@ const PasswordInput = ({
 }) => {
   const [hidden, setHidden] = useState(true);
 
-  const toggleVisibility = useCallback(() => setHidden(!hidden));
+  const toggleVisibility = useCallback(() => setHidden(!hidden), [hidden]);
 
   inputProps = {
     ...inputProps,

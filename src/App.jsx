@@ -15,17 +15,17 @@ const App = () => {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route path='/*' element={<Root />} />
+          <Route path="/*" element={<Root />} />
           <Route element={<PublicRoute />}>
-            <Route path='/login' element={<Login />} />
-            <Route path='/register' element={<Register />} />
-            <Route path='/verify' element={<VerifyAccount />} />
-            <Route path='/resend-verification' element={<SendVerification />} />
-            <Route path='/not-verified' element={<NotVerified />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/verify" element={<VerifyAccount />} />
+            <Route path="/resend-verification" element={<SendVerification />} />
+            <Route path="/not-verified" element={<NotVerified />} />
           </Route>
 
           <Route element={<PrivateRoute />}>
-            <Route path='/purchases' element={<Purchases />} />
+            <Route path="/purchases" element={<Purchases />} />
           </Route>
         </Routes>
       </BrowserRouter>

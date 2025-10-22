@@ -32,7 +32,7 @@ const PageSelector = ({ pagesCount, currentPage, onClick }) => {
 
   // Conditional ellipsis after the first page
   if (currentPage > 3) {
-    paginationItems.push(<PaginationEllipsis key='ellipsis1' />);
+    paginationItems.push(<PaginationEllipsis key="ellipsis1" />);
   }
 
   // Calculate the range of pages to display around the current page
@@ -59,7 +59,7 @@ const PageSelector = ({ pagesCount, currentPage, onClick }) => {
 
   // Conditional ellipsis before the last page
   if (currentPage < pagesCount - 2) {
-    paginationItems.push(<PaginationEllipsis key='ellipsis2' />);
+    paginationItems.push(<PaginationEllipsis key="ellipsis2" />);
   }
 
   // Always add the last page if there is more than one page
@@ -79,7 +79,7 @@ const PageSelector = ({ pagesCount, currentPage, onClick }) => {
   return (
     <Pagination>
       <PaginationContent>
-        <PaginationItem key='previous'>
+        <PaginationItem key="previous">
           <PaginationPrevious
             disabled={currentPage === 1}
             onClick={() => {
@@ -90,7 +90,7 @@ const PageSelector = ({ pagesCount, currentPage, onClick }) => {
           />
         </PaginationItem>
         {paginationItems}
-        <PaginationItem key='next'>
+        <PaginationItem key="next">
           <PaginationNext
             disabled={currentPage === pagesCount}
             onClick={() => {

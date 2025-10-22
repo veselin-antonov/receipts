@@ -31,23 +31,23 @@ const toTableRow = (purchase) => {
   return (
     <TableRow key={purchase.id}>
       <TableCell>
-        <div className='flex flex-row items-center gap-2 overflow-x-hidden'>
+        <div className="flex flex-row items-center gap-2 overflow-x-hidden">
           <CookieIcon />
           {purchase.product.name}
         </div>
       </TableCell>
       <TableCell>{purchase.price}</TableCell>
       <TableCell>
-        <div className='flex flex-row items-center gap-2'>
+        <div className="flex flex-row items-center gap-2">
           <StoreIcon iconId={purchase.store.iconID} /> {purchase.store.name}
         </div>
       </TableCell>
       <TableCell>
-        <div className='flex flex-row justify-center items-center'>
+        <div className="flex flex-row justify-center items-center">
           {purchase.discount ? (
-            <CheckCircledIcon className='text-green-600 stroke-2' />
+            <CheckCircledIcon className="text-green-600 stroke-2" />
           ) : (
-            <Cross1Icon className='text-red-600 stroke-2' />
+            <Cross1Icon className="text-red-600 stroke-2" />
           )}
         </div>
       </TableCell>
@@ -106,32 +106,35 @@ export const Purchases = () => {
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [fetchPurchases, searchQuery]);
 
   // Logic when submitting the purchase register form
-  const handlePurchaseCreation = useCallback((purchase) => {
-    const currentPurchases = purchasesPage.contents;
+  const handlePurchaseCreation = useCallback(
+    (purchase) => {
+      const currentPurchases = purchasesPage.contents;
 
-    currentPurchases.pop();
-    currentPurchases.unshift(purchase);
+      currentPurchases.pop();
+      currentPurchases.unshift(purchase);
 
-    setPurchasesPages({
-      ...purchasesPage,
-      contents: currentPurchases,
-    });
-  });
+      setPurchasesPages({
+        ...purchasesPage,
+        contents: currentPurchases,
+      });
+    },
+    [purchasesPage]
+  );
 
   // Render the component
   return (
     <div>
-      <Card className='w-[800px] mx-auto my-[5vh]'>
-        <CardHeader className='px-7'>
-          <div className='relative'>
-            <Search className='absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground' />
+      <Card className="w-[800px] mx-auto my-[5vh]">
+        <CardHeader className="px-7">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              type='search'
-              placeholder='Търсене...'
-              className='pl-8'
+              type="search"
+              placeholder="Търсене..."
+              className="pl-8"
               onInput={(e) => {
                 console.log('searchQuery:', e.target.value);
                 setSearchQuery(e.target.value);
@@ -139,21 +142,21 @@ export const Purchases = () => {
             />
           </div>
           <FormDialog
-            buttonLabel='Нова Покупка'
-            dialogueTitle='Нова покупка'
+            buttonLabel="Нова Покупка"
+            dialogueTitle="Нова покупка"
             dialogDescription='Запазете нова покупка. Натиснете "Запази" когато сте готови.'
             handlePurchaseCreation={handlePurchaseCreation}
           />
         </CardHeader>
-        <CardContent className='text-nowrap'>
+        <CardContent className="text-nowrap">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className='w-[50%]'>Продукт</TableHead>
-                <TableHead className='w-[10%]'>Сума</TableHead>
-                <TableHead className='w-[20%]'>Магазин</TableHead>
-                <TableHead className='w-[5%] text-center'>Намаление</TableHead>
-                <TableHead className='w-[15%]'>Дата</TableHead>
+                <TableHead className="w-[50%]">Продукт</TableHead>
+                <TableHead className="w-[10%]">Сума</TableHead>
+                <TableHead className="w-[20%]">Магазин</TableHead>
+                <TableHead className="w-[5%] text-center">Намаление</TableHead>
+                <TableHead className="w-[15%]">Дата</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -161,7 +164,7 @@ export const Purchases = () => {
                 purchasesPage.contents.map(toTableRow)
               ) : (
                 <TableRow>
-                  <TableCell className='h-24 text-center' colSpan='5'>
+                  <TableCell className="h-24 text-center" colSpan="5">
                     Няма намерени покупки.
                   </TableCell>
                 </TableRow>

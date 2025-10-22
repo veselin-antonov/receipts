@@ -7,12 +7,12 @@ export const PrivateRoute = () => {
 
   if (isAuthInProgress()) {
     console.log('Auth in progress.. waiting to render the private route');
-    return <PageLoader className='animate-spin' />;
+    return <PageLoader className="animate-spin" />;
   } else if (isAuthenticated()) {
     console.log('Authenticated. Rendering private route...');
     return <Outlet />;
   } else {
     console.log('Not authenticated. Redirecting to login...');
-    return <Navigate to='/login' />;
+    return <Navigate to="/login" />;
   }
 };

@@ -1,5 +1,5 @@
 import { API_URL } from '@/lib/utils';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 const AuthContext = createContext();
 
@@ -20,43 +20,6 @@ const AUTH_EXPIRATION = 'authExpiration';
 export const AuthProvider = ({ children }) => {
   const [authStatus, setAuthStatus] = useState(AUTH_STATUS.PENDING);
   const [authExpirationDate, setAuthExpirationState] = useState(null);
-
-  // Fetch the authentication status on component mount
-  useEffect(() => {
-    console.log(
-      'Checking authentication status... Current status:',
-      authStatus
-    );
-    setAuthStatus(AUTH_STATUS.PENDING);
-
-    if (!authExpirationDate) {
-      const storedExpirationPeriod = Number.parseInt(
-        localStorage.getItem(AUTH_EXPIRATION)
-      );
-
-      if (storedExpirationPeriod > Date.now()) {
-        console.log('Stored expiration is valid, setting as AUTHENTICATED');
-        setAuthExpirationState(storedExpirationPeriod);
-        setAuthStatus(AUTH_STATUS.AUTHENTICATED);
-      } else if (storedExpirationPeriod) {
-        console.log('Stored expiration is expired, setting as EXPIRED');
-        localStorage.removeItem(AUTH_EXPIRATION);
-        setAuthStatus(AUTH_STATUS.EXPIRED);
-        // Could call handleExpiredAuth() here for refresh token logic
-      } else {
-        console.log('No stored expiration, fetching auth status from server');
-        fetchAuthStatus();
-      }
-    } else {
-      // We already have expiration date, check if it's still valid
-      if (authExpirationDate > Date.now()) {
-        setAuthStatus(AUTH_STATUS.AUTHENTICATED);
-      } else {
-        setAuthStatus(AUTH_STATUS.EXPIRED);
-        // Could call handleExpiredAuth() here for refresh token logic
-      }
-    }
-  }, []);
 
   async function fetchAuthStatus() {
     console.log('Fetching auth status from server...');
@@ -160,6 +123,43 @@ export const AuthProvider = ({ children }) => {
     // Backward compatibility (deprecated)
     setIsAuthInProgress: () => setAuthStatus(AUTH_STATUS.PENDING),
   };
+
+  // Fetch the authentication status on component mount
+  useEffect(() => {
+    console.log(
+      'Checking authentication status... Current status:',
+      authStatus
+    );
+    setAuthStatus(AUTH_STATUS.PENDING);
+
+    if (!authExpirationDate) {
+      const storedExpirationPeriod = Number.parseInt(
+        localStorage.getItem(AUTH_EXPIRATION)
+      );
+
+      if (storedExpirationPeriod > Date.now()) {
+        console.log('Stored expiration is valid, setting as AUTHENTICATED');
+        setAuthExpirationState(storedExpirationPeriod);
+        setAuthStatus(AUTH_STATUS.AUTHENTICATED);
+      } else if (storedExpirationPeriod) {
+        console.log('Stored expiration is expired, setting as EXPIRED');
+        localStorage.removeItem(AUTH_EXPIRATION);
+        setAuthStatus(AUTH_STATUS.EXPIRED);
+        // Could call handleExpiredAuth() here for refresh token logic
+      } else {
+        console.log('No stored expiration, fetching auth status from server');
+        fetchAuthStatus();
+      }
+    } else {
+      // We already have expiration date, check if it's still valid
+      if (authExpirationDate > Date.now()) {
+        setAuthStatus(AUTH_STATUS.AUTHENTICATED);
+      } else {
+        setAuthStatus(AUTH_STATUS.EXPIRED);
+        // Could call handleExpiredAuth() here for refresh token logic
+      }
+    }
+  }, []);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

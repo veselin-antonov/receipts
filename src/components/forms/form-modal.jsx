@@ -167,7 +167,7 @@ const FormDialog = ({
       <DialogTrigger asChild>
         <Button>{buttonLabel}</Button>
       </DialogTrigger>
-      <DialogContent className='sm:max-w-[700px] max-h-[90vh]'>
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>{dialogueTitle}</DialogTitle>
           <DialogDescription>{dialogDescription}</DialogDescription>
@@ -175,19 +175,19 @@ const FormDialog = ({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className='gap-8 grid grid-cols-3'
+            className="gap-8 grid grid-cols-3"
           >
             <FormAutocomplete
               form={form}
-              label='Продукт'
-              placeholder='Име на продукта'
-              fieldName='product'
+              label="Продукт"
+              placeholder="Име на продукта"
+              fieldName="product"
               options={products.map((p) => productToOption(form, p))}
               mandatory={true}
             />
             <FormInput
               form={form}
-              label='Сума'
+              label="Сума"
               fieldName={'price'}
               placeholder={'Сума на покупка'}
               mandatory={true}
@@ -198,7 +198,7 @@ const FormDialog = ({
             <div>
               <FormField
                 control={form.control}
-                name='store'
+                name="store"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel mandatory={true}>Магазин</FormLabel>
@@ -206,16 +206,17 @@ const FormDialog = ({
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button
-                            variant='outline'
-                            role='combobox'
+                            variant="outline"
+                            role="combobox"
                             className={cn(
                               'w-full justify-between',
                               (!field.value || showNewStoreInput) &&
                                 'text-muted-foreground',
-                              getFieldState('store').error && 'border-destructive'
+                              getFieldState('store').error &&
+                                'border-destructive'
                             )}
                           >
-                            <div className='flex flex-row gap-2'>
+                            <div className="flex flex-row gap-2">
                               {field.value && !showNewStoreInput && (
                                 <StoreIcon
                                   iconId={
@@ -228,22 +229,22 @@ const FormDialog = ({
                                 ? field.value
                                 : 'Избери магазин'}
                             </div>
-                            <CaretSortIcon className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+                            <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
-                      <PopoverContent className='w-[200px] p-0'>
+                      <PopoverContent className="w-[200px] p-0">
                         <Command>
                           <CommandInput
-                            placeholder='Търсене...'
-                            className='h-9'
+                            placeholder="Търсене..."
+                            className="h-9"
                           />
                           <CommandEmpty>No framework found.</CommandEmpty>
                           <CommandList>
                             <CommandGroup>
                               <Button
-                                variant='ghost'
-                                type='button'
+                                variant="ghost"
+                                type="button"
                                 onClick={() => {
                                   field.onChange('');
                                   setShowNewStoreInput(true);
@@ -252,11 +253,11 @@ const FormDialog = ({
                                     100
                                   );
                                 }}
-                                className='my-1 w-full font-normal text-sm justify-center'
+                                className="my-1 w-full font-normal text-sm justify-center"
                               >
                                 <PlusIcon
                                   size={15}
-                                  className='text-primary mr-1'
+                                  className="text-primary mr-1"
                                 />
                                 Add new
                               </Button>
@@ -270,7 +271,7 @@ const FormDialog = ({
                                     setShowNewStoreInput(false);
                                   }}
                                 >
-                                  <div className='flex flex-row gap-2'>
+                                  <div className="flex flex-row gap-2">
                                     <StoreIcon iconId={store.iconID} />
                                     {store.name || 'Изберете магазин'}
                                   </div>
@@ -296,26 +297,26 @@ const FormDialog = ({
               {showNewStoreInput && (
                 <FormInput
                   form={form}
-                  fieldName='store'
-                  placeholder='Име на магазин'
-                  containerClassName='mt-3'
+                  fieldName="store"
+                  placeholder="Име на магазин"
+                  containerClassName="mt-3"
                   ref={newStoreInputRef}
                 />
               )}
             </div>
             <FormDatePicker
               form={form}
-              fieldName='date'
-              label='Дата на покупката'
+              fieldName="date"
+              label="Дата на покупката"
               placeholder={'Изберете дата'}
             />
-            <FormCheckbox form={form} fieldName='discount' label='Намаление' />
-            <Button type='submit' className='col-span-1 col-start-2'>
+            <FormCheckbox form={form} fieldName="discount" label="Намаление" />
+            <Button type="submit" className="col-span-1 col-start-2">
               Submit
             </Button>
-            <DialogClose className='absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground'>
-              <Cross2Icon className='h-4 w-4' />
-              <span className='sr-only'>Close</span>
+            <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+              <Cross2Icon className="h-4 w-4" />
+              <span className="sr-only">Close</span>
             </DialogClose>
           </form>
         </Form>

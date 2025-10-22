@@ -6,9 +6,9 @@ export const Root = () => {
 
   if (!isAuthenticated()) {
     console.log('Redirecting to login');
-    return <Navigate to='/login' />;
+    return <Navigate to="/login" />;
   } else {
     console.log('Redirecting to purchases');
-    return <Navigate to='/purchases' />;
+    return <Navigate to="/purchases" />;
   }
 };

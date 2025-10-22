@@ -65,7 +65,7 @@ const FormLabel = React.forwardRef(
         {...props}
       >
         {children}
-        {mandatory && <span className='text-destructive ml-1'>*</span>}
+        {mandatory && <span className="text-destructive ml-1">*</span>}
       </Label>
     );
   }
@@ -130,6 +130,7 @@ const FormMessage = React.forwardRef(
 FormMessage.displayName = 'FormMessage';
 
 export {
+  // eslint-disable-next-line react-refresh/only-export-components
   useFormField,
   Form,
   FormItem,

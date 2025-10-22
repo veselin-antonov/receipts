@@ -38,6 +38,8 @@ const OptionItem = React.memo(({ option, handleItemSelect }) => (
   </CommandItem>
 ));
 
+OptionItem.displayName = 'OptionItem';
+
 /**
  * @param {Object} props - The properties for the component.
  * @param {string} props.label - The label for the form field.
@@ -70,30 +72,30 @@ const FormAutocomplete = ({
           o.value.toLowerCase().includes(search.toLowerCase())
         )
       : [];
-  });
+  }, [options, search]);
 
   useEffect(() => {
     console.log('Filtering items');
     setFilteredOptions(filterItems());
-  }, [search]);
+  }, [filterItems, search]);
 
   const handleInput = useCallback((input, field) => {
     field.onChange(input);
     setSearch(input);
-  });
+  }, []);
 
   const handleItemSelect = useCallback((value, field) => {
     setShowOptions(false);
     setSearch(value);
     field.onChange(value);
-  });
+  }, []);
 
   const handleFocus = useCallback(() => {
     setShowOptions(true);
     if (!search) {
       setSearch(inputRef.current.value);
     }
-  });
+  }, [search]);
 
   const handleBlur = () => setShowOptions(false);
 
@@ -104,7 +106,7 @@ const FormAutocomplete = ({
       render={({ field }) => (
         <FormItem>
           <FormLabel mandatory={mandatory}>{label}</FormLabel>
-          <Command shouldFilter={false} className='overflow-visible'>
+          <Command shouldFilter={false} className="overflow-visible">
             <CommandPrimitive.Input
               ref={inputRef}
               className={`flex h-9 w-full rounded-md border ${
@@ -120,7 +122,7 @@ const FormAutocomplete = ({
               onFocus={handleFocus}
               onBlur={handleBlur}
             />
-            <div className='relative mt-2 overflow-visible'>
+            <div className="relative mt-2 overflow-visible">
               <div
                 ref={documentRef}
                 className={cn(
