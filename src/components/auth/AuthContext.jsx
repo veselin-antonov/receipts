@@ -153,8 +153,8 @@ export const AuthProvider = ({ children }) => {
         setAuthStatus(AUTH_STATUS.EXPIRED);
         // Could call handleExpiredAuth() here for refresh token logic
       } else {
-        console.log('No stored expiration, fetching auth status from server');
-        fetchAuthStatus();
+        console.log('No stored expiration. Setting status as UNAUTHENTICATED');
+        setAuthStatus(AUTH_STATUS.UNAUTHENTICATED);
       }
     } else {
       // We already have expiration date, check if it's still valid
@@ -165,7 +165,7 @@ export const AuthProvider = ({ children }) => {
         // Could call handleExpiredAuth() here for refresh token logic
       }
     }
-  }, [authExpirationDate, authStatus, fetchAuthStatus]);
+  }, [authExpirationDate, authStatus]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

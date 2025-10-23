@@ -44,9 +44,17 @@ const LoginForm = () => {
             console.log('Navigating to /not-verified');
             navigate('/not-verified');
             return Promise.reject(new Error('Account not verified!'));
-          } else {
+          } else if (response.status === 401) {
             throw new Error(
               'Неправилни имейл и/или парола. Моля опитайте отново.'
+            );
+          } else if (response.status === 429) {
+            throw new Error(
+              'Твърде много неуспешни опити за влизане. Моля опитайте по-късно.'
+            );
+          } else {
+            throw new Error(
+              'Неизвестна грешка от сървъра. Моля опитайте по-късно.'
             );
           }
         })
@@ -91,7 +99,7 @@ const LoginForm = () => {
   return (
     <Form {...form}>
       {loginError && (
-        <Alert variant="destructive" className="border-2 mb-2 text-center">
+        <Alert variant="destructive" className="mb-2 border-2 text-center">
           <AlertDescription className="font-semibold">
             {loginError}
           </AlertDescription>
