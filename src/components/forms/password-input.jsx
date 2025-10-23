@@ -34,7 +34,7 @@ const PasswordField = ({
                 type={hidden ? 'password' : 'text'}
               />
               <div
-                className="absolute top-2.5 right-4"
+                className="absolute right-4 top-2.5"
                 onClick={toggleVisibility}
               >
                 {hidden ? (

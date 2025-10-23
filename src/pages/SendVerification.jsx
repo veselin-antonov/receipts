@@ -59,11 +59,11 @@ const SendVerification = () => {
   };
 
   return (
-    <Card className="min-w-[400px] w-[90%] max-w-[600px] mx-auto my-10 sm:mt-24 px-12 py-5">
+    <Card className="mx-auto my-10 w-[90%] min-w-[400px] max-w-[600px] px-12 py-5 sm:mt-24">
       <CardHeader>
         <CardTitle className="text-center">Изпращане на нов линк</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col justify-center items-center gap-6">
+      <CardContent className="flex flex-col items-center justify-center gap-6">
         {renderContent()}
       </CardContent>
     </Card>

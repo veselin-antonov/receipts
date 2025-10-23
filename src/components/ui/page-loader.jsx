@@ -7,11 +7,11 @@ export const PageLoader = () => {
     <Dialog open={true}>
       <DialogContent
         aria-describedby={undefined}
-        className="bg-white w-60 h-60 rounded-md grid place-items-center mx-auto mt-40 focus-visible:outline-none"
+        className="mx-auto mt-40 grid h-60 w-60 place-items-center rounded-md bg-white focus-visible:outline-none"
       >
         <DialogTitle className="hidden" />
         <Loader2
-          className="animate-spin duration-2000 text-primary"
+          className="duration-2000 animate-spin text-primary"
           size={100}
         />
         <span className="text-xl">Моля изчакайте...</span>

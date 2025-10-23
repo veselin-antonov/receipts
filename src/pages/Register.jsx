@@ -101,7 +101,7 @@ export const Register = () => {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             {form.formState.errors.root && (
-              <div className="text-sm text-destructive text-center">
+              <div className="text-center text-sm text-destructive">
                 {form.formState.errors.root.message}
               </div>
             )}
@@ -135,7 +135,7 @@ export const Register = () => {
           </form>
         </Form>
         <Separator className="mt-4" />
-        <div className="flex justify-center items-center mt-4">
+        <div className="mt-4 flex items-center justify-center">
           <span className="text-center">
             Имате акаунт?{' '}
             <Link to="/login" className="text-center text-primary">
@@ -149,7 +149,7 @@ export const Register = () => {
 
   return (
     <div>
-      <Card className="min-w-[400px] w-[90%] max-w-[600px] mx-auto my-10 sm:mt-24 px-12 py-5">
+      <Card className="mx-auto my-10 w-[90%] min-w-[400px] max-w-[600px] px-12 py-5 sm:mt-24">
         <CardHeader className="items-center gap-1">
           <img src="logo.svg" alt="logo-image" className="w-12" />
           <CardTitle className="text-3xl font-semibold">Регистрация</CardTitle>

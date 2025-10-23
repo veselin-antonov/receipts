@@ -6,7 +6,7 @@ export const PublicRoute = () => {
 
   const authenticated = isAuthenticated();
 
-  console.log(
+  console.debug(
     authenticated
       ? 'Authenticated. Redirecting to dashboard...'
       : 'Not authenticated. Rendering public page...'

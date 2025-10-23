@@ -5,11 +5,11 @@ import { Link } from 'react-router';
 
 export const NotVerified = () => {
   return (
-    <Card className="min-w-[400px] w-[90%] max-w-[600px] mx-auto my-10 sm:mt-24 px-12 py-5">
+    <Card className="mx-auto my-10 w-[90%] min-w-[400px] max-w-[600px] px-12 py-5 sm:mt-24">
       <CardHeader>
         <CardTitle className="text-center">Профилът не е потвърден</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col justify-center items-center gap-6">
+      <CardContent className="flex flex-col items-center justify-center gap-6">
         Не сте потвърдили профилът си, чрез линка изпратен на имейла ви.
         <br />
         Ако не намирате имейла, проверете папката за спам или изпратете нов линк

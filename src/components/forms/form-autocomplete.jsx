@@ -126,7 +126,7 @@ const FormAutocomplete = ({
               <div
                 ref={documentRef}
                 className={cn(
-                  'animate-in fade-in-0 zoom-in-95 absolute top-0 z-10 w-full bg-white rounded-lg ring-1 ring-slate-200 overflow-visible',
+                  'absolute top-0 z-10 w-full overflow-visible rounded-lg bg-white ring-1 ring-slate-200 animate-in fade-in-0 zoom-in-95',
                   showOptions && filteredOptions.length > 0 ? 'block' : 'hidden'
                 )}
                 onMouseDown={(e) => e.preventDefault()}

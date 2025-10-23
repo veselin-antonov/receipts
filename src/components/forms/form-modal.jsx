@@ -167,7 +167,7 @@ const FormDialog = ({
       <DialogTrigger asChild>
         <Button>{buttonLabel}</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
+      <DialogContent className="max-h-[90vh] sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>{dialogueTitle}</DialogTitle>
           <DialogDescription>{dialogDescription}</DialogDescription>
@@ -175,7 +175,7 @@ const FormDialog = ({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
-            className="gap-8 grid grid-cols-3"
+            className="grid grid-cols-3 gap-8"
           >
             <FormAutocomplete
               form={form}
@@ -253,11 +253,11 @@ const FormDialog = ({
                                     100
                                   );
                                 }}
-                                className="my-1 w-full font-normal text-sm justify-center"
+                                className="my-1 w-full justify-center text-sm font-normal"
                               >
                                 <PlusIcon
                                   size={15}
-                                  className="text-primary mr-1"
+                                  className="mr-1 text-primary"
                                 />
                                 Add new
                               </Button>

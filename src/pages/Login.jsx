@@ -9,21 +9,21 @@ export const Login = React.memo(() => {
 
   return (
     <div>
-      <Card className="min-w-[400px] w-[90%] max-w-[600px] mx-auto mt-24 px-12 py-5">
+      <Card className="mx-auto mt-24 w-[90%] min-w-[400px] max-w-[600px] px-12 py-5">
         <CardHeader className="items-center gap-1">
           <img src="logo.svg" alt="logo-image" className="w-12" />
           <CardTitle className="text-3xl font-semibold">Влизане</CardTitle>
         </CardHeader>
         <CardContent>
           <LoginForm />
-          <div className="flex justify-center items-center gap-5 mt-4">
+          <div className="mt-4 flex items-center justify-center gap-5">
             <div>
               {/* <Link to='/forgot-password' className='text-primary'>
                 Забравена парола?
               </Link> */}
               <span className="text-border">Забравена парола?</span>
             </div>
-            <Separator orientation="vertical" className="w-[2px] h-6" />
+            <Separator orientation="vertical" className="h-6 w-[2px]" />
             <div>
               Нямате акаунт?{' '}
               <Link to="/register" className="text-primary">

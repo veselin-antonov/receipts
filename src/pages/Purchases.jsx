@@ -43,11 +43,11 @@ const toTableRow = (purchase) => {
         </div>
       </TableCell>
       <TableCell>
-        <div className="flex flex-row justify-center items-center">
+        <div className="flex flex-row items-center justify-center">
           {purchase.discount ? (
-            <CheckCircledIcon className="text-green-600 stroke-2" />
+            <CheckCircledIcon className="stroke-2 text-green-600" />
           ) : (
-            <Cross1Icon className="text-red-600 stroke-2" />
+            <Cross1Icon className="stroke-2 text-red-600" />
           )}
         </div>
       </TableCell>
@@ -127,7 +127,7 @@ export const Purchases = () => {
   // Render the component
   return (
     <div>
-      <Card className="w-[800px] mx-auto my-[5vh]">
+      <Card className="mx-auto my-[5vh] w-[800px]">
         <CardHeader className="px-7">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
