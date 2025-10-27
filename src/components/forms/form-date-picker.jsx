@@ -1,81 +1,24 @@
-import { Calendar } from '@/components/ui/calendar';
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { cn } from '@/lib/utils';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { bg } from 'date-fns/locale';
-import { CalendarIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Controller } from 'react-hook-form';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
+import { DatePicker } from '@/components/ui/date-picker';
 
-const customBg = {
-  ...bg,
-  localize: {
-    ...bg.localize,
-    month: (n) => {
-      const month = bg.localize.month(n);
-      return month.charAt(0).toUpperCase() + month.slice(1);
-    },
-  },
-};
-
-const FormDatePicker = ({
-  containerClassName,
-  form,
-  label,
-  fieldName,
-  placeholder,
-}) => {
+const FormDatePicker = ({ form, label, fieldName, ...props }) => {
   return (
-    <FormField
+    <Controller
       control={form.control}
       name={fieldName}
-      render={({ field }) => (
-        <FormItem className={cn('flex flex-col', containerClassName)}>
-          <FormLabel>{label}</FormLabel>
-          <Popover>
-            <PopoverTrigger asChild>
-              <FormControl>
-                <Button
-                  variant={'outline'}
-                  className={cn(
-                    'w-[80%] pl-3 text-left font-normal',
-                    !field.value && 'text-muted-foreground'
-                  )}
-                >
-                  {field.value ? (
-                    format(field.value, 'dd MMM yyyy', { locale: customBg })
-                  ) : (
-                    <span>{placeholder}</span>
-                  )}
-                  <CalendarIcon className="ml-4 h-4 w-4 opacity-50" />
-                </Button>
-              </FormControl>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                locale={customBg}
-                selected={field.value}
-                onSelect={field.onChange}
-                disabled={(date) =>
-                  date > new Date() || date < new Date('1900-01-01')
-                }
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          <FormMessage />
-        </FormItem>
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid} orientation="vertical">
+          <FieldLabel htmlFor={fieldName} className="pl-1">
+            {label}
+          </FieldLabel>
+          <DatePicker
+            onSelect={field.onChange}
+            isInvalid={fieldState.invalid}
+            {...props}
+          />
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
       )}
     />
   );

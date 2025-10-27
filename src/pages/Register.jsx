@@ -111,11 +111,11 @@ export const Register = () => {
               autoComplete="username"
             />
             <PasswordInput
+              form={form}
               inputProps={{
                 label: 'Парола',
                 fieldName: 'password',
               }}
-              confirmation={true}
               confirmationInputProps={{
                 label: 'Потвърдете паролата',
                 fieldName: 'passwordConfirmation',

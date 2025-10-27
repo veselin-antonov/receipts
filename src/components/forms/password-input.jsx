@@ -1,82 +1,76 @@
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { EyeIcon, EyeOffIcon } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { Controller } from 'react-hook-form';
 
 const PasswordField = ({
+  form,
   containerClassName,
   label,
   fieldName,
   hidden,
   toggleVisibility,
 }) => {
-  const form = useFormContext();
-
   return (
-    <FormField
+    <Controller
       control={form.control}
       name={fieldName}
-      render={({ field }) => (
-        <FormItem className={containerClassName}>
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <div className="relative">
-              <Input
-                {...field}
-                onChange={field.onChange}
-                type={hidden ? 'password' : 'text'}
-              />
-              <div
-                className="absolute right-4 top-2.5"
-                onClick={toggleVisibility}
-              >
-                {hidden ? (
-                  <EyeOffIcon size={'1.2rem'} />
-                ) : (
-                  <EyeIcon size={'1.2rem'} />
-                )}
-              </div>
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid} className={containerClassName}>
+          <FieldLabel htmlFor={fieldName} className="pl-1">
+            {label}
+          </FieldLabel>
+          <div className="relative">
+            <Input
+              onChange={field.onChange}
+              type={hidden ? 'password' : 'text'}
+              aria-invalid={fieldState.invalid}
+              {...field}
+            />
+            <div
+              className="absolute right-4 top-2.5"
+              onClick={toggleVisibility}
+            >
+              {hidden ? (
+                <EyeOffIcon size={'1.2rem'} />
+              ) : (
+                <EyeIcon size={'1.2rem'} />
+              )}
             </div>
-          </FormControl>
-          <FormMessage />
-        </FormItem>
+          </div>
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
       )}
     />
   );
 };
 
-const PasswordInput = ({
-  inputProps,
-  confirmation = false,
-  confirmationInputProps,
-}) => {
+const PasswordInput = ({ form, inputProps, confirmationInputProps }) => {
   const [hidden, setHidden] = useState(true);
 
   const toggleVisibility = useCallback(() => setHidden(!hidden), [hidden]);
 
   inputProps = {
-    ...inputProps,
+    form,
     hidden: hidden,
     toggleVisibility: toggleVisibility,
+    ...inputProps,
   };
 
-  confirmationInputProps = {
-    ...confirmationInputProps,
-    hidden: hidden,
-    toggleVisibility: toggleVisibility,
-  };
+  confirmationInputProps = confirmationInputProps
+    ? {
+        form,
+        hidden: hidden,
+        toggleVisibility: toggleVisibility,
+        ...confirmationInputProps,
+      }
+    : null;
 
   return (
     <>
       <PasswordField {...inputProps} />
-      {confirmation && <PasswordField {...confirmationInputProps} />}
+      {confirmationInputProps && <PasswordField {...confirmationInputProps} />}
     </>
   );
 };

@@ -18,6 +18,7 @@ const PageSelector = ({ pagesCount, currentPage, onClick }) => {
   paginationItems.push(
     <PaginationItem key={1}>
       <PaginationLink
+        className={'cursor-pointer'}
         isActive={currentPage === 1}
         onClick={() => {
           if (1 != currentPage) {
@@ -31,19 +32,27 @@ const PageSelector = ({ pagesCount, currentPage, onClick }) => {
   );
 
   // Conditional ellipsis after the first page
-  if (currentPage > 3) {
+  if (currentPage >= 5) {
     paginationItems.push(<PaginationEllipsis key="ellipsis1" />);
   }
 
   // Calculate the range of pages to display around the current page
-  const startPage = Math.max(currentPage - 1, 2); // Start from the second page
-  const endPage = Math.min(currentPage + 1, pagesCount - 1); // Up to the second last page
+  const startPage = Math.max(
+    currentPage - (currentPage < 5 || currentPage > pagesCount - 4 ? 4 : 1),
+    2
+  ); // Start from the second page
+  const endPage = Math.min(
+    currentPage +
+      (currentPage < 5 || currentPage > pagesCount - 4 ? 5 - currentPage : 1),
+    pagesCount - 1
+  ); // Up to the second last page
 
   // Generate pagination items for the range
   for (let page = startPage; page <= endPage; page++) {
     paginationItems.push(
       <PaginationItem key={page}>
         <PaginationLink
+          className={'cursor-pointer'}
           isActive={currentPage === page}
           onClick={() => {
             if (page != currentPage) {
@@ -58,7 +67,7 @@ const PageSelector = ({ pagesCount, currentPage, onClick }) => {
   }
 
   // Conditional ellipsis before the last page
-  if (currentPage < pagesCount - 2) {
+  if (currentPage <= pagesCount - 5) {
     paginationItems.push(<PaginationEllipsis key="ellipsis2" />);
   }
 
@@ -67,6 +76,7 @@ const PageSelector = ({ pagesCount, currentPage, onClick }) => {
     paginationItems.push(
       <PaginationItem key={pagesCount}>
         <PaginationLink
+          className={'cursor-pointer'}
           isActive={currentPage === pagesCount}
           onClick={() => onClick(pagesCount)}
         >
@@ -81,6 +91,7 @@ const PageSelector = ({ pagesCount, currentPage, onClick }) => {
       <PaginationContent>
         <PaginationItem key="previous">
           <PaginationPrevious
+            className={'cursor-pointer'}
             disabled={currentPage === 1}
             onClick={() => {
               if (currentPage > 1) {
@@ -92,6 +103,7 @@ const PageSelector = ({ pagesCount, currentPage, onClick }) => {
         {paginationItems}
         <PaginationItem key="next">
           <PaginationNext
+            className={'cursor-pointer'}
             disabled={currentPage === pagesCount}
             onClick={() => {
               if (currentPage < pagesCount) {

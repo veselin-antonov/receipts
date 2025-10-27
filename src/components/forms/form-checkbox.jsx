@@ -1,42 +1,27 @@
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { cn } from '@/lib/utils';
+import { Controller } from 'react-hook-form';
 
-const FormCheckbox = ({
-  form,
-  label,
-  fieldName,
-  containerClassName,
-  ...props
-}) => {
+const FormCheckbox = ({ form, label, fieldName, ...props }) => {
   return (
-    <FormField
+    <Controller
       control={form.control}
       name={fieldName}
-      render={({ field }) => (
-        <FormItem
-          className={cn(
-            'flex flex-row items-center space-x-3 space-y-0 py-4',
-            containerClassName
+      render={({ field, fieldState }) => (
+        <Field orientation="horizontal" data-invalid={fieldState.invalid}>
+          <Checkbox
+            checked={field.value}
+            onCheckedChange={field.onChange}
+            aria-invalid={fieldState.invalid}
+            {...field}
+            {...props}
+          />
+          <FieldLabel htmlFor={fieldName}>{label}</FieldLabel>
+          {fieldState.invalid && (
+            <FieldError>{fieldState.error.message}</FieldError>
           )}
-        >
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <Checkbox
-              {...field}
-              {...props}
-              checked={field.value}
-              onCheckedChange={field.onChange}
-            />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
+        </Field>
       )}
     />
   );

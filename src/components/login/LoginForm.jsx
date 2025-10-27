@@ -106,8 +106,14 @@ const LoginForm = () => {
         </Alert>
       )}
       <form onSubmit={onSubmit} className="grid gap-4">
-        <FormInput label="Имейл" fieldName="email" autoComplete="username" />
+        <FormInput
+          form={form}
+          label="Имейл"
+          fieldName="email"
+          autoComplete="username"
+        />
         <PasswordInput
+          form={form}
           inputProps={{
             label: 'Парола',
             fieldName: 'password',

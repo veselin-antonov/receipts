@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import PageSelector from '@/components/ui/page-selector';
-import StoreIcon from '@/components/ui/store-icon';
+import Icon from '@/components/ui/store-icon';
 import {
   Table,
   TableBody,
@@ -26,6 +26,7 @@ import {
 import { Search } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { Spinner } from '@/components/ui/spinner';
 
 const toTableRow = (purchase) => {
   return (
@@ -39,7 +40,7 @@ const toTableRow = (purchase) => {
       <TableCell>{purchase.price}</TableCell>
       <TableCell>
         <div className="flex flex-row items-center gap-2">
-          <StoreIcon iconId={purchase.store.iconID} /> {purchase.store.name}
+          <Icon iconId={purchase.store.iconID} /> {purchase.store.name}
         </div>
       </TableCell>
       <TableCell>
@@ -62,6 +63,7 @@ export const Purchases = () => {
   // Define state
   const [searchQuery, setSearchQuery] = useState('');
   const [purchasesPage, setPurchasesPages] = useState();
+  const [isLoading, setIsLoading] = useState(true);
 
   // Use the authentication context
   const { isAuthenticated, fetchAuthStatus } = useAuth();
@@ -71,6 +73,7 @@ export const Purchases = () => {
   // Fetch purchases from API
   const fetchPurchases = useCallback(
     async (pageNumber = 0, pageSize = 0, searchQuery = '') => {
+      setIsLoading(true);
       if (!isAuthenticated()) {
         console.log('Cannot fetch purchases. User is not authenticated.');
         navigate('/login');
@@ -94,6 +97,8 @@ export const Purchases = () => {
         setPurchasesPages(jsonData);
         console.log('Fetched purchases:', jsonData);
       }
+
+      setIsLoading(false);
     },
     [isAuthenticated, fetchAuthStatus, navigate]
   );
@@ -127,7 +132,7 @@ export const Purchases = () => {
   // Render the component
   return (
     <div>
-      <Card className="mx-auto my-[5vh] w-[800px]">
+      <Card className="mx-auto my-[5vh] flex min-h-[90vh] w-[800px] flex-col justify-between">
         <CardHeader className="px-7">
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -148,29 +153,35 @@ export const Purchases = () => {
             handlePurchaseCreation={handlePurchaseCreation}
           />
         </CardHeader>
-        <CardContent className="text-nowrap">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50%]">Продукт</TableHead>
-                <TableHead className="w-[10%]">Сума</TableHead>
-                <TableHead className="w-[20%]">Магазин</TableHead>
-                <TableHead className="w-[5%] text-center">Намаление</TableHead>
-                <TableHead className="w-[15%]">Дата</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {purchasesPage && purchasesPage.contents?.length ? (
-                purchasesPage.contents.map(toTableRow)
-              ) : (
+        <CardContent className="flex-grow text-nowrap">
+          {isLoading ? (
+            <Spinner className={'size-20 stroke-primary stroke-1'} />
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell className="h-24 text-center" colSpan="5">
-                    Няма намерени покупки.
-                  </TableCell>
+                  <TableHead className="w-[50%]">Продукт</TableHead>
+                  <TableHead className="w-[10%]">Сума</TableHead>
+                  <TableHead className="w-[20%]">Магазин</TableHead>
+                  <TableHead className="w-[5%] text-center">
+                    Намаление
+                  </TableHead>
+                  <TableHead className="w-[15%]">Дата</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {purchasesPage && purchasesPage.contents?.length ? (
+                  purchasesPage.contents.map(toTableRow)
+                ) : (
+                  <TableRow>
+                    <TableCell className="h-24 text-center" colSpan="5">
+                      Няма намерени покупки.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
         {purchasesPage && purchasesPage.totalPages > 0 && (
           <CardFooter>

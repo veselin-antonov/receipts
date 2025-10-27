@@ -1,24 +1,10 @@
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { useAuth } from '@/components/auth/AuthContext';
 import FormAutocomplete from '@/components/forms/form-autocomplete';
 import FormCheckbox from '@/components/forms/form-checkbox';
+import FormCombobox from '@/components/forms/form-combobox';
 import FormDatePicker from '@/components/forms/form-date-picker';
 import FormInput from '@/components/forms/form-input';
 import { Button } from '@/components/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
 import {
   Dialog,
   DialogClose,
@@ -28,39 +14,96 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import StoreIcon from '@/components/ui/store-icon';
-import { API_URL, cn } from '@/lib/utils';
+import { FieldGroup } from '@/components/ui/field';
+import { API_URL } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CaretSortIcon, CheckIcon, Cross2Icon } from '@radix-ui/react-icons';
-import { PlusIcon } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Cross2Icon } from '@radix-ui/react-icons';
+import { bg } from 'date-fns/locale';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { useAuth } from '@/components/auth/AuthContext';
 
 const priceRegex = new RegExp('^\\d*[.,]?\\d{0,2}$');
 
+// Custom error map for Bulgarian messages
+const customErrorMap = (issue, ctx) => {
+  if (issue.path.includes('date')) {
+    if (issue.code === 'invalid_type') {
+      return {
+        message:
+          issue.received === 'undefined'
+            ? 'Датата е задължителна.'
+            : 'Невалидна дата.',
+      };
+    }
+  }
+  return { message: ctx.defaultError };
+};
+
+const customBgLocale = {
+  ...bg,
+  localize: {
+    ...bg.localize,
+    month: (n) => {
+      const month = bg.localize.month(n);
+      return month.charAt(0).toUpperCase() + month.slice(1);
+    },
+  },
+};
+
 const formSchema = z.object({
-  product: z.string().min(1, '').max(50),
-  price: z.string().min(1, '').regex(priceRegex, 'Невалидна сума!'),
-  store: z.string().min(1, ''),
+  // The name of the product
+  product: z
+    .string({
+      error: (iss) =>
+        iss.input === undefined
+          ? 'Продуктът е задължителен.'
+          : 'Невалидно име.',
+    })
+    .min(1, 'Продуктът е задължителен.')
+    .max(50),
+  // The price of the product
+  price: z
+    .string({
+      error: (iss) =>
+        iss.input === undefined ? 'Цената е задължителна.' : 'Невалидна сума!',
+    })
+    .min(1, 'Цената е задължителна.')
+    .regex(priceRegex, 'Невалидна сума!'),
+  // The store where the product was purchased
+  store: z
+    .string({
+      error: (iss) =>
+        iss.input === undefined
+          ? 'Магазинът е задължителен.'
+          : 'Невалиден магазин.',
+    })
+    .min(1, 'Магазинът е задължителен.'),
+  // Whether the product was on discount
   discount: z.boolean().optional(),
-  date: z.date({ message: '' }),
+  // The date of purchase
+  date: z.date('Датата е задължителна.'),
 });
 
-const productToOption = (form, p) => {
+const productToOption = (setFormValue, p) => {
   const option = {
     value: p.name,
     label: p.name,
     key: p.id,
-    onSelect: () => form.setValue('product', p.name),
+    onSelect: () => setFormValue('product', p.name),
   };
 
+  return option;
+};
+
+const storeToOption = (setFormValue, s) => {
+  const option = {
+    value: s.name,
+    label: s.name,
+    iconID: s.iconID,
+    key: s.id,
+    onSelect: () => setFormValue('store', s.name),
+  };
   return option;
 };
 
@@ -79,22 +122,22 @@ const FormDialog = ({
   const { isAuthenticated } = useAuth();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [showNewStoreInput, setShowNewStoreInput] = useState(false);
-
-  const newStoreInputRef = useRef(null);
 
   const form = useForm({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema, {
+      errorMap: customErrorMap,
+    }),
     defaultValues: {
       product: '',
       price: '',
       discount: false,
-      date: '',
       store: '',
+      date: '',
     },
     reValidateMode: 'onChange',
   });
-  const { trigger, getFieldState } = form;
+
+  const { setValue: setFormValue } = form;
 
   const [stores, setStores] = useState([]);
 
@@ -133,7 +176,7 @@ const FormDialog = ({
     fetchProducts();
   }, [fetchProducts]);
 
-  async function onSubmit(values) {
+  async function handleSubmit(values) {
     const date = String(values.date.getDate()).padStart(2, '0');
     const month = String(values.date.getMonth() + 1).padStart(2, '0');
     const year = String(values.date.getFullYear());
@@ -167,148 +210,51 @@ const FormDialog = ({
       <DialogTrigger asChild>
         <Button>{buttonLabel}</Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] sm:max-w-[700px]">
+      <DialogContent className="max-h-[60vh] sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>{dialogueTitle}</DialogTitle>
           <DialogDescription>{dialogDescription}</DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="grid grid-cols-3 gap-8"
-          >
+        <form id="purchase-form" onSubmit={form.handleSubmit(handleSubmit)}>
+          <FieldGroup className="grid grid-cols-3 gap-8">
             <FormAutocomplete
               form={form}
+              fieldName="product"
               label="Продукт"
               placeholder="Име на продукта"
-              fieldName="product"
-              options={products.map((p) => productToOption(form, p))}
-              mandatory={true}
+              options={products.map((p) => productToOption(setFormValue, p))}
             />
             <FormInput
               form={form}
               label="Сума"
               fieldName={'price'}
               placeholder={'Сума на покупка'}
-              mandatory={true}
               parseInput={(input, currentValue) => {
                 return priceRegex.test(input) ? input : currentValue;
               }}
             />
-            <div>
-              <FormField
-                control={form.control}
-                name="store"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel mandatory={true}>Магазин</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              'w-full justify-between',
-                              (!field.value || showNewStoreInput) &&
-                                'text-muted-foreground',
-                              getFieldState('store').error &&
-                                'border-destructive'
-                            )}
-                          >
-                            <div className="flex flex-row gap-2">
-                              {field.value && !showNewStoreInput && (
-                                <StoreIcon
-                                  iconId={
-                                    stores.find((s) => s.name === field.value)
-                                      ?.iconID
-                                  }
-                                />
-                              )}
-                              {!showNewStoreInput && field.value
-                                ? field.value
-                                : 'Избери магазин'}
-                            </div>
-                            <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[200px] p-0">
-                        <Command>
-                          <CommandInput
-                            placeholder="Търсене..."
-                            className="h-9"
-                          />
-                          <CommandEmpty>No framework found.</CommandEmpty>
-                          <CommandList>
-                            <CommandGroup>
-                              <Button
-                                variant="ghost"
-                                type="button"
-                                onClick={() => {
-                                  field.onChange('');
-                                  setShowNewStoreInput(true);
-                                  setTimeout(
-                                    () => newStoreInputRef.current.focus(),
-                                    100
-                                  );
-                                }}
-                                className="my-1 w-full justify-center text-sm font-normal"
-                              >
-                                <PlusIcon
-                                  size={15}
-                                  className="mr-1 text-primary"
-                                />
-                                Add new
-                              </Button>
-                              {stores.map((store) => (
-                                <CommandItem
-                                  value={store.name}
-                                  key={store.id}
-                                  onSelect={() => {
-                                    form.setValue('store', store.name);
-                                    trigger('store');
-                                    setShowNewStoreInput(false);
-                                  }}
-                                >
-                                  <div className="flex flex-row gap-2">
-                                    <StoreIcon iconId={store.iconID} />
-                                    {store.name || 'Изберете магазин'}
-                                  </div>
-                                  <CheckIcon
-                                    className={cn(
-                                      'ml-auto h-4 w-4',
-                                      store.name === field.value
-                                        ? 'opacity-100'
-                                        : 'opacity-0'
-                                    )}
-                                  />
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    {!showNewStoreInput && <FormMessage />}
-                  </FormItem>
-                )}
-              />
-              {showNewStoreInput && (
-                <FormInput
-                  form={form}
-                  fieldName="store"
-                  placeholder="Име на магазин"
-                  containerClassName="mt-3"
-                  ref={newStoreInputRef}
-                />
-              )}
-            </div>
+            <FormCombobox
+              form={form}
+              label="Магазин"
+              fieldName="store"
+              placeholder="Изберете магазин"
+              searchPlaceholder="Търси..."
+              newOptionLabel="Добави нов магазин"
+              noResultsMessage="Няма намерени резултати"
+              options={stores.map((s) => storeToOption(setFormValue, s))}
+            />
             <FormDatePicker
               form={form}
               fieldName="date"
               label="Дата на покупката"
               placeholder={'Изберете дата'}
+              locale={customBgLocale}
+              mode="single"
+              disabled={(date) =>
+                date > new Date() || date < new Date('1900-01-01')
+              }
+              format="dd MMM yyyy"
+              formatOptions={{ locale: customBgLocale }}
             />
             <FormCheckbox form={form} fieldName="discount" label="Намаление" />
             <Button type="submit" className="col-span-1 col-start-2">
@@ -318,8 +264,8 @@ const FormDialog = ({
               <Cross2Icon className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </DialogClose>
-          </form>
-        </Form>
+          </FieldGroup>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -1,56 +1,38 @@
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { forwardRef } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { Controller } from 'react-hook-form';
 
-const FormInput = forwardRef(
-  (
-    { containerClassName, label, fieldName, parseInput, mandatory, ...props },
-    ref
-  ) => {
-    const form = useFormContext();
-    const { getFieldState } = form;
+const FormInput = ({ form, label, fieldName, parseInput, ...props }) => {
+  const { control } = form;
 
-    const hasError = getFieldState(fieldName).error;
+  const handleChange = (e, field) => {
+    let input = e.target.value;
+    if (parseInput) {
+      input = parseInput(input, field.value);
+    }
+    field.onChange(input);
+  };
 
-    return (
-      <FormField
-        control={form.control}
-        name={fieldName}
-        render={({ field }) => (
-          <FormItem className={containerClassName}>
-            <FormLabel mandatory={mandatory}>{label}</FormLabel>
-            <FormControl>
-              <Input
-                {...field}
-                {...props}
-                className={
-                  hasError
-                    ? 'border-destructive focus-visible:ring-destructive'
-                    : ''
-                }
-                ref={ref}
-                onChange={(e) => {
-                  let input = e.target.value;
-                  if (parseInput) {
-                    input = parseInput(input, field.value);
-                  }
-                  field.onChange(input);
-                }}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-    );
-  }
-);
+  return (
+    <Controller
+      name={fieldName}
+      control={control}
+      render={({ field, fieldState }) => (
+        <Field data-invalid={fieldState.invalid}>
+          <FieldLabel htmlFor={field.name} className="pl-1">
+            {label}
+          </FieldLabel>
+          <Input
+            {...field}
+            onChange={(e) => handleChange(e, field)}
+            aria-invalid={fieldState.invalid}
+            {...props}
+          />
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+        </Field>
+      )}
+    />
+  );
+};
 FormInput.displayName = 'FormInput';
 export default FormInput;
