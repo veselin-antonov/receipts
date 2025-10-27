@@ -25,21 +25,6 @@ import { z } from 'zod';
 
 const priceRegex = new RegExp('^\\d*[.,]?\\d{0,2}$');
 
-// Custom error map for Bulgarian messages
-const customErrorMap = (issue, ctx) => {
-  if (issue.path.includes('date')) {
-    if (issue.code === 'invalid_type') {
-      return {
-        message:
-          issue.received === 'undefined'
-            ? 'Датата е задължителна.'
-            : 'Невалидна дата.',
-      };
-    }
-  }
-  return { message: ctx.defaultError };
-};
-
 const customBgLocale = {
   ...bg,
   localize: {
@@ -124,9 +109,7 @@ const FormDialog = ({
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const form = useForm({
-    resolver: zodResolver(formSchema, {
-      errorMap: customErrorMap,
-    }),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       product: '',
       price: '',

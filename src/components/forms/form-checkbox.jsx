@@ -1,6 +1,5 @@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
-import { cn } from '@/lib/utils';
 import { Controller } from 'react-hook-form';
 
 const FormCheckbox = ({ form, label, fieldName, ...props }) => {
@@ -11,7 +10,7 @@ const FormCheckbox = ({ form, label, fieldName, ...props }) => {
       render={({ field, fieldState }) => (
         <Field orientation="horizontal" data-invalid={fieldState.invalid}>
           <Checkbox
-            checked={field.value}
+            checked={!!field.value}
             onCheckedChange={field.onChange}
             aria-invalid={fieldState.invalid}
             {...field}

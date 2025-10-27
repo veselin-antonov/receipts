@@ -14,6 +14,7 @@ const FormDatePicker = ({ form, label, fieldName, ...props }) => {
           </FieldLabel>
           <DatePicker
             onSelect={field.onChange}
+            value={field.value}
             isInvalid={fieldState.invalid}
             {...props}
           />

@@ -23,7 +23,6 @@ const PasswordField = ({
           </FieldLabel>
           <div className="relative">
             <Input
-              onChange={field.onChange}
               type={hidden ? 'password' : 'text'}
               aria-invalid={fieldState.invalid}
               {...field}

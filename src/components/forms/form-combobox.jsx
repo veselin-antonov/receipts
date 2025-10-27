@@ -97,6 +97,7 @@ const FormCombobox = ({
                         variant="ghost"
                         type="button"
                         onClick={() => {
+                          setValue(field.name, '');
                           setShowNewOptionInput(true);
                           setTimeout(
                             () => newOptionInputRef.current.focus(),
@@ -142,7 +143,7 @@ const FormCombobox = ({
                 form={form}
                 fieldName={fieldName}
                 placeholder={placeholder}
-                aria-invalid={fieldState.invalid}
+                ref={newOptionInputRef}
               />
             )}
             {!showNewOptionInput && fieldState.invalid && (
