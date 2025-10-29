@@ -37,7 +37,7 @@ const VerifyAccount = () => {
   }, [queryString, navigate, verifyAccount]);
 
   return (
-    <Card className="mx-auto my-10 w-[90%] min-w-[400px] max-w-[600px] px-12 py-5 sm:mt-24">
+    <Card className="mx-auto my-10 w-[90%] max-w-[600px] min-w-[400px] px-12 py-5 sm:mt-24">
       <CardHeader>
         <CardTitle className="text-center">
           {verificationStatus === 'PENDING' && (

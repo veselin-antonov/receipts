@@ -1,37 +1,35 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import React from 'react';
 import { Link } from 'react-router';
-import { Separator } from '@/components/ui/separator';
 import LoginForm from '@/components/login/LoginForm';
 
 export const Login = React.memo(() => {
   console.log('Rendering login page');
 
   return (
-    <div>
-      <Card className="mx-auto mt-24 w-[90%] min-w-[400px] max-w-[600px] px-12 py-5">
-        <CardHeader className="items-center gap-1">
+    <div className="flex min-h-svh w-full items-center justify-center">
+      <Card className="w-[60%] max-w-[600px] min-w-[400px]">
+        <CardHeader className="place-items-center gap-1 p-6">
           <img src="logo.svg" alt="logo-image" className="w-12" />
           <CardTitle className="text-3xl font-semibold">Влизане</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex w-full justify-center">
           <LoginForm />
-          <div className="mt-4 flex items-center justify-center gap-5">
-            <div>
-              {/* <Link to='/forgot-password' className='text-primary'>
-                Забравена парола?
-              </Link> */}
-              <span className="text-border">Забравена парола?</span>
-            </div>
-            <Separator orientation="vertical" className="h-6 w-[2px]" />
-            <div>
-              Нямате акаунт?{' '}
-              <Link to="/register" className="text-primary">
-                Регистрирайте се
-              </Link>
-            </div>
-          </div>
         </CardContent>
+        <CardFooter className="mt-4 flex h-4 flex-row items-center justify-center gap-2">
+          <div>
+            Нямате акаунт?{' '}
+            <Link to="/register" className="text-primary">
+              Регистрирайте се
+            </Link>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   );

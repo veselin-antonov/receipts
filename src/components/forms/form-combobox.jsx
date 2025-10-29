@@ -84,7 +84,7 @@ const FormCombobox = ({
                   <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[200px] p-0">
+              <PopoverContent className="w-[200px] p-0" modal={true}>
                 <Command>
                   <CommandInput
                     placeholder={searchPlaceholder}
@@ -106,7 +106,7 @@ const FormCombobox = ({
                         }}
                         className="my-1 w-full justify-center text-sm font-normal"
                       >
-                        <PlusIcon size={15} className="mr-1 text-primary" />
+                        <PlusIcon size={15} className="text-primary mr-1" />
                         Добави
                       </Button>
                       {options.map((option) => (

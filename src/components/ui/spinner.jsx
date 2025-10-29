@@ -17,7 +17,7 @@ function Spinner({ className, ...props }) {
   return (
     <div className="flex items-center justify-center py-10">
       <SpinnerPrimitive
-        className={cn('size-20 stroke-primary stroke-1', className)}
+        className={cn('stroke-primary size-20 stroke-1', className)}
         {...props}
       />
     </div>

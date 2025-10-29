@@ -90,11 +90,14 @@ const Autocomplete = ({
   return (
     <div className="flex-row space-y-2">
       {label && <Label className="pl-1">{label}</Label>}
-      <Command shouldFilter={false} className="relative overflow-visible">
+      <Command
+        shouldFilter={false}
+        className="relative overflow-visible bg-transparent"
+      >
         <CommandInputClean
           {...props}
           ref={inputRef}
-          className="flex h-9 w-full rounded-md border border-input px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          className="border-input placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
           onValueChange={(input) => handleInput(input)}
           value={search}
           placeholder={placeholder}
@@ -105,7 +108,7 @@ const Autocomplete = ({
           <div
             ref={documentRef}
             className={cn(
-              'relative z-10 w-full overflow-visible rounded-lg border border-input bg-background animate-in fade-in-0 zoom-in-95',
+              'border-input bg-background animate-in fade-in-0 zoom-in-95 relative z-10 w-full overflow-hidden rounded-lg border',
               showOptions && filteredOptions.length > 0 ? 'block' : 'hidden'
             )}
             onMouseDown={(e) => e.preventDefault()}

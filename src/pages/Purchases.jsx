@@ -131,11 +131,11 @@ export const Purchases = () => {
 
   // Render the component
   return (
-    <div>
-      <Card className="mx-auto my-[5vh] flex min-h-[90vh] w-[800px] flex-col justify-between">
+    <div className="flex min-h-svh w-full items-center justify-center">
+      <Card className="flex w-[800px] flex-col justify-between">
         <CardHeader className="px-7">
           <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
             <Input
               type="search"
               placeholder="Търсене..."
@@ -153,9 +153,9 @@ export const Purchases = () => {
             handlePurchaseCreation={handlePurchaseCreation}
           />
         </CardHeader>
-        <CardContent className="flex-grow text-nowrap">
+        <CardContent className="grow text-nowrap">
           {isLoading ? (
-            <Spinner className={'size-20 stroke-primary stroke-1'} />
+            <Spinner className={'stroke-primary size-20 stroke-1'} />
           ) : (
             <Table>
               <TableHeader>

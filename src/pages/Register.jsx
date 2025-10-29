@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import { Form } from '@/components/ui/form';
 import FormInput from '@/components/forms/form-input';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
@@ -8,7 +7,13 @@ import { z } from 'zod';
 import { Link } from 'react-router';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { API_URL } from '@/lib/utils';
 import PasswordInput from '@/components/forms/password-input';
 
@@ -28,6 +33,7 @@ export const Register = () => {
       password: '',
       passwordConfirmation: '',
     },
+    reValidateMode: 'onChange',
   });
 
   const onSubmit = (data) => {
@@ -97,64 +103,65 @@ export const Register = () => {
     }
 
     return (
-      <>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-            {form.formState.errors.root && (
-              <div className="text-center text-sm text-destructive">
-                {form.formState.errors.root.message}
-              </div>
-            )}
-            <FormInput
-              label="Имейл"
-              fieldName="email"
-              autoComplete="username"
-            />
-            <PasswordInput
-              form={form}
-              inputProps={{
-                label: 'Парола',
-                fieldName: 'password',
-              }}
-              confirmationInputProps={{
-                label: 'Потвърдете паролата',
-                fieldName: 'passwordConfirmation',
-              }}
-            />
-            <Button
-              type="submit"
-              className="text-lg"
-              disabled={registrationStatus === 'PENDING'}
-            >
-              {registrationStatus === 'PENDING' ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                'Регистриране'
-              )}
-            </Button>
-          </form>
-        </Form>
-        <Separator className="mt-4" />
-        <div className="mt-4 flex items-center justify-center">
-          <span className="text-center">
-            Имате акаунт?{' '}
-            <Link to="/login" className="text-center text-primary">
-              Влезте
-            </Link>
-          </span>
-        </div>
-      </>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="flex w-sm flex-col gap-4"
+      >
+        {form.formState.errors.root && (
+          <div className="text-destructive text-center text-sm">
+            {form.formState.errors.root.message}
+          </div>
+        )}
+        <FormInput
+          form={form}
+          label="Имейл"
+          fieldName="email"
+          autoComplete="username"
+        />
+        <PasswordInput
+          form={form}
+          inputProps={{
+            label: 'Парола',
+            fieldName: 'password',
+          }}
+          confirmationInputProps={{
+            label: 'Потвърдете паролата',
+            fieldName: 'passwordConfirmation',
+          }}
+        />
+        <Button
+          type="submit"
+          className="text-lg"
+          disabled={registrationStatus === 'PENDING'}
+        >
+          {registrationStatus === 'PENDING' ? (
+            <Loader2 className="animate-spin" />
+          ) : (
+            'Регистриране'
+          )}
+        </Button>
+      </form>
     );
   };
 
   return (
-    <div>
-      <Card className="mx-auto my-10 w-[90%] min-w-[400px] max-w-[600px] px-12 py-5 sm:mt-24">
-        <CardHeader className="items-center gap-1">
+    <div className="flex min-h-svh w-full items-center justify-center">
+      <Card className="w-[60%] max-w-[600px] min-w-[400px]">
+        <CardHeader className="place-items-center gap-1 p-6">
           <img src="logo.svg" alt="logo-image" className="w-12" />
           <CardTitle className="text-3xl font-semibold">Регистрация</CardTitle>
         </CardHeader>
-        <CardContent>{renderContent()}</CardContent>
+        <CardContent className="flex w-full justify-center">
+          {renderContent()}
+        </CardContent>
+        <CardFooter className="mt-4 flex items-center justify-center">
+          <span className="text-center">
+            Имате акаунт?{' '}
+            <Link to="/login" className="text-primary text-center">
+              Влезте
+            </Link>
+          </span>
+        </CardFooter>
       </Card>
     </div>
   );

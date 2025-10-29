@@ -82,6 +82,7 @@ const LoginForm = () => {
       email: '',
       password: '',
     },
+    reValidateMode: 'onChange',
   });
 
   const onValidForm = useCallback(
@@ -97,7 +98,7 @@ const LoginForm = () => {
   );
 
   return (
-    <Form {...form}>
+    <form onSubmit={onSubmit} className="flex w-sm flex-col gap-4">
       {loginError && (
         <Alert variant="destructive" className="mb-2 border-2 text-center">
           <AlertDescription className="font-semibold">
@@ -105,29 +106,24 @@ const LoginForm = () => {
           </AlertDescription>
         </Alert>
       )}
-      <form onSubmit={onSubmit} className="grid gap-4">
-        <FormInput
-          form={form}
-          label="Имейл"
-          fieldName="email"
-          autoComplete="username"
-        />
-        <PasswordInput
-          form={form}
-          inputProps={{
-            label: 'Парола',
-            fieldName: 'password',
-          }}
-        />
-        <Button disabled={isAuthInProgress()} type="submit" className="text-lg">
-          {isAuthInProgress() ? (
-            <Loader2 className="animate-spin" />
-          ) : (
-            'Влизане'
-          )}
-        </Button>
-      </form>
-    </Form>
+      <FormInput
+        form={form}
+        label="Имейл"
+        fieldName="email"
+        autoComplete="username"
+      />
+      <PasswordInput
+        form={form}
+        inputProps={{
+          label: 'Парола',
+          fieldName: 'password',
+          forgotPassword: true,
+        }}
+      />
+      <Button disabled={isAuthInProgress()} type="submit" className="text-lg">
+        {isAuthInProgress() ? <Loader2 className="animate-spin" /> : 'Влизане'}
+      </Button>
+    </form>
   );
 };
 
