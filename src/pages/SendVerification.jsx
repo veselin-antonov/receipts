@@ -1,7 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { API_URL } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { API_URL } from '@/lib/utils';
 
 const SendVerification = () => {
   const [actionStatus, setActionStatus] = useState('PENDING');

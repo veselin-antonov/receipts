@@ -1,3 +1,7 @@
+import React from 'react';
+import { Link } from 'react-router';
+
+import LoginForm from '@/components/login/LoginForm';
 import {
   Card,
   CardContent,
@@ -5,9 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import React from 'react';
-import { Link } from 'react-router';
-import LoginForm from '@/components/login/LoginForm';
 
 export const Login = React.memo(() => {
   console.log('Rendering login page');

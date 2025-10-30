@@ -1,16 +1,16 @@
-import { useAuth, AUTH_STATUS } from '@/components/auth/AuthContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Form } from '@/components/ui/form';
-import FormInput from '@/components/forms/form-input';
-import PasswordInput from '@/components/forms/password-input';
-import { API_URL } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
+
+import { AUTH_STATUS, useAuth } from '@/components/auth/AuthContext';
+import FormInput from '@/components/forms/form-input';
+import PasswordInput from '@/components/forms/password-input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { API_URL } from '@/lib/utils';
 
 const formSchema = z.object({
   email: z.string().min(1, 'Имейлът е задължителен').email('Невалиден имейл'),

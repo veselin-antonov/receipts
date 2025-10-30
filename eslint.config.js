@@ -1,10 +1,11 @@
 import js from '@eslint/js';
-import globals from 'globals';
+import prettierConfig from 'eslint-config-prettier';
+import prettier from 'eslint-plugin-prettier';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
-import prettier from 'eslint-plugin-prettier';
-import prettierConfig from 'eslint-config-prettier';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
+import globals from 'globals';
 
 export default [
   { ignores: ['dist', 'node_modules', '*.config.js', 'public'] },
@@ -25,6 +26,7 @@ export default [
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
       prettier,
+      'simple-import-sort': simpleImportSort,
     },
     rules: {
       ...js.configs.recommended.rules,
@@ -40,6 +42,8 @@ export default [
       ],
       'react/prop-types': 'off', // Since you're using Zod for validation
       'react/display-name': 'warn', // Warn instead of error
+      'simple-import-sort/imports': 'warn',
+      'simple-import-sort/exports': 'warn',
     },
   },
   // Config files (CommonJS)

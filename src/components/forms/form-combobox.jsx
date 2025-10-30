@@ -1,3 +1,8 @@
+import { CaretSortIcon } from '@radix-ui/react-icons';
+import { CheckIcon, PlusIcon } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Controller } from 'react-hook-form';
+
 import FormInput from '@/components/forms/form-input';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,10 +21,6 @@ import {
 } from '@/components/ui/popover';
 import StoreIcon from '@/components/ui/store-icon';
 import { cn } from '@/lib/utils';
-import { CaretSortIcon } from '@radix-ui/react-icons';
-import { PlusIcon, CheckIcon } from 'lucide-react';
-import { useRef, useState } from 'react';
-import { Controller } from 'react-hook-form';
 
 const FormCombobox = ({
   form,

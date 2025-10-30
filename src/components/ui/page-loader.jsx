@@ -1,6 +1,7 @@
-import { Dialog, DialogTitle } from '@/components/ui/dialog';
 import { DialogContent } from '@radix-ui/react-dialog';
 import { Loader2 } from 'lucide-react';
+
+import { Dialog, DialogTitle } from '@/components/ui/dialog';
 
 export const PageLoader = () => {
   return (

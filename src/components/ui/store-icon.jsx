@@ -1,5 +1,6 @@
-import imgUrl from '@/assets/store-icons.svg';
 import { Store } from 'lucide-react';
+
+import imgUrl from '@/assets/store-icons.svg';
 
 const StoreIcon = ({ iconId, size = 20 }) => {
   return iconId ? (

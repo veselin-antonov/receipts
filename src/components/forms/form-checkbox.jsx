@@ -1,6 +1,7 @@
+import { Controller } from 'react-hook-form';
+
 import { Checkbox } from '@/components/ui/checkbox';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
-import { Controller } from 'react-hook-form';
 
 const FormCheckbox = ({ form, label, fieldName, ...props }) => {
   return (

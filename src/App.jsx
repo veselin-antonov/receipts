@@ -1,14 +1,15 @@
+import { BrowserRouter, Route, Routes } from 'react-router';
+
+import { AuthProvider } from '@/components/auth/AuthContext';
 import { PrivateRoute } from '@/components/auth/PrivateRoute';
+import { PublicRoute } from '@/components/auth/PublicRoute.jsx';
 import { Login } from '@/pages/Login';
+import { NotVerified } from '@/pages/NotVerified';
 import { Purchases } from '@/pages/Purchases';
 import { Register } from '@/pages/Register';
-import { Root } from '@/pages/Root';
-import { BrowserRouter, Route, Routes } from 'react-router';
-import { PublicRoute } from '@/components/auth/PublicRoute.jsx';
-import VerifyAccount from '@/pages/VerifyAccount';
-import { AuthProvider } from '@/components/auth/AuthContext';
-import { NotVerified } from '@/pages/NotVerified';
+import Root from '@/pages/Root';
 import SendVerification from '@/pages/SendVerification';
+import VerifyAccount from '@/pages/VerifyAccount';
 
 const App = () => {
   return (

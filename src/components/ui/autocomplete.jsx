@@ -1,3 +1,5 @@
+import React, { useCallback, useRef, useState } from 'react';
+
 import {
   Command,
   CommandGroup,
@@ -7,7 +9,6 @@ import {
 } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import React, { useCallback, useRef, useState } from 'react';
 
 /**
  * @typedef {Object} Option

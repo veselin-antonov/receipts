@@ -1,9 +1,10 @@
+import { Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router';
+
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { API_URL, cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router';
 
 const VerifyAccount = () => {
   const { pathname: path, search: queryString } = useLocation();

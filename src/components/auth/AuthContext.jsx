@@ -1,11 +1,12 @@
-import { API_URL } from '@/lib/utils';
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
-  useCallback,
 } from 'react';
+
+import { API_URL } from '@/lib/utils';
 
 const AuthContext = createContext();
 

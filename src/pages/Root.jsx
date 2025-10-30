@@ -1,7 +1,8 @@
-import { useAuth } from '@/components/auth/AuthContext';
 import { Navigate } from 'react-router';
 
-export const Root = () => {
+import { useAuth } from '@/components/auth/AuthContext';
+
+const Root = () => {
   const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated()) {
@@ -12,3 +13,5 @@ export const Root = () => {
     return <Navigate to="/purchases" />;
   }
 };
+
+export default Root;

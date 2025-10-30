@@ -1,12 +1,13 @@
-import { Button } from '@/components/ui/button';
-import FormInput from '@/components/forms/form-input';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { Link } from 'react-router';
-import { Loader2 } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { z } from 'zod';
+
+import FormInput from '@/components/forms/form-input';
+import PasswordInput from '@/components/forms/password-input';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -14,11 +15,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { API_URL } from '@/lib/utils';
-import PasswordInput from '@/components/forms/password-input';
 
 const formSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(1),
   passwordConfirmation: z.string().min(1),
 });
@@ -166,3 +167,5 @@ export const Register = () => {
     </div>
   );
 };
+
+export default Register;

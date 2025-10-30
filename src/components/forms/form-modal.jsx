@@ -1,4 +1,11 @@
-import { useAuth } from '@/components/auth/AuthContext';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Cross2Icon } from '@radix-ui/react-icons';
+import { bg } from 'date-fns/locale';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router';
+import { z } from 'zod';
+
 import FormAutocomplete from '@/components/forms/form-autocomplete';
 import FormCheckbox from '@/components/forms/form-checkbox';
 import FormCombobox from '@/components/forms/form-combobox';
@@ -16,12 +23,6 @@ import {
 } from '@/components/ui/dialog';
 import { FieldGroup } from '@/components/ui/field';
 import { API_URL } from '@/lib/utils';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Cross2Icon } from '@radix-ui/react-icons';
-import { bg } from 'date-fns/locale';
-import { useCallback, useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 
 const priceRegex = new RegExp('^\\d*[.,]?\\d{0,2}$');
 
@@ -70,6 +71,58 @@ const formSchema = z.object({
   date: z.date('Датата е задължителна.'),
 });
 
+const fetchStores = async (onSuccess, onUnauthenticated) => {
+  fetch(`${API_URL}/stores`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  })
+    .then((response) => {
+      if (response.ok) {
+        return response.json();
+      } else if (response.status === 401) {
+        throw new Error('UNAUTHENTICATED');
+      } else {
+        throw new Error('Failed to fetch stores');
+      }
+    })
+    .then((data) => {
+      onSuccess(data);
+    })
+    .catch((e) => {
+      if (e.message === 'UNAUTHENTICATED') {
+        console.log('User is not authenticated. Cannot fetch stores.');
+        onUnauthenticated();
+      } else {
+        console.error('Error fetching stores: ', e);
+      }
+    });
+};
+
+const fetchProducts = async (onSuccess, onUnauthenticated) => {
+  fetch(`${API_URL}/products`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  })
+    .then((response) => {
+      if (response.ok) {
+        return response.json();
+      } else if (response.status === 401) {
+        throw new Error('UNAUTHENTICATED');
+      } else {
+        throw new Error('Failed to fetch products');
+      }
+    })
+    .then((data) => {
+      onSuccess(data);
+    })
+    .catch((e) => {
+      if (e.message === 'UNAUTHENTICATED') {
+        console.log('User is not authenticated. Cannot fetch products.');
+        onUnauthenticated();
+      } else {
+        console.error('Error fetching products: ', e);
+      }
+    });
+};
+
 const productToOption = (setFormValue, p) => {
   const option = {
     value: p.name,
@@ -104,9 +157,11 @@ const FormDialog = ({
   dialogDescription = 'Description',
   handlePurchaseCreation,
 }) => {
-  const { isAuthenticated } = useAuth();
+  const { navigate } = useNavigate();
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [stores, setStores] = useState([]);
+  const [products, setProducts] = useState([]);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -122,42 +177,17 @@ const FormDialog = ({
 
   const { setValue: setFormValue } = form;
 
-  const [stores, setStores] = useState([]);
-
-  const fetchStores = useCallback(async () => {
-    if (!isAuthenticated()) {
-      console.log('Cannot fetch stores. User is not authenticated.');
-      return;
-    }
-
-    const response = await fetch(`${API_URL}/stores`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  useEffect(() => {
+    fetchStores(setStores, () => {
+      navigate('/login');
     });
-    const stores = await response.json();
-    setStores(stores);
-  }, [isAuthenticated]);
+  }, [navigate]);
 
   useEffect(() => {
-    fetchStores();
-  }, [fetchStores]);
-
-  const [products, setProducts] = useState([]);
-
-  const fetchProducts = useCallback(async () => {
-    if (!isAuthenticated()) {
-      console.log('Cannot fetch products. User is not authenticated.');
-      return;
-    }
-    const response = await fetch(`${API_URL}/products`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    fetchProducts(setProducts, () => {
+      navigate('/login');
     });
-    const products = await response.json();
-    setProducts(products);
-  }, [isAuthenticated]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  }, [navigate]);
 
   async function handleSubmit(values) {
     const date = String(values.date.getDate()).padStart(2, '0');
