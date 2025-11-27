@@ -4,10 +4,8 @@ import {
   Cross1Icon,
 } from '@radix-ui/react-icons';
 import { Search } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useCallback } from 'react';
 
-import { useAuth } from '@/components/auth/AuthContext';
 import FormDialog from '@/components/forms/form-modal';
 import {
   Card,
@@ -27,7 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { API_URL } from '@/lib/utils';
+import usePaginatedResource from '@/lib/usePaginatedResource';
 
 const toTableRow = (purchase) => {
   return (
@@ -61,74 +59,19 @@ const toTableRow = (purchase) => {
 export const Purchases = () => {
   console.log('Rendering Purchases component...');
 
-  // Define state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [purchasesPage, setPurchasesPages] = useState();
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Use the authentication context
-  const { isAuthenticated, fetchAuthStatus } = useAuth();
-
-  const navigate = useNavigate();
-
-  // Fetch purchases from API
-  const fetchPurchases = useCallback(
-    async (pageNumber = 0, pageSize = 0, searchQuery = '') => {
-      setIsLoading(true);
-      if (!isAuthenticated()) {
-        console.log('Cannot fetch purchases. User is not authenticated.');
-        navigate('/login');
-      }
-
-      console.log(
-        `Fetching purchases with params: pageNumber=${pageNumber}, pageSize=${pageSize}, searchQuery=${searchQuery}`
-      );
-
-      let url = `${API_URL}/purchases?pageNumber=${pageNumber}&pageSize=${pageSize}&searchQuery=${searchQuery}`;
-
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-
-      if (response.status === 401) {
-        console.log('Authorization problem. Fetching token status...');
-        fetchAuthStatus();
-      } else {
-        const jsonData = await response.json();
-        setPurchasesPages(jsonData);
-        console.log('Fetched purchases:', jsonData);
-      }
-
-      setIsLoading(false);
-    },
-    [isAuthenticated, fetchAuthStatus, navigate]
-  );
-
-  // Effect to run when searchQuery changes
-  useEffect(() => {
-    console.log('effect() function triggered with searchQuery:', searchQuery);
-    let timer = setTimeout(() => {
-      fetchPurchases(0, 10, searchQuery);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [fetchPurchases, searchQuery]);
+  const {
+    data: purchasesPage,
+    isLoading,
+    searchQuery,
+    setSearchQuery,
+    fetchPage,
+  } = usePaginatedResource('purchases', { pageSize: 10, debounceMs: 750 });
 
   // Logic when submitting the purchase register form
-  const handlePurchaseCreation = useCallback(
-    (purchase) => {
-      const currentPurchases = purchasesPage.contents;
-
-      currentPurchases.pop();
-      currentPurchases.unshift(purchase);
-
-      setPurchasesPages({
-        ...purchasesPage,
-        contents: currentPurchases,
-      });
-    },
-    [purchasesPage]
-  );
+  const handlePurchaseCreation = useCallback(() => {
+    // After creating a purchase, fetch the first page to refresh data
+    fetchPage(0);
+  }, [fetchPage]);
 
   // Render the component
   return (
@@ -141,10 +84,8 @@ export const Purchases = () => {
               type="search"
               placeholder="Търсене..."
               className="pl-8"
-              onInput={(e) => {
-                console.log('searchQuery:', e.target.value);
-                setSearchQuery(e.target.value);
-              }}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <FormDialog
@@ -189,7 +130,7 @@ export const Purchases = () => {
             <PageSelector
               currentPage={purchasesPage.pageId + 1}
               pagesCount={purchasesPage.totalPages}
-              onClick={(pageId) => fetchPurchases(pageId - 1, 10, searchQuery)}
+              onClick={(pageId) => fetchPage(pageId - 1)}
             />
           </CardFooter>
         )}

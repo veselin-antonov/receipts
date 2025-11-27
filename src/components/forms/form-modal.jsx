@@ -1,9 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Cross2Icon } from '@radix-ui/react-icons';
 import { bg } from 'date-fns/locale';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router';
 import { z } from 'zod';
 
 import FormAutocomplete from '@/components/forms/form-autocomplete';
@@ -22,6 +21,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { FieldGroup } from '@/components/ui/field';
+import useFetchResource from '@/lib/useFetchResource';
 import { API_URL } from '@/lib/utils';
 
 const priceRegex = new RegExp('^\\d*[.,]?\\d{0,2}$');
@@ -71,79 +71,20 @@ const formSchema = z.object({
   date: z.date('Датата е задължителна.'),
 });
 
-const fetchStores = async (onSuccess, onUnauthenticated) => {
-  fetch(`${API_URL}/stores`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-  })
-    .then((response) => {
-      if (response.ok) {
-        return response.json();
-      } else if (response.status === 401) {
-        throw new Error('UNAUTHENTICATED');
-      } else {
-        throw new Error('Failed to fetch stores');
-      }
-    })
-    .then((data) => {
-      onSuccess(data);
-    })
-    .catch((e) => {
-      if (e.message === 'UNAUTHENTICATED') {
-        console.log('User is not authenticated. Cannot fetch stores.');
-        onUnauthenticated();
-      } else {
-        console.error('Error fetching stores: ', e);
-      }
-    });
-};
+const productToOption = (setFormValue, p) => ({
+  value: p.name,
+  label: p.name,
+  key: p.id,
+  onSelect: () => setFormValue('product', p.name),
+});
 
-const fetchProducts = async (onSuccess, onUnauthenticated) => {
-  fetch(`${API_URL}/products`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-  })
-    .then((response) => {
-      if (response.ok) {
-        return response.json();
-      } else if (response.status === 401) {
-        throw new Error('UNAUTHENTICATED');
-      } else {
-        throw new Error('Failed to fetch products');
-      }
-    })
-    .then((data) => {
-      onSuccess(data);
-    })
-    .catch((e) => {
-      if (e.message === 'UNAUTHENTICATED') {
-        console.log('User is not authenticated. Cannot fetch products.');
-        onUnauthenticated();
-      } else {
-        console.error('Error fetching products: ', e);
-      }
-    });
-};
-
-const productToOption = (setFormValue, p) => {
-  const option = {
-    value: p.name,
-    label: p.name,
-    key: p.id,
-    onSelect: () => setFormValue('product', p.name),
-  };
-
-  return option;
-};
-
-const storeToOption = (setFormValue, s) => {
-  const option = {
-    value: s.name,
-    label: s.name,
-    iconID: s.iconID,
-    key: s.id,
-    onSelect: () => setFormValue('store', s.name),
-  };
-  return option;
-};
+const storeToOption = (setFormValue, s) => ({
+  value: s.name,
+  label: s.name,
+  iconID: s.iconID,
+  key: s.id,
+  onSelect: () => setFormValue('store', s.name),
+});
 
 /** @param {Object} props - The properties for the component.
  * @param {string} [props.buttonLabel='Button'] - The label for the button.
@@ -157,11 +98,17 @@ const FormDialog = ({
   dialogDescription = 'Description',
   handlePurchaseCreation,
 }) => {
-  const { navigate } = useNavigate();
-
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [stores, setStores] = useState([]);
-  const [products, setProducts] = useState([]);
+
+  const { data: stores, isLoading: areStoresLoading } = useFetchResource(
+    'stores',
+    'stores'
+  );
+
+  const { data: products, isLoading: areProductsLoading } = useFetchResource(
+    'products',
+    'products'
+  );
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -176,18 +123,6 @@ const FormDialog = ({
   });
 
   const { setValue: setFormValue } = form;
-
-  useEffect(() => {
-    fetchStores(setStores, () => {
-      navigate('/login');
-    });
-  }, [navigate]);
-
-  useEffect(() => {
-    fetchProducts(setProducts, () => {
-      navigate('/login');
-    });
-  }, [navigate]);
 
   async function handleSubmit(values) {
     const date = String(values.date.getDate()).padStart(2, '0');
@@ -236,6 +171,7 @@ const FormDialog = ({
               label="Продукт"
               placeholder="Име на продукта"
               options={products.map((p) => productToOption(setFormValue, p))}
+              optionsLoading={areProductsLoading}
             />
             <FormInput
               form={form}
@@ -255,6 +191,7 @@ const FormDialog = ({
               newOptionLabel="Добави нов магазин"
               noResultsMessage="Няма намерени резултати"
               options={stores.map((s) => storeToOption(setFormValue, s))}
+              optionsLoading={areStoresLoading}
             />
             <FormDatePicker
               form={form}

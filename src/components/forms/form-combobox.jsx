@@ -19,6 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { Spinner } from '@/components/ui/spinner';
 import StoreIcon from '@/components/ui/store-icon';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +27,7 @@ const FormCombobox = ({
   form,
   fieldName,
   options,
+  optionsLoading,
   label,
   placeholder,
   searchPlaceholder,
@@ -86,57 +88,61 @@ const FormCombobox = ({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[200px] p-0" modal={true}>
-                <Command>
-                  <CommandInput
-                    placeholder={searchPlaceholder}
-                    className="h-9"
-                  />
-                  <CommandEmpty>{noResultsMessage}</CommandEmpty>
-                  <CommandList>
-                    <CommandGroup>
-                      <Button
-                        variant="ghost"
-                        type="button"
-                        onClick={() => {
-                          setValue(field.name, '');
-                          setShowNewOptionInput(true);
-                          setTimeout(
-                            () => newOptionInputRef.current.focus(),
-                            100
-                          );
-                        }}
-                        className="my-1 w-full justify-center text-sm font-normal"
-                      >
-                        <PlusIcon size={15} className="text-primary mr-1" />
-                        Добави
-                      </Button>
-                      {options.map((option) => (
-                        <CommandItem
-                          value={option.value}
-                          key={option.key}
-                          onSelect={() => {
-                            setValue(field.name, option.value);
-                            trigger(field.name);
-                            setShowNewOptionInput(false);
+                {optionsLoading ? (
+                  <Spinner />
+                ) : (
+                  <Command>
+                    <CommandInput
+                      placeholder={searchPlaceholder}
+                      className="h-9"
+                    />
+                    <CommandEmpty>{noResultsMessage}</CommandEmpty>
+                    <CommandList>
+                      <CommandGroup>
+                        <Button
+                          variant="ghost"
+                          type="button"
+                          onClick={() => {
+                            setValue(field.name, '');
+                            setShowNewOptionInput(true);
+                            setTimeout(
+                              () => newOptionInputRef.current.focus(),
+                              100
+                            );
                           }}
+                          className="my-1 w-full justify-center text-sm font-normal"
                         >
-                          <div className="flex flex-row items-center gap-2">
-                            <StoreIcon iconId={option.iconID} />
-                            {option.value || placeholder}
-                          </div>
-                          <CheckIcon
-                            className={cn(
-                              'ml-auto h-4 w-4',
-                              option.value === field.value
-                                ? 'opacity-100'
-                                : 'opacity-0'
-                            )}
-                          />
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
+                          <PlusIcon size={15} className="text-primary mr-1" />
+                          Добави
+                        </Button>
+                        {options.map((option) => (
+                          <CommandItem
+                            value={option.value}
+                            key={option.key}
+                            onSelect={() => {
+                              setValue(field.name, option.value);
+                              trigger(field.name);
+                              setShowNewOptionInput(false);
+                            }}
+                          >
+                            <div className="flex flex-row items-center gap-2">
+                              <StoreIcon iconId={option.iconID} />
+                              {option.value || placeholder}
+                            </div>
+                            <CheckIcon
+                              className={cn(
+                                'ml-auto h-4 w-4',
+                                option.value === field.value
+                                  ? 'opacity-100'
+                                  : 'opacity-0'
+                              )}
+                            />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                )}
               </PopoverContent>
             </Popover>
             {showNewOptionInput && (
