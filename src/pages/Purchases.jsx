@@ -1,9 +1,4 @@
-import {
-  CheckCircledIcon,
-  CookieIcon,
-  Cross1Icon,
-} from '@radix-ui/react-icons';
-import { Search } from 'lucide-react';
+import { CircleCheck, Cookie, Search, X } from 'lucide-react';
 import { useCallback } from 'react';
 
 import FormDialog from '@/components/forms/form-modal';
@@ -32,7 +27,7 @@ const toTableRow = (purchase) => {
     <TableRow key={purchase.id}>
       <TableCell>
         <div className="flex flex-row items-center gap-2 overflow-x-hidden">
-          <CookieIcon />
+          <Cookie />
           {purchase.product.name}
         </div>
       </TableCell>
@@ -45,9 +40,9 @@ const toTableRow = (purchase) => {
       <TableCell>
         <div className="flex flex-row items-center justify-center">
           {purchase.discount ? (
-            <CheckCircledIcon className="stroke-2 text-green-600" />
+            <CircleCheck className="size-5 stroke-2 text-green-600" />
           ) : (
-            <Cross1Icon className="stroke-2 text-red-600" />
+            <X className="size-5 stroke-2 text-red-600" />
           )}
         </div>
       </TableCell>

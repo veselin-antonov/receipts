@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Cross2Icon } from '@radix-ui/react-icons';
 import { bg } from 'date-fns/locale';
+import { X } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -211,7 +211,7 @@ const FormDialog = ({
               Submit
             </Button>
             <DialogClose className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">
-              <Cross2Icon className="h-4 w-4" />
+              <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </DialogClose>
           </FieldGroup>

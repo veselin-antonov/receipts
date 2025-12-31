@@ -1,0 +1,77 @@
+name: Build, Tag, and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 0.0.6)'
+        required: true
+        type: string
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.9.0
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build the React app
+        env:
+          VITE_API_URL: https://localhost:7002
+        run: npm run build
+
+      - name: Create archive of build
+        run: |
+          cd dist
+          zip -r ../receipts-ui-build.zip .
+          cd ..
+
+      - name: Create Git tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a v${{ inputs.version }} -m "Release version ${{ inputs.version }}"
+          git push origin v${{ inputs.version }}
+
+      - name: Get current date
+        id: date
+        run: echo "DATE=$(date +'%d.%m.%Y')" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog notes
+        id: changelog
+        run: |
+          # Extract the release notes for the current version from CHANGELOG.md
+          VERSION=${{ inputs.version }}
+          # Find the section for this version and extract until the next version or end of file
+          CHANGELOG=$(awk "/## \\\[${VERSION}\\\]/,/## \\\[/" CHANGELOG.md | head -n -1)
+          # Remove the first line (the version header) and trim
+          CHANGELOG=$(echo "$CHANGELOG" | tail -n +2 | sed '/^$/d')
+          # Store in output, escaping for multiline
+          echo "NOTES<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "**Full Changelog**: [CHANGELOG.md](https://github.com/veselin-antonov/receipts-ui/blob/master/CHANGELOG.md)" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ inputs.version }}
+          name: \[v${{ inputs.version }}\] - ${{ steps.date.outputs.DATE }}
+          body: ${{ steps.changelog.outputs.NOTES }}
+          files: |
+            receipts-ui-build.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

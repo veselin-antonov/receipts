@@ -1,5 +1,5 @@
-import { CalendarIcon } from '@radix-ui/react-icons';
 import { formatDate } from 'date-fns';
+import { CalendarDaysIcon } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,7 @@ export function DatePicker({
           )}
           aria-invalid={isInvalid}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
+          <CalendarDaysIcon className="mr-2 h-4 w-4" />
           {date ? (
             formatDate(date, format, formatOptions)
           ) : (

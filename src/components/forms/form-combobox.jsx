@@ -1,5 +1,4 @@
-import { CaretSortIcon } from '@radix-ui/react-icons';
-import { CheckIcon, PlusIcon } from 'lucide-react';
+import { CheckIcon, ChevronsUpDown, PlusIcon } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Controller } from 'react-hook-form';
 
@@ -84,7 +83,7 @@ const FormCombobox = ({
                     )}
                     {buttonLabel(field.value)}
                   </div>
-                  <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[200px] p-0" modal={true}>
