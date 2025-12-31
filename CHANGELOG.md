@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
+## [0.0.5] - 31.12.2025
+
+### Added
+
+- Tailwind CSS v4 upgrade with modernized styling
+- Enhanced form components with improved validation and error handling
+- New UI components (Separator, Field, Form) for better composition
+- Custom hooks for resource fetching and pagination (`useFetchResource`, `usePaginatedResource`)
+- API error handling with proper status code management
+- Improved pagination logic and pagination selector
+- Page loader component with loading state indicator
+
+### Changed
+
+- Migrated from Tailwind v3 to v4 with new theming system
+- Updated color scheme to use OKLch color space
+- Refactored component structure with data-slot attributes
+- Enhanced input and label components with better accessibility
+- Improved table component with better responsiveness
+- Updated pagination component with lucide-react icons
+- Code formatting and import organization improvements
+
+### Fixed
+
+- Infinite auth status fetching issue
+- Missing rate limiting error handling
+- Component accessibility and semantic HTML improvements
+
 ## [0.0.4] - 18.09.2024
 
 ### Fixed
