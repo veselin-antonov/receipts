@@ -33,7 +33,7 @@ jobs:
       - name: Create archive of build
         run: |
           cd dist
-          zip -r ../receipts-ui.zip .
+          tar -cvzf ../receipts-ui.tar.gz .
           cd ..
 
       - name: Create Git tag
@@ -69,6 +69,6 @@ jobs:
           name: '[v${{ inputs.version }}] - ${{ steps.date.outputs.DATE }}'
           body: ${{ steps.changelog.outputs.NOTES }}
           files: |
-            receipts-ui.zip
+            receipts-ui.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
