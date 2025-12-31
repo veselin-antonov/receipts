@@ -81,10 +81,13 @@ export default defineConfig({
     },
   },
   server: {
-    https: {
-      key: fs.readFileSync('./localhost.key'),
-      cert: fs.readFileSync('./localhost.crt'),
-    },
+    https:
+      fs.existsSync('./localhost.key') && fs.existsSync('./localhost.crt')
+        ? {
+            key: fs.readFileSync('./localhost.key'),
+            cert: fs.readFileSync('./localhost.crt'),
+          }
+        : undefined,
     proxy: {
       '/api': {
         target: 'https://localhost:7002',

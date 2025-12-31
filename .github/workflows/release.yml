@@ -28,14 +28,12 @@ jobs:
         run: npm install
 
       - name: Build the React app
-        env:
-          VITE_API_URL: https://localhost:7002
         run: npm run build
 
       - name: Create archive of build
         run: |
           cd dist
-          zip -r ../receipts-ui-build.zip .
+          zip -r ../receipts-ui.zip .
           cd ..
 
       - name: Create Git tag
@@ -53,11 +51,10 @@ jobs:
         id: changelog
         run: |
           # Extract the release notes for the current version from CHANGELOG.md
-          VERSION=${{ inputs.version }}
+          VERSION="${{ inputs.version }}"
           # Find the section for this version and extract until the next version or end of file
-          CHANGELOG=$(awk "/## \\\[${VERSION}\\\]/,/## \\\[/" CHANGELOG.md | head -n -1)
-          # Remove the first line (the version header) and trim
-          CHANGELOG=$(echo "$CHANGELOG" | tail -n +2 | sed '/^$/d')
+          # Use sed instead of awk to avoid escaping issues
+          CHANGELOG=$(sed -n "/^## \[${VERSION}\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
           # Store in output, escaping for multiline
           echo "NOTES<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
@@ -69,9 +66,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ inputs.version }}
-          name: \[v${{ inputs.version }}\] - ${{ steps.date.outputs.DATE }}
+          name: '[v${{ inputs.version }}] - ${{ steps.date.outputs.DATE }}'
           body: ${{ steps.changelog.outputs.NOTES }}
           files: |
-            receipts-ui-build.zip
+            receipts-ui.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
