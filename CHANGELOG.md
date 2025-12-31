@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
+
+
+## [0.0.5] - 30.12.2024
+
+### Added
+- Authentication system with JWT tokens and RSA key signing
+- HTTP-only secure cookies with SameSite protection
+- User registration and login endpoints
+- Email verification with 24-hour expiry tokens
+- Event-driven email sending on registration
+- Rate limiting on public and protected endpoints
+- `application-dev.yaml` for development environment
+- `ROADMAP.md` consolidating all project tasks
+
+### Changed
+- Replaced `openjdk:21-jdk-slim` with `eclipse-temurin:21-jre-alpine` in Dockerfile
+- Moved application entry point to root `homeapp` package
+- Refactored business classes to service layer pattern
+- Updated `settings.gradle` with new project name
+- Extended `application.yaml` with security, mail, and rate limiting config
+- Added new environment variables to `example.env`
+
+### Fixed
+- GitHub Actions workflow failing due to missing repository read permissions
+
 ## [0.0.4] - 17.09.2024
 
 ### Added
