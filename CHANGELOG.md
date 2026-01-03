@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
+## [0.0.6] - 03.01.2026
+
+### Added
+
+- Docker-based build with multi-stage Node builder and nginx runtime serving the Vite `dist` output
+- Nginx config template with SPA routing, `/api` proxying, and runtime `BACKEND_HOST` substitution
+- `.dockerignore` to slim Docker build contexts
+
+### Changed
+
+- Release workflow now builds and pushes Docker images to GHCR with `{version}` and `latest` tags
+- GitHub releases now point to container images (tarball artifact removed)
+
 ## [0.0.5] - 31.12.2025
 
 ### Added

@@ -40,7 +40,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=v${{ inputs.version }}
+            type=raw,value=${{ inputs.version }}
             type=raw,value=latest
 
       - name: Build and push Docker image
@@ -83,7 +83,7 @@ jobs:
           echo "" >> $GITHUB_OUTPUT
           echo "Pull the image from GitHub Container Registry:" >> $GITHUB_OUTPUT
           echo "\`\`\`bash" >> $GITHUB_OUTPUT
-          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ inputs.version }}" >> $GITHUB_OUTPUT
+          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.version }}" >> $GITHUB_OUTPUT
           echo "\`\`\`" >> $GITHUB_OUTPUT
           echo "" >> $GITHUB_OUTPUT
           echo "Or use the \`latest\` tag:" >> $GITHUB_OUTPUT
