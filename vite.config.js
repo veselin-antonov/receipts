@@ -10,7 +10,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     visualizer({
-      open: true,
+      filename: './dist/stats.html',
       gzipSize: true,
       brotliSize: true,
     }),

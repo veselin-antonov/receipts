@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+
+# Build output (will be built in container)
+dist/
+
+# Git
+.git/
+.gitignore
+
+# GitHub
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Development certificates
+*.crt
+*.key
+localhost.crt
+localhost.key
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+
+# Stats and analysis
+stats.html
+
+# Environment files
+.env
+.env.*
+
+# Config files not needed for build
+eslint.config.js
+.eslintrc*
+.prettierrc*
+.prettier.config.*
+components.json
+jsconfig.json
+tsconfig.json
