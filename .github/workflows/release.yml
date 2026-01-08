@@ -8,51 +8,27 @@ on:
         required: true
         type: string
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+permissions:
+  contents: write
+  packages: write
 
 jobs:
-  build-and-release:
+  build-image:
+    uses: ./.github/workflows/build-image.yml
+    with:
+      version: ${{ inputs.version }}
+      include_version: true
+      include_latest: true
+    secrets: inherit
+
+  release:
+    needs: build-image
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-      packages: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=${{ inputs.version }}
-            type=raw,value=latest
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./DOCKERFILE
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          fetch-depth: 0
 
       - name: Create Git tag
         run: |
@@ -67,38 +43,44 @@ jobs:
 
       - name: Extract changelog notes
         id: changelog
+        shell: bash
         run: |
-          # Extract the release notes for the current version from CHANGELOG.md
-          VERSION="${{ inputs.version }}"
-          # Find the section for this version and extract until the next version or end of file
-          # Use sed instead of awk to avoid escaping issues
-          CHANGELOG=$(sed -n "/^## \[${VERSION}\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')
-          # Store in output, escaping for multiline
-          echo "NOTES<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "---" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "### Docker Image" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "Pull the image from GitHub Container Registry:" >> $GITHUB_OUTPUT
-          echo "\`\`\`bash" >> $GITHUB_OUTPUT
-          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ inputs.version }}" >> $GITHUB_OUTPUT
-          echo "\`\`\`" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "Or use the \`latest\` tag:" >> $GITHUB_OUTPUT
-          echo "\`\`\`bash" >> $GITHUB_OUTPUT
-          echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_OUTPUT
-          echo "\`\`\`" >> $GITHUB_OUTPUT
-          echo "" >> $GITHUB_OUTPUT
-          echo "**Full Changelog**: [CHANGELOG.md](https://github.com/veselin-antonov/receipts-ui/blob/master/CHANGELOG.md)" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          version="${{ inputs.version }}"
+
+          # Extract changelog section
+          if ! changelog_content=$(sed -n "/^## \[${version}\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d'); then
+            echo "Warning: Could not extract changelog for version ${version}"
+            changelog_content="No changelog entry found for version ${version}"
+          fi
+
+          # Build release notes
+          {
+            echo "notes<<EOF"
+            echo "${changelog_content}"
+            echo ""
+            echo "---"
+            echo ""
+            echo "### 🐳 Docker Image"
+            echo ""
+            echo "Pull the image from GitHub Container Registry:"
+            echo "\`\`\`bash"
+            echo "docker pull ghcr.io/${{ github.repository }}:${version}"
+            echo "\`\`\`"
+            echo ""
+            echo "Or use the \`latest\` tag:"
+            echo "\`\`\`bash"
+            echo "docker pull ghcr.io/${{ github.repository }}:latest"
+            echo "\`\`\`"
+            echo ""
+            echo "**Full Changelog**: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/master/CHANGELOG.md)"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.version }}
-          name: '[v${{ inputs.version }}] - ${{ steps.date.outputs.DATE }}'
-          body: ${{ steps.changelog.outputs.NOTES }}
+          tag_name: v${{ inputs.version }}
+          name: 'Release v${{ inputs.version }} - ${{ steps.date.outputs.DATE }}'
+          body: ${{ steps.changelog.outputs.notes }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
