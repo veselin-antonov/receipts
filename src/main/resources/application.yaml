@@ -33,11 +33,6 @@ spring:
 # Server
 server:
   port: ${SERVER_PORT}
-  ssl:
-    key-store: ${SSL_STORE}
-    key-store-type: ${SSL_STORE_TYPE}
-    key-store-password: ${SSL_STORE_PASS}
-    key-alias: ${SSL_ALIAS}
 
 # RSA keys
 rsa:
@@ -124,3 +119,14 @@ bucket4j:
             - capacity: 2
               time: 1
               unit: hours
+logging:
+  level:
+    org:
+      springframework:
+        data:
+          mongodb:
+            core:
+              MongoTemplate: DEBUG
+        security: TRACE
+    com.giffing.bucket4j.spring.boot.starter: DEBUG
+    io.github.bucket4j: DEBUG

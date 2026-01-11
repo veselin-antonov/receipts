@@ -38,6 +38,4 @@ out/
 
 ### User ###
 /src/main/resources/certs/*
-/src/main/resources/podman
 /src/main/resources/.env
-/docs/tasks.md
