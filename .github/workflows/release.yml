@@ -80,7 +80,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ inputs.version }}
-          name: 'Release v${{ inputs.version }} - ${{ steps.date.outputs.DATE }}'
+          name: '[${{ inputs.version }}] - ${{ steps.date.outputs.DATE }}'
           body: ${{ steps.changelog.outputs.notes }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
