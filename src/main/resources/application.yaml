@@ -119,14 +119,3 @@ bucket4j:
             - capacity: 2
               time: 1
               unit: hours
-logging:
-  level:
-    org:
-      springframework:
-        data:
-          mongodb:
-            core:
-              MongoTemplate: DEBUG
-        security: TRACE
-    com.giffing.bucket4j.spring.boot.starter: DEBUG
-    io.github.bucket4j: DEBUG

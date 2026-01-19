@@ -1,0 +1,19 @@
+name: Build Development Image
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-dev:
+    uses: ./.github/workflows/build-image.yml
+    with:
+      version: dev
+      include_version: true
+      include_latest: false
+    secrets: inherit

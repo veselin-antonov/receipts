@@ -1,0 +1,86 @@
+name: Build, Tag, and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 0.0.6)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-image:
+    uses: ./.github/workflows/build-image.yml
+    with:
+      version: ${{ inputs.version }}
+      include_version: true
+      include_latest: true
+    secrets: inherit
+
+  release:
+    needs: build-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Git tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a v${{ inputs.version }} -m "Release version ${{ inputs.version }}"
+          git push origin v${{ inputs.version }}
+
+      - name: Get current date
+        id: date
+        run: echo "DATE=$(date +'%d.%m.%Y')" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog notes
+        id: changelog
+        shell: bash
+        run: |
+          version="${{ inputs.version }}"
+
+          # Extract changelog section
+          if ! changelog_content=$(sed -n "/^## \[${version}\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d'); then
+            echo "Warning: Could not extract changelog for version ${version}"
+            changelog_content="No changelog entry found for version ${version}"
+          fi
+
+          # Build release notes
+          {
+            echo "notes<<EOF"
+            echo "${changelog_content}"
+            echo ""
+            echo "---"
+            echo ""
+            echo "### 🐳 Docker Image"
+            echo ""
+            echo "Pull the image from GitHub Container Registry:"
+            echo "\`\`\`bash"
+            echo "docker pull ghcr.io/${{ github.repository }}:${version}"
+            echo "\`\`\`"
+            echo ""
+            echo "Or use the \`latest\` tag:"
+            echo "\`\`\`bash"
+            echo "docker pull ghcr.io/${{ github.repository }}:latest"
+            echo "\`\`\`"
+            echo ""
+            echo "**Full Changelog**: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/master/CHANGELOG.md)"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: 'Release v${{ inputs.version }} - ${{ steps.date.outputs.DATE }}'
+          body: ${{ steps.changelog.outputs.notes }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

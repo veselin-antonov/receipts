@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 
 
+## [0.0.6] - 19.01.2026
+
+### Added
+- New GitHub Actions workflows for CI/CD:
+  - `build-image.yml` reusable workflow for building Docker images
+  - `dev.yml` workflow for development environment
+  - `release.yml` workflow for production releases
+
+### Changed
+- Replaced `docker-image.yml` workflow with new modular CI/CD workflows
+
+### Removed
+- SSL configuration from `application.yaml` (SSL termination now handled externally)
+- SSL-related environment variables from `example.env`
+
 ## [0.0.5] - 30.12.2024
 
 ### Added
