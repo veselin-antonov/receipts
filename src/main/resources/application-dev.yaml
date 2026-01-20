@@ -6,6 +6,11 @@ spring:
         auth: true
       debug: true
 
+# Local dev JWT keys (these files are gitignored)
+jwt:
+  private-key: classpath:certs/private.pem
+  public-key: classpath:certs/public.pem
+
 logging:
   level:
     org:

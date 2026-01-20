@@ -34,10 +34,13 @@ spring:
 server:
   port: ${SERVER_PORT}
 
-# RSA keys
-rsa:
-  private-key: ${RSA_PRIVATE}
-  public-key: ${RSA_PUBLIC}
+# JWT signing keys
+# Keys can be provided as:
+# 1. File path: file:/path/to/key.pem or classpath:certs/key.pem
+# 2. PEM content directly: -----BEGIN PUBLIC KEY-----...
+jwt:
+  private-key: ${JWT_PRIVATE_KEY:}
+  public-key: ${JWT_PUBLIC_KEY:}
 
 # Application
 app:

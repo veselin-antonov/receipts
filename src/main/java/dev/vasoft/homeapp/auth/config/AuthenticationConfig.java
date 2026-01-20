@@ -39,22 +39,22 @@ public class AuthenticationConfig {
         }
     }
 
-    private final RsaKeyProperties rsaKeys;
+    private final JwtKeyProperties jwtKeys;
 
-    public AuthenticationConfig(RsaKeyProperties rsaKeys) {
-        this.rsaKeys = rsaKeys;
+    public AuthenticationConfig(JwtKeyProperties jwtKeys) {
+        this.jwtKeys = jwtKeys;
     }
 
     @Bean
     JwtDecoder jwtDecoder() {
-        return NimbusJwtDecoder.withPublicKey(rsaKeys.publicKey())
+        return NimbusJwtDecoder.withPublicKey(jwtKeys.publicKey())
                                .build();
     }
 
     @Bean
     JwtEncoder jwtEncoder() {
-        JWK jwk = new RSAKey.Builder(rsaKeys.publicKey()).privateKey(
-                                                                 rsaKeys.privateKey())
+        JWK jwk = new RSAKey.Builder(jwtKeys.publicKey()).privateKey(
+                                                                 jwtKeys.privateKey())
                                                          .build();
 
         JWKSource<SecurityContext> jwks = new ImmutableJWKSet<>(
