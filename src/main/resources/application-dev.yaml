@@ -5,6 +5,9 @@ spring:
       smtp:
         auth: true
       debug: true
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
 
 # Local dev JWT keys (these files are gitignored)
 jwt:
@@ -20,7 +23,10 @@ logging:
             core:
               MongoTemplate: DEBUG
         security: TRACE
+        ai:
+          openai: DEBUG
     com.giffing.bucket4j.spring.boot.starter: DEBUG
     io.github.bucket4j: DEBUG
+    dev.vasoft.homeapp.receipts.scanning: DEBUG
 
 debug: true

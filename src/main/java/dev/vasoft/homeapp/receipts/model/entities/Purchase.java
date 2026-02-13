@@ -14,6 +14,7 @@ import java.time.LocalDate;
 public class Purchase {
 	@Id
 	private ObjectId id;
+	private ObjectId userId;
 	@DocumentReference
 	private Product product;
 	private Double price;
@@ -23,8 +24,9 @@ public class Purchase {
 	@Field(name = "discount")
 	private Boolean isDiscounted;
 
-	public Purchase(Product product, Double price, LocalDate date, Store store,
+	public Purchase(ObjectId userId, Product product, Double price, LocalDate date, Store store,
 					Boolean isDiscounted) {
+		this.userId = userId;
 		this.product = product;
 		this.price = price;
 		this.date = date;

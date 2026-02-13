@@ -37,9 +37,12 @@ public class CustomRepository {
 		this.mongoTemplate = mongoTemplate;
 	}
 
-	public Page<Purchase> findBySearchQuery(String searchQuery,
+	public Page<Purchase> findBySearchQuery(ObjectId userId, String searchQuery,
 											Pageable pageable) {
 		List<AggregationOperation> operations = new ArrayList<>();
+
+		// Filter by userId first
+		operations.add(Aggregation.match(Criteria.where("userId").is(userId)));
 
 		// Perform a lookup to join the Product document
 		operations.add(Aggregation.lookup("products", "product", "_id",

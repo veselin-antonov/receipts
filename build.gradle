@@ -9,7 +9,9 @@ group = 'dev.vasoft.homeapp'
 version = file('VERSION').text.trim()
 
 java {
-    sourceCompatibility = '21'
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
 }
 
 idea {
@@ -21,7 +23,16 @@ idea {
 
 repositories {
     mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
+    maven { url 'https://repo.spring.io/snapshot' }
 }
+
+//dependencyManagement {
+//    imports {
+//        mavenBom 'org.springframework.ai:spring-ai-bom:1.0.6'
+//    }
+//}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
@@ -46,11 +57,16 @@ dependencies {
     // Env variables from .env file
     implementation 'me.paulschwarz:spring-dotenv:4.0.0'
 
+//    // Spring AI for receipt scanning
+//    implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter:1.1.0'
+//    implementation 'org.springframework.ai:spring-ai-core:1.0.6'
+//    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.1'
+
     compileOnly 'org.projectlombok:lombok:1.18.32'
 
     annotationProcessor 'org.projectlombok:lombok:1.18.32'
 
-    testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.4'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
     testCompileOnly 'org.projectlombok:lombok:1.18.32'
 
@@ -60,24 +76,24 @@ dependencies {
 
 // Define a task for building the Docker image
 tasks.register('buildImage', Exec) {
-    group "Docker Images"
-    description "Builds docker image and tags them with :latest>"
+    group = "Docker Images"
+    description = "Builds docker image and tags them with :latest>"
 
-    def repositoryName = project.findProperty('repositoryName')
-    def imageName = "ghcr.io/${repositoryName}:${version}"
+    def repositoryName = providers.gradleProperty('repositoryName').getOrElse('')
+    def ver = project.version.toString()
 
-    commandLine 'docker', 'build', '-t', imageName, '--build-arg', "VERSION=${version}", '.'
+    commandLine 'docker', 'build', '-t', "ghcr.io/${repositoryName}:${ver}", '--build-arg', "VERSION=${ver}", '.'
 }
 
 tasks.register('tagImage', Exec) {
-    group "Docker Images"
-    description "Tags the versioned docker image with :latest>"
+    group = "Docker Images"
+    description = "Tags the versioned docker image with :latest>"
     dependsOn buildImage
 
-    def repositoryName = project.findProperty('repositoryName')
-    def imageName = "ghcr.io/${repositoryName}"
+    def repositoryName = providers.gradleProperty('repositoryName').getOrElse('')
+    def ver = project.version.toString()
 
-    commandLine 'docker', 'tag', "${imageName}:${version}", "${imageName}:latest"
+    commandLine 'docker', 'tag', "ghcr.io/${repositoryName}:${ver}", "ghcr.io/${repositoryName}:latest"
 
     doLast {
         println("Created images:")
@@ -89,12 +105,13 @@ tasks.register('tagImage', Exec) {
 }
 
 tasks.register('publishVersionedImage', Exec) {
-    group "Docker Images"
-    description "Publishes the docker image with tag :\\<version\\>"
+    group = "Docker Images"
+    description = "Publishes the docker image with tag :\\<version\\>"
     dependsOn buildImage
 
-    def repositoryName = project.findProperty('repositoryName')
-    def imageName = "ghcr.io/${repositoryName}:${version}"
+    def repositoryName = providers.gradleProperty('repositoryName').getOrElse('')
+    def ver = project.version.toString()
+    def imageName = "ghcr.io/${repositoryName}:${ver}"
 
     doFirst {
         println("Pushing image: ${imageName}")
@@ -105,11 +122,11 @@ tasks.register('publishVersionedImage', Exec) {
 
 // Define a task for publishing the Docker image with tag :latest
 tasks.register('publishLatestImage', Exec) {
-    group "Docker Images"
-    description "Publishes the docker image with tag :latest"
+    group = "Docker Images"
+    description = "Publishes the docker image with tag :latest"
     dependsOn tagImage
 
-    def repositoryName = project.findProperty('repositoryName')
+    def repositoryName = providers.gradleProperty('repositoryName').getOrElse('')
     def imageName = "ghcr.io/${repositoryName}:latest"
 
     doFirst {
@@ -122,7 +139,7 @@ tasks.register('publishLatestImage', Exec) {
 
 // Define a task that combines both publish actions
 tasks.register('publishImage') {
-    group "Docker Images"
-    description "Publishes the docker images with tags :\\<version\\> :latest"
+    group = "Docker Images"
+    description = "Publishes the docker images with tags :\\<version\\> :latest"
     dependsOn publishVersionedImage, publishLatestImage
 }

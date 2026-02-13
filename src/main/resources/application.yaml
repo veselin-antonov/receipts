@@ -34,6 +34,12 @@ spring:
 server:
   port: ${SERVER_PORT}
 
+# Multipart file upload (for receipt scanning)
+spring.servlet.multipart:
+  enabled: true
+  max-file-size: 10MB
+  max-request-size: 10MB
+
 # JWT signing keys
 # Keys can be provided as:
 # 1. File path: file:/path/to/key.pem or classpath:certs/key.pem
@@ -45,6 +51,18 @@ jwt:
 # Application
 app:
   host-url: ${APP_HOST_URL}
+
+# Spring AI - OpenAI Configuration
+spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.1
+      image:
+        enabled: false
 
 # Rate limiting
 bucket4j:
@@ -97,6 +115,23 @@ bucket4j:
             - capacity: 5
               time: 1
               unit: minutes
+
+    # Receipt scanning - strict limits due to LLM API costs
+    - cache-name: rate-limit-buckets
+      url: ^/api/receipts/scan$
+      filter-method: servlet
+      http-response-body: >
+        {
+          "error": "RATE_LIMIT_EXCEEDED",
+          "message": "Too many receipt scan requests. Please try again later."
+        }
+      rate-limits:
+        - cache-key: "@rateLimitUserService.getUserId()"
+          bandwidths:
+            - capacity: 10
+              time: 1
+              unit: hours
+              refill-speed: interval
 
     # Protected endpoints - per user
     - cache-name: rate-limit-buckets

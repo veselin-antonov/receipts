@@ -11,8 +11,10 @@ import dev.vasoft.homeapp.receipts.model.repositories.ProductRepository;
 import dev.vasoft.homeapp.receipts.model.repositories.PurchasesRepository;
 import dev.vasoft.homeapp.receipts.model.repositories.StoresRepository;
 import dev.vasoft.homeapp.receipts.services.mappers.PurchaseMapper;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +47,7 @@ public class PurchaseService {
         this.storesRepository = storesRepository;
     }
 
-    public ResPage<ResPurchase> getPurchasesPage(int pageNumber, int pageSize,
+    public ResPage<ResPurchase> getPurchasesPage(ObjectId userId, int pageNumber, int pageSize,
         String searchQuery) {
         if (pageSize == DEFAULT_PAGE_NUMBER) {
             pageSize = 10;
@@ -57,9 +59,9 @@ public class PurchaseService {
         Page<Purchase> purchasesPage;
 
         if (searchQuery == null || searchQuery.isEmpty()) {
-            purchasesPage = purchasesRepository.findAll(paging);
+            purchasesPage = purchasesRepository.findAllByUserId(userId, paging);
         } else {
-            purchasesPage = customRepository.findBySearchQuery(searchQuery,
+            purchasesPage = customRepository.findBySearchQuery(userId, searchQuery,
                 paging);
         }
 
@@ -72,37 +74,54 @@ public class PurchaseService {
     }
 
 
-    @SuppressWarnings("OptionalGetWithoutIsPresent")
-    public ResPurchase registerPurchase(ReqPurchase reqPurchase) {
-        Store store;
+    public ResPurchase registerPurchase(ObjectId userId, ReqPurchase reqPurchase) {
+        Store store = resolveStore(reqPurchase.store());
+        Product product = resolveProduct(reqPurchase.product());
 
-        Optional<Store> existingStore = storesRepository.findByName(
-            reqPurchase.store());
-        if (existingStore.isPresent()) {
-            store = existingStore.get();
-        } else {
-            Store newStore = new Store(reqPurchase.store());
-            store = storesRepository.save(newStore);
-        }
-
-        Product product;
-
-        Optional<Product> existingProduct = productRepository.findByName(
-            reqPurchase.product());
-        if (existingProduct.isPresent()) {
-            product = existingProduct.get();
-        } else {
-            Product newProduct = new Product(reqPurchase.product());
-            product = productRepository.save(newProduct);
-        }
-
-        //TODO: Primitive field validation
-        Purchase purchase = new Purchase(product, reqPurchase.price(),
+        Purchase purchase = new Purchase(userId, product, reqPurchase.price(),
             reqPurchase.date(), store,
             reqPurchase.discount());
 
         purchase = purchasesRepository.save(purchase);
 
         return PurchaseMapper.toResPurchase(purchase);
+    }
+
+    public List<ResPurchase> registerPurchases(ObjectId userId, List<ReqPurchase> reqPurchases) {
+        List<ResPurchase> results = new ArrayList<>();
+
+        for (ReqPurchase reqPurchase : reqPurchases) {
+            Store store = resolveStore(reqPurchase.store());
+            Product product = resolveProduct(reqPurchase.product());
+
+            Purchase purchase = new Purchase(userId, product, reqPurchase.price(),
+                reqPurchase.date(), store,
+                reqPurchase.discount());
+
+            purchase = purchasesRepository.save(purchase);
+            results.add(PurchaseMapper.toResPurchase(purchase));
+        }
+
+        return results;
+    }
+
+    private Store resolveStore(String storeName) {
+        Optional<Store> existingStore = storesRepository.findByName(storeName);
+        if (existingStore.isPresent()) {
+            return existingStore.get();
+        } else {
+            Store newStore = new Store(storeName);
+            return storesRepository.save(newStore);
+        }
+    }
+
+    private Product resolveProduct(String productName) {
+        Optional<Product> existingProduct = productRepository.findByName(productName);
+        if (existingProduct.isPresent()) {
+            return existingProduct.get();
+        } else {
+            Product newProduct = new Product(productName);
+            return productRepository.save(newProduct);
+        }
     }
 }
