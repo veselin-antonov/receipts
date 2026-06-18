@@ -27,33 +27,40 @@
 - `PurchasesController.java` - Extracts userId from JWT token
 
 ### 2. Receipt Scanning Module
-New module: `receipts/scanning/`
+Module: `receipts/scanning/`
+
+**Architecture:** Dual-path pipeline — images route through OCR preprocessing before LLM, PDFs go directly to LLM vision.
 
 **Controllers:**
 - `ReceiptScanController.java` - REST endpoints for scanning
 - `ReceiptScanControllerAdvice.java` - Exception handling
 
 **Services:**
-- `LlmReceiptParser.java` - OpenAI integration
-- `ReceiptScanService.java` - Business logic orchestration
+- `OcrService.java` - EXIF orientation correction, image preprocessing, Tesseract OCR text extraction
+- `LlmReceiptParser.java` - Dual-mode OpenAI integration (vision prompt for PDFs, text prompt for OCR output)
+- `ReceiptScanService.java` - Orchestration: routes images vs PDFs, validates files, maps responses
 - `ReceiptParsingException.java` - Custom exception
 
 **Configuration:**
 - `AiConfig.java` - Spring AI ChatClient bean setup
+- `OcrConfig.java` - Tesseract bean (LSTM engine, PSM 6, 300 DPI)
+- `OcrProperties.java` - Config record for `app.ocr.*` properties (dataPath, language, debugOutputPath)
 
 **DTOs:**
 - `ReqSubmitPurchases.java` - Request for batch submission
 - `ResScanResult.java` - Response with parsed receipt
 - `ResParsedPurchase.java` - Individual parsed item
-- `ParsedReceipt.java` - LLM structured output schema
+- `ParsedReceipt.java` - LLM structured output schema (with QuantityUnit enum)
 
 ### 3. Dependencies
 **Added to build.gradle:**
 ```gradle
 // Spring AI for receipt scanning
-implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.6'
-implementation 'org.springframework.ai:spring-ai-core:1.0.6'
-implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.1'
+implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+
+// OCR for receipt image preprocessing
+implementation 'net.sourceforge.tess4j:tess4j:5.14.0'
+implementation 'com.drewnoakes:metadata-extractor:2.19.0'
 ```
 
 ### 4. Configuration
@@ -65,13 +72,20 @@ spring:
       api-key: ${OPENAI_API_KEY:}
       chat:
         options:
-          model: gpt-4o-mini
-          temperature: 0.1
+          model: gpt-5-mini
+          temperature: 1
+
+app:
+  ocr:
+    data-path: ${TESSDATA_PATH:/usr/share/tessdata}
+    language: ${OCR_LANGUAGE:eng+bul}
+    debug-output-path: ${OCR_DEBUG_OUTPUT_PATH:}
 ```
 
 **application-dev.yaml:**
-- Added OpenAI debug logging
-- Added Spring AI receipt scanning debug logging
+- Windows Tesseract path: `C:/Program Files/Tesseract-OCR/tessdata`
+- Debug image saving enabled: `./ocr-debug/`
+- Added OpenAI and scanning debug logging
 
 ### 5. Documentation
 - `docs/SPRING_AI_SETUP.md` - Complete setup guide
@@ -245,11 +259,10 @@ This is a false positive. The IDE hasn't indexed Spring AI yet.
 
 ### Optional Enhancements (Not Implemented)
 1. **Caching** - Cache parsed receipts to avoid re-parsing
-2. **Fallback OCR** - Use OCR if LLM parsing fails
-3. **Manual Correction UI** - Allow users to edit parsed data
-4. **Batch Processing** - Support multiple receipt uploads
-5. **Receipt History** - Store original images with purchases
-6. **Export** - CSV/PDF export of purchases
+2. **Manual Correction UI** - Allow users to edit parsed data before submit
+3. **Batch Processing** - Support multiple receipt uploads
+4. **Receipt History** - Store original images with purchases
+5. **Export** - CSV/PDF export of purchases
 
 ### Migration for Existing Purchases
 Current purchases in database lack `userId` field. Choose one:
@@ -264,12 +277,13 @@ Current purchases in database lack `userId` field. Choose one:
 | Dependency | Version | Purpose |
 |------------|---------|---------|
 | Spring Boot | 3.5.6 | Framework |
-| Spring AI OpenAI | 1.0.6 | LLM integration |
+| Spring AI | 1.1.2 (BOM) | LLM integration |
+| Tess4J | 5.14.0 | Tesseract OCR engine |
+| metadata-extractor | 2.19.0 | EXIF orientation reading |
 | Gradle | 9.3.1 | Build tool |
 | Java | 25 | Runtime |
 | MongoDB | (config-dependent) | Database |
 | Bucket4j | 0.13.0 | Rate limiting |
-| Jackson | 2.17.1 | JSON serialization |
 
 ---
 

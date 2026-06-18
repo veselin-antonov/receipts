@@ -200,6 +200,10 @@ This roadmap consolidates all planned features, improvements, and tasks for the 
 - [ ] Add toaster notifications (using shadcn) for purchase registration success/error
 
 #### Receipt Scanning
+- [x] Implement OCR preprocessing for receipt images (Tesseract via Tess4J)
+- [x] EXIF orientation handling for camera photos
+- [x] Dual-path pipeline: OCR→LLM for images, direct LLM vision for PDFs
+- [x] Debug image saving for OCR preprocessing inspection
 - [ ] Implement product recognition upon scanning
 - [ ] Handle conflicts via user prompts when products aren't recognized
 - [ ] Prompt for missing products with AI-suggested photos

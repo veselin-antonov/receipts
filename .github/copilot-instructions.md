@@ -37,11 +37,12 @@ src/main/java/dev/vasoft/homeapp/
 │   ├── model/entities/         # Purchase, Product, Store, Statistics
 │   ├── model/repositories/     # MongoDB repositories
 │   ├── services/               # PurchaseService, ProductService, StoreService, mappers/
-│   └── scanning/               # Receipt scanning submodule (LLM-powered)
+│   └── scanning/               # Receipt scanning submodule (OCR + LLM pipeline)
 │       ├── api/controllers/    # ReceiptScanController
 │       ├── api/request/        # ReqSubmitPurchases
 │       ├── api/response/       # ResScanResult, ResParsedPurchase
-│       └── services/           # ReceiptScanService, LlmReceiptParser
+│       ├── config/             # OcrConfig, OcrProperties
+│       └── services/           # ReceiptScanService, LlmReceiptParser, OcrService
 └── users/                       # User management module
     ├── api/controllers/        # UserController
     ├── api/request/            # Request DTOs (ReqRegisterUser)
@@ -71,7 +72,9 @@ Each module follows this layered architecture:
 | Spring Boot Starter OAuth2 Resource Server | JWT token validation |
 | Spring Boot Starter Mail | Email verification |
 | Spring Boot Starter Validation | Request validation |
-| Spring AI (OpenAI) | LLM-powered receipt scanning |
+| Spring AI (OpenAI) | LLM-powered receipt scanning (vision + text parsing) |
+| Tess4J | Tesseract OCR engine for receipt image text extraction |
+| metadata-extractor | EXIF orientation reading for camera photo rotation |
 | Bucket4j | Rate limiting |
 | Caffeine | Caching |
 | Lombok | Boilerplate reduction |
@@ -120,9 +123,12 @@ Each module follows this layered architecture:
 | POST | `/` | JWT | Register new purchase (user-scoped) |
 
 ### Receipt Scanning (`/api/receipts`)
+
+Uses a dual-path pipeline: images go through Tesseract OCR → LLM text parsing, while PDFs use direct LLM vision.
+
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
-| POST | `/scan` | JWT | Upload receipt image for LLM parsing |
+| POST | `/scan` | JWT | Upload receipt image/PDF for parsing |
 | POST | `/submit` | JWT | Batch save parsed purchases |
 
 ### Products (`/api/products`)
@@ -169,6 +175,9 @@ See `example.env` for full list. Key variables:
 - `SERVER_PORT` - Application port
 - `APP_HOST_URL` - Application base URL (for email links)
 - `OPENAI_API_KEY` - OpenAI API key for receipt scanning feature
+- `TESSDATA_PATH` - Path to Tesseract tessdata directory (default: `/usr/share/tessdata` in prod, `C:/Program Files/Tesseract-OCR/tessdata` in dev)
+- `OCR_LANGUAGE` - Tesseract language codes (default: `eng+bul`)
+- `OCR_DEBUG_OUTPUT_PATH` - Directory for saving preprocessed debug images (empty = disabled, default: `./ocr-debug` in dev)
 
 ### Rate Limiting (Bucket4j)
 - Registration: 3 attempts/hour per IP
@@ -225,14 +234,16 @@ See `example.env` for full list. Key variables:
 ```
 
 ### Docker
-- Base image: `eclipse-temurin:21-jre-alpine`
+- Base image: `eclipse-temurin:25-jre-alpine`
+- Includes Tesseract OCR with English + Bulgarian language data
 - Compose file includes MongoDB and API containers
 - JWT keys passed as environment variables
 
-### Local Development
+### Local Development (Windows)
 1. Copy `example.env` to `.env` and fill values
 2. Generate RSA keys in `src/main/resources/certs/` (see README.md)
-3. Run with `dev` profile: `./gradlew bootRun --args='--spring.profiles.active=dev'`
+3. Install [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki) with English + Bulgarian language packs
+4. Run with `dev` profile: `./gradlew bootRun --args='--spring.profiles.active=dev'`
 
 ---
 
@@ -272,6 +283,33 @@ See `docs/ROADMAP.md` for planned features including:
 - Do not use PowerShell-specific commands or syntax
 - Use `;` or `&&` for command chaining
 - Use Unix path separators (`/`)
+
+---
+
+## Receipt Scanning Pipeline
+
+The receipt scanning module (`receipts/scanning/`) uses a dual-path architecture:
+
+### Image Path (JPEG, PNG, WebP, GIF)
+1. **EXIF orientation** — Reads EXIF tag via metadata-extractor, applies rotation/flip (fixes sideways phone photos)
+2. **Screenshot detection** — PNGs skip preprocessing (already pixel-perfect digital text)
+3. **Photo preprocessing** — Grayscale conversion, optional upscaling/sharpening/Otsu binarization for camera photos
+4. **Tesseract OCR** — Extracts text (LSTM engine, PSM 6, 300 DPI hint, `eng+bul` languages)
+5. **LLM text parsing** — OCR text sent to GPT via text prompt → structured `ParsedReceipt`
+
+### PDF Path
+1. **Direct LLM vision** — PDF sent as media attachment to GPT vision prompt → structured `ParsedReceipt`
+
+### Debug Support
+- Set `app.ocr.debug-output-path` to save preprocessed images for inspection
+- Dev profile defaults to `./ocr-debug/` (gitignored)
+- Files named `{original}_{timestamp}_preprocessed.png`
+
+### Key Classes
+- `OcrService` — EXIF handling, preprocessing pipeline, Tesseract integration
+- `LlmReceiptParser` — Dual-mode prompts (vision vs text), structured output via `ChatClient.entity()`
+- `ReceiptScanService` — Routing hub (image vs PDF), file validation, response mapping
+- `OcrConfig` / `OcrProperties` — Tesseract bean configuration and Spring properties
 
 ---
 

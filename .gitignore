@@ -38,4 +38,6 @@ out/
 
 ### User ###
 /src/main/resources/certs/*
-/src/main/resources/.env
+*.env
+!**/src/main/resources/example.env
+/ocr-debug/

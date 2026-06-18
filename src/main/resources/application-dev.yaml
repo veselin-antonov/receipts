@@ -14,6 +14,17 @@ jwt:
   private-key: classpath:certs/private.pem
   public-key: classpath:certs/public.pem
 
+# Local dev OCR configuration
+# On Windows: install Tesseract from https://github.com/UB-Mannheim/tesseract/wiki
+# and set TESSDATA_PATH to point to the tessdata directory
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:https://localhost:5173,http://localhost:5173,http://localhost:7863}
+  ocr:
+    data-path: ${TESSDATA_PATH:C:/Program Files/Tesseract-OCR/tessdata}
+    language: ${OCR_LANGUAGE:eng+bul}
+    debug-output-path: ${OCR_DEBUG_OUTPUT_PATH:./ocr-debug}
+
 logging:
   level:
     org:
@@ -22,7 +33,6 @@ logging:
           mongodb:
             core:
               MongoTemplate: DEBUG
-        security: TRACE
         ai:
           openai: DEBUG
     com.giffing.bucket4j.spring.boot.starter: DEBUG

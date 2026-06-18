@@ -1,10 +1,17 @@
 package dev.vasoft.homeapp.receipts.scanning.services;
 
-import dev.vasoft.homeapp.receipts.api.request.ReqPurchase;
-import dev.vasoft.homeapp.receipts.api.response.ResPurchase;
+import dev.vasoft.homeapp.receipts.common.services.Formatter;
+import dev.vasoft.homeapp.receipts.purchases.api.request.ReqPurchase;
+import dev.vasoft.homeapp.receipts.purchases.api.response.ResPurchase;
 import dev.vasoft.homeapp.receipts.scanning.api.response.ResParsedPurchase;
+import dev.vasoft.homeapp.receipts.scanning.api.response.ResScanPurchase;
 import dev.vasoft.homeapp.receipts.scanning.api.response.ResScanResult;
-import dev.vasoft.homeapp.receipts.services.PurchaseService;
+import dev.vasoft.homeapp.receipts.purchases.services.PurchaseService;
+import dev.vasoft.homeapp.receipts.scanning.api.response.ResScanStore;
+import dev.vasoft.homeapp.receipts.stores.model.entities.Store;
+import dev.vasoft.homeapp.receipts.stores.services.StoreService;
+import dev.vasoft.homeapp.receipts.purchases.services.PurchaseMapper;
+import java.util.ArrayList;
 import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,33 +19,42 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Set;
 
 /**
- * Service for orchestrating receipt scanning operations.
- * Coordinates file processing, LLM parsing, and persistence of purchases.
+ * Service for orchestrating receipt scanning operations. Routes images through OCR preprocessing
+ * before LLM parsing, while PDFs are sent directly to the LLM vision model.
  */
 @Service
 public class ReceiptScanService {
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final Set<String> IMAGE_CONTENT_TYPES = Set.of("image/jpeg", "image/jpg",
+        "image/png", "image/gif", "image/webp");
 
     private final Logger logger;
+    private final OcrService ocrService;
     private final LlmReceiptParser llmReceiptParser;
     private final PurchaseService purchaseService;
+    private final StoreService storeService;
+    private final MatcherService matcherService;
 
     @Autowired
-    public ReceiptScanService(LlmReceiptParser llmReceiptParser, PurchaseService purchaseService) {
+    public ReceiptScanService(OcrService ocrService, LlmReceiptParser llmReceiptParser,
+        PurchaseService purchaseService, StoreService storeService, MatcherService matcherService) {
+        this.storeService = storeService;
         this.logger = LoggerFactory.getLogger(ReceiptScanService.class);
+        this.ocrService = ocrService;
         this.llmReceiptParser = llmReceiptParser;
         this.purchaseService = purchaseService;
+        this.matcherService = matcherService;
     }
 
     /**
-     * Scans a receipt image and returns parsed purchase data for user review.
+     * Scans a receipt file and returns parsed purchase data for user review. Images are
+     * preprocessed with OCR before LLM parsing; PDFs use direct LLM vision.
      *
-     * @param file The uploaded receipt image
+     * @param file The uploaded receipt file (image or PDF)
      * @return Parsed receipt data ready for user review/editing
      */
     public ResScanResult scanReceipt(MultipartFile file) {
@@ -46,28 +62,31 @@ public class ReceiptScanService {
 
         validateFile(file);
 
-        ParsedReceipt parsedReceipt = llmReceiptParser.parseReceipt(file);
+        ParsedReceipt parsedReceipt =
+            isImage(file) ? parseImageReceipt(file) : llmReceiptParser.parseReceipt(file);
 
-        List<ResParsedPurchase> purchases = parsedReceipt.items().stream()
-                .map(item -> new ResParsedPurchase(
-                        item.productName(),
-                        parsedReceipt.storeName(),
-                        item.price(),
-                        parsedReceipt.receiptDate(),
-                        item.hasDiscount()
-                ))
-                .toList();
+        ResScanStore store = matcherService.matchStore(parsedReceipt.storeName());
 
-        String formattedDate = parsedReceipt.receiptDate() != null
-                ? parsedReceipt.receiptDate().format(DATE_FORMATTER)
-                : "";
+        List<ResScanPurchase> purchases = matcherService.matchProductsToPurchases(
+            parsedReceipt.items());
 
-        return new ResScanResult(
-                parsedReceipt.storeName(),
-                formattedDate,
-                purchases,
-                null // rawText not exposed in current implementation
-        );
+        return new ResScanResult(store, parsedReceipt.storeName(), parsedReceipt.receiptDate(),
+            purchases);
+    }
+
+    /**
+     * Parses an image receipt through OCR preprocessing followed by LLM text parsing.
+     */
+    private ParsedReceipt parseImageReceipt(MultipartFile file) {
+        logger.info("Image detected — routing through OCR preprocessing: {}",
+            file.getOriginalFilename());
+        String ocrText = ocrService.extractText(file);
+        return llmReceiptParser.parseReceiptText(ocrText);
+    }
+
+    private boolean isImage(MultipartFile file) {
+        String contentType = file.getContentType();
+        return contentType != null && IMAGE_CONTENT_TYPES.contains(contentType.toLowerCase());
     }
 
     /**
@@ -93,18 +112,12 @@ public class ReceiptScanService {
             throw new ReceiptParsingException("File content type is not specified");
         }
 
-        List<String> allowedTypes = List.of(
-                "image/jpeg",
-                "image/jpg",
-                "image/png",
-                "image/gif",
-                "image/webp",
-                "application/pdf"
-        );
+        List<String> allowedTypes = new ArrayList<>(IMAGE_CONTENT_TYPES);
+        allowedTypes.add("application/pdf");
 
         if (!allowedTypes.contains(contentType.toLowerCase())) {
-            throw new ReceiptParsingException(
-                    "Unsupported file type: " + contentType + ". Allowed types: JPEG, PNG, GIF, WebP, PDF");
+            throw new ReceiptParsingException("Unsupported file type: " + contentType
+                + ". Allowed types: JPEG, PNG, GIF, WebP, PDF");
         }
 
         // 10MB max file size

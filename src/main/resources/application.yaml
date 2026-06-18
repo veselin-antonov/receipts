@@ -6,12 +6,11 @@ spring:
       host: ${MONGODB_HOST}
       port: ${MONGODB_PORT}
       database: ${MONGODB_DATABASE}
-
       authentication-database: ${MONGODB_AUTH_DB}
       username: ${MONGODB_USER}
       password: ${MONGODB_PASS}
-
       auto-index-creation: true
+
   # Spring caching
   cache:
     jcache:
@@ -20,6 +19,7 @@ spring:
       - rate-limit-buckets
     caffeine:
       spec: maximumSize=100000,expireAfterAccess=3600s
+
   # Spring mail
   mail:
     protocol: smtps
@@ -30,15 +30,27 @@ spring:
     properties.mail.smtps:
       auth: true
 
+  # Spring AI - OpenAI Configuration
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          model: gpt-5-mini
+          temperature: 1
+      image:
+        enabled: false
+
+  # Multipart file upload (for receipt scanning)
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
 # Server
 server:
   port: ${SERVER_PORT}
-
-# Multipart file upload (for receipt scanning)
-spring.servlet.multipart:
-  enabled: true
-  max-file-size: 10MB
-  max-request-size: 10MB
 
 # JWT signing keys
 # Keys can be provided as:
@@ -51,18 +63,10 @@ jwt:
 # Application
 app:
   host-url: ${APP_HOST_URL}
-
-# Spring AI - OpenAI Configuration
-spring:
-  ai:
-    openai:
-      api-key: ${OPENAI_API_KEY:}
-      chat:
-        options:
-          model: gpt-4o-mini
-          temperature: 0.1
-      image:
-        enabled: false
+  ocr:
+    data-path: ${TESSDATA_PATH:/usr/share/tessdata}
+    language: ${OCR_LANGUAGE:eng+bul}
+    debug-output-path: ${OCR_DEBUG_OUTPUT_PATH:}
 
 # Rate limiting
 bucket4j:

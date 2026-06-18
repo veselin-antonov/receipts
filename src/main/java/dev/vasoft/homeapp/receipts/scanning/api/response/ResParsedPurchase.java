@@ -1,6 +1,7 @@
 package dev.vasoft.homeapp.receipts.scanning.api.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import dev.vasoft.homeapp.receipts.scanning.services.ParsedReceipt;
 
 import java.time.LocalDate;
 
@@ -14,6 +15,8 @@ public record ResParsedPurchase(
         double price,
         @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd/MM/yyyy")
         LocalDate date,
-        boolean discount
+        double quantity,
+        String quantityUnit,
+        double discountAmount
 ) {
 }

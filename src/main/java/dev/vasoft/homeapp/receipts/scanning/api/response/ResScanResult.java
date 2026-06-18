@@ -1,5 +1,8 @@
 package dev.vasoft.homeapp.receipts.scanning.api.response;
 
+import dev.vasoft.homeapp.receipts.purchases.api.response.ResPurchase;
+import dev.vasoft.homeapp.receipts.stores.api.response.ResStore;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -7,9 +10,9 @@ import java.util.List;
  * Returned for user review and editing before final submission.
  */
 public record ResScanResult(
-        String storeName,
-        String receiptDate,
-        List<ResParsedPurchase> purchases,
-        String rawText
+        ResScanStore storeSuggestion,
+        String rawStoreName,
+        LocalDate purchaseDate,
+        List<ResScanPurchase> purchases
 ) {
 }

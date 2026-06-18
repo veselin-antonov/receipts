@@ -32,6 +32,7 @@ public class SecurityConfiguration {
     public SecurityFilterChain tokenSecurityFilterChain(HttpSecurity http) throws Exception {
 
         return http.securityMatcher("/api/auth/token")
+            .cors(withDefaults())
             .sessionManagement(
                 session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .csrf(AbstractHttpConfigurer::disable)
@@ -46,6 +47,7 @@ public class SecurityConfiguration {
 
         return http.sessionManagement(
                 session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .cors(withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(
                 auth -> auth

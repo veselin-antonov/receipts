@@ -1,6 +1,6 @@
 package dev.vasoft.homeapp.receipts.scanning.api.request;
 
-import dev.vasoft.homeapp.receipts.api.request.ReqPurchase;
+import dev.vasoft.homeapp.receipts.purchases.api.request.ReqPurchase;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 

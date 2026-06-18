@@ -1,6 +1,7 @@
 package dev.vasoft.homeapp.receipts.scanning.api.controllers;
 
-import dev.vasoft.homeapp.receipts.api.response.ResPurchase;
+import dev.vasoft.homeapp.auth.services.AuthenticatedUserService;
+import dev.vasoft.homeapp.receipts.purchases.api.response.ResPurchase;
 import dev.vasoft.homeapp.receipts.scanning.api.request.ReqSubmitPurchases;
 import dev.vasoft.homeapp.receipts.scanning.api.response.ResScanResult;
 import dev.vasoft.homeapp.receipts.scanning.services.ReceiptScanService;
@@ -31,11 +32,14 @@ public class ReceiptScanController {
 
     private final Logger logger;
     private final ReceiptScanService receiptScanService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     @Autowired
-    public ReceiptScanController(ReceiptScanService receiptScanService) {
+    public ReceiptScanController(ReceiptScanService receiptScanService,
+            AuthenticatedUserService authenticatedUserService) {
         this.logger = LoggerFactory.getLogger(ReceiptScanController.class);
         this.receiptScanService = receiptScanService;
+        this.authenticatedUserService = authenticatedUserService;
     }
 
     /**
@@ -67,7 +71,7 @@ public class ReceiptScanController {
     public List<ResPurchase> submitPurchases(
             @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody ReqSubmitPurchases request) {
-        ObjectId userId = new ObjectId(jwt.getSubject());
+        ObjectId userId = authenticatedUserService.getUserId(jwt);
         logger.info("User {} submitting {} purchases", userId, request.purchases().size());
 
         return receiptScanService.submitPurchases(userId, request.purchases());
