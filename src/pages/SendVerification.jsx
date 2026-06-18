@@ -8,12 +8,9 @@ const SendVerification = () => {
   const [actionStatus, setActionStatus] = useState('PENDING');
 
   const sendNewEmail = useCallback(() => {
-    fetch(API_URL + '/resend-verification', {
+    fetch(API_URL + '/users/resend-verification', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
+      credentials: 'same-origin',
     })
       .then((response) => {
         if (response.ok) {

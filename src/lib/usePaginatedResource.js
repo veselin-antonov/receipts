@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { API_URL } from '@/lib/utils';
+import { apiFetchJson } from '@/lib/api';
 
 /**
  * Custom hook for fetching paginated resources with search support.
@@ -48,22 +48,14 @@ const usePaginatedResource = (endpoint, options = {}) => {
       setCurrentPage(pageNumber);
 
       try {
-        const url = `${API_URL}/${endpoint}?pageNumber=${pageNumber}&pageSize=${pageSize}&searchQuery=${query}`;
-
-        const response = await fetch(url, {
+        const result = await apiFetchJson(endpoint, {
+          query: {
+            pageNumber,
+            pageSize,
+            searchQuery: query,
+          },
           signal: abortController.signal,
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            navigate('/login');
-            return;
-          }
-          throw new Error(`Failed to fetch ${endpoint}`);
-        }
-
-        const result = await response.json();
 
         // Only update state if this request wasn't aborted
         if (!abortController.signal.aborted) {
@@ -72,7 +64,9 @@ const usePaginatedResource = (endpoint, options = {}) => {
       } catch (e) {
         if (e.name === 'AbortError') {
           console.log(`${endpoint} fetch aborted`);
-        } else {
+        } else if (e.status === 401) {
+          navigate('/login');
+        } else if (!abortController.signal.aborted) {
           console.error(`Error fetching ${endpoint}:`, e);
           setError(e);
         }

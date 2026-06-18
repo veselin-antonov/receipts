@@ -32,6 +32,7 @@ const LoginForm = () => {
 
       fetch(API_URL + '/auth/token', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
           Authorization: 'Basic ' + btoa(email + ':' + password),

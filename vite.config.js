@@ -23,6 +23,10 @@ export default defineConfig({
   build: {
     chunkSizeWarningLimit: 1000, // Suppress warnings for chunks under 1MB
   },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.js',
+  },
   server: {
     https:
       fs.existsSync('./localhost.key') && fs.existsSync('./localhost.crt')
@@ -33,7 +37,7 @@ export default defineConfig({
         : undefined,
     proxy: {
       '/api': {
-        target: 'https://localhost:7002',
+        target: 'http://localhost:7002',
         changeOrigin: true,
         secure: false,
       },

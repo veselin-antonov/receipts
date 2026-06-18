@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   Command,
@@ -25,7 +25,7 @@ const OptionItem = React.memo(({ option, handleItemSelect }) => (
   <CommandItem
     value={option.value}
     onSelect={(value) => {
-      option.onSelect(value);
+      option.onSelect?.(value);
       handleItemSelect(value);
     }}
   >
@@ -53,8 +53,14 @@ const Autocomplete = ({
   const inputRef = useRef(null);
   const documentRef = useRef(null);
 
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(props.value ?? '');
   const [showOptions, setShowOptions] = useState(false);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setSearch(props.value ?? '');
+  }, [props.value]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const filteredOptions =
     search && search.length > 0
@@ -67,7 +73,7 @@ const Autocomplete = ({
     (input) => {
       setSearch(input);
       setShowOptions(true);
-      onInputChange(input);
+      onInputChange?.(input);
     },
     [onInputChange]
   );

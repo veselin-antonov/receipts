@@ -2,6 +2,8 @@ import { CircleCheck, Cookie, Search, X } from 'lucide-react';
 import { useCallback } from 'react';
 
 import FormDialog from '@/components/forms/form-modal';
+import ReceiptScanPanel from '@/components/receipts/ReceiptScanPanel';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Card,
   CardContent,
@@ -57,6 +59,7 @@ export const Purchases = () => {
   const {
     data: purchasesPage,
     isLoading,
+    error,
     searchQuery,
     setSearchQuery,
     fetchPage,
@@ -89,10 +92,16 @@ export const Purchases = () => {
             dialogDescription='Запазете нова покупка. Натиснете "Запази" когато сте готови.'
             handlePurchaseCreation={handlePurchaseCreation}
           />
+          <ReceiptScanPanel onPurchasesCreated={handlePurchaseCreation} />
         </CardHeader>
         <CardContent className="grow text-nowrap">
           {isLoading ? (
             <Spinner className={'stroke-primary size-20 stroke-1'} />
+          ) : error ? (
+            <Alert variant="destructive">
+              <AlertTitle>Неуспешно зареждане на покупките</AlertTitle>
+              <AlertDescription>{error.message}</AlertDescription>
+            </Alert>
           ) : (
             <Table>
               <TableHeader>

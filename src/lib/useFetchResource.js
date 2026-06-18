@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 
-import { API_URL } from '@/lib/utils';
+import { apiFetchJson } from '@/lib/api';
 
 /**
  * Custom hook for fetching resources with proper loading, error, and cleanup handling.
@@ -25,20 +25,9 @@ const useFetchResource = (endpoint, resourceName) => {
       setError(null);
 
       try {
-        const response = await fetch(`${API_URL}/${endpoint}`, {
+        const result = await apiFetchJson(endpoint, {
           signal: abortController.signal,
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            navigate('/login');
-            return;
-          }
-          throw new Error(`Failed to fetch ${resourceName}`);
-        }
-
-        const result = await response.json();
 
         if (isActive) {
           setData(result);
@@ -46,6 +35,8 @@ const useFetchResource = (endpoint, resourceName) => {
       } catch (e) {
         if (e.name === 'AbortError') {
           console.log(`${resourceName} fetch aborted`);
+        } else if (e.status === 401) {
+          navigate('/login');
         } else if (isActive) {
           console.error(`Error fetching ${resourceName}:`, e);
           setError(e);
