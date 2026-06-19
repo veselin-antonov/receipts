@@ -2,68 +2,46 @@
 
 This folder contains backend-specific documentation for the Home App / ReceiptsApp API.
 
-## Documentation ownership
+## Recommended reading order
 
-Use this split to avoid duplicate, stale docs:
+1. `../README.md` - backend overview and quickstart
+2. `DEVELOPMENT_SETUP.md` - local setup and daily development workflow
+3. `ARCHITECTURE_AND_FLOWS.md` - main components, endpoints, and request flows
+4. `PRODUCTION_SETUP.md` - production deployment and runtime configuration
 
-- Obsidian `Home App/`: product vision, cross-repo flows, decisions, status reviews.
-- `receipts-api`: backend setup, API behavior, OCR/Spring AI config, deployment/runtime notes.
-- `receipts-ui`: React/Vite setup and UI-specific behavior.
+Then use the deeper reference docs as needed.
 
-When a backend behavior changes, update this repo. When the product flow or cross-repo decision changes, update Obsidian and link to repo docs as needed.
-
-## Start here
+## Core docs
 
 | Need | Document |
 |---|---|
-| Backend quickstart, architecture, endpoints | `../README.md` |
+| Backend overview and quickstart | `../README.md` |
+| Local development setup | `DEVELOPMENT_SETUP.md` |
+| Production setup and deployment | `PRODUCTION_SETUP.md` |
+| Main components and request flows | `ARCHITECTURE_AND_FLOWS.md` |
 | OCR implementation details | `OCR_IMPLEMENTATION_SUMMARY.md` |
 | Spring AI/OpenAI setup | `SPRING_AI_SETUP.md` |
 | Backend roadmap notes | `ROADMAP.md` |
-| Historical implementation notes | `IMPLEMENTATION_COMPLETE.md` |
-| Old implementation checklist | `../IMPLEMENTATION_CHECKLIST.md` |
-| CLI/reference snippets | `../QUICKSTART.md`, `../REFERENCE_CARD.md`, `../HELP.md` |
 
-## Current backend map
+## Legacy / historical docs
 
-```text
-src/main/java/dev/vasoft/homeapp/
-├── auth/
-├── users/
-└── receipts/
-    ├── common/
-    ├── products/
-    ├── purchases/
-    ├── scanning/
-    └── stores/
-```
+These still contain useful context, but they are no longer the primary entry points:
 
-## Active endpoints
+| Document | Purpose |
+|---|---|
+| `IMPLEMENTATION_COMPLETE.md` | earlier implementation narrative |
+| `../IMPLEMENTATION_CHECKLIST.md` | older implementation checklist |
+| `../QUICKSTART.md` | older quickstart/reference notes |
+| `../REFERENCE_CARD.md` | command reference |
+| `../HELP.md` | generated/help-style notes |
 
-```text
-POST /api/auth/token
-GET  /api/auth/status
-POST /api/users/register
-POST /api/users/verify
-POST /api/users/resend-verification
-GET  /api/products
-POST /api/products
-GET  /api/stores
-GET  /api/purchases
-POST /api/purchases
-POST /api/receipts/scan
-POST /api/receipts/submit
-```
+## Documentation ownership
 
-Endpoint and setup details are maintained in `../README.md`.
+To avoid duplicated and stale docs:
 
-## Verification
+- Obsidian `Home App/` holds product vision, cross-repo flows, decisions, and status reviews.
+- `receipts-api` holds backend setup, runtime config, deployment notes, architecture, and endpoint behavior.
+- `receipts-ui` holds React/Vite setup and UI-specific behavior.
 
-Backend changes should be checked with:
-
-```bash
-./gradlew test --console=plain
-git diff --check
-```
-
-Current receipt-scanning branch status: backend tests pass after the receipt scanning workflow commit.
+If a change is caused by backend code, document it here.
+If a change is caused by a cross-repo product decision, document it in Obsidian and link back here when needed.
