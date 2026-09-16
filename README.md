@@ -19,8 +19,8 @@ Start with the docs that match your task:
 - `docs/DEVELOPMENT_SETUP.md` - local development setup and day-to-day workflow
 - `docs/PRODUCTION_SETUP.md` - production/runtime configuration and deployment checklist
 - `docs/ARCHITECTURE_AND_FLOWS.md` - main components, endpoints, and request flows
-- `docs/OCR_IMPLEMENTATION_SUMMARY.md` - deep dive into OCR preprocessing and decisions
-- `docs/SPRING_AI_SETUP.md` - Spring AI / OpenAI-specific setup notes
+- `docs/API_CONTRACTS.md` - request/response examples for active endpoints
+- `docs/RECEIPT_SCANNING.md` - canonical feature doc for receipt scanning, OCR, AI parsing, matching, and submit flow
 
 ## Quickstart
 

@@ -239,8 +239,7 @@ These config areas are especially important:
 See:
 - `DEVELOPMENT_SETUP.md`
 - `PRODUCTION_SETUP.md`
-- `SPRING_AI_SETUP.md`
-- `OCR_IMPLEMENTATION_SUMMARY.md`
+- `RECEIPT_SCANNING.md`
 
 ## Rate limiting
 

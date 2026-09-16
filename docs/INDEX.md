@@ -19,21 +19,8 @@ Then use the deeper reference docs as needed.
 | Local development setup | `DEVELOPMENT_SETUP.md` |
 | Production setup and deployment | `PRODUCTION_SETUP.md` |
 | Main components and request flows | `ARCHITECTURE_AND_FLOWS.md` |
-| OCR implementation details | `OCR_IMPLEMENTATION_SUMMARY.md` |
-| Spring AI/OpenAI setup | `SPRING_AI_SETUP.md` |
-| Backend roadmap notes | `ROADMAP.md` |
-
-## Legacy / historical docs
-
-These still contain useful context, but they are no longer the primary entry points:
-
-| Document | Purpose |
-|---|---|
-| `IMPLEMENTATION_COMPLETE.md` | earlier implementation narrative |
-| `../IMPLEMENTATION_CHECKLIST.md` | older implementation checklist |
-| `../QUICKSTART.md` | older quickstart/reference notes |
-| `../REFERENCE_CARD.md` | command reference |
-| `../HELP.md` | generated/help-style notes |
+| Active request/response contracts | `API_CONTRACTS.md` |
+| Receipt scanning feature | `RECEIPT_SCANNING.md` |
 
 ## Documentation ownership
 
