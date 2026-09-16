@@ -305,6 +305,15 @@ public Product findProductByNameFuzzy(String name) {
 
 UC-1 depends entirely on this working.
 
+### D10 — Secrets are packaged into the jar
+
+`processResources` copies `src/main/resources/certs/private.pem` (the JWT
+signing key) and `dev.env` (Mongo, SMTP, and OpenAI credentials) into the build
+output, and therefore into the jar and any image built from it. Gitignored, so
+git is clean — but `./gradlew publishImage` from a developer machine would push
+them to GHCR. Details and fix in
+[DEV_SETUP.md](DEV_SETUP.md#d10--secrets-are-packaged-into-the-jar).
+
 ### D6 — There is no lookup UI at all
 
 The UI has seven pages: Login, Register, VerifyAccount, SendVerification,

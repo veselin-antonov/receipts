@@ -22,6 +22,19 @@ below; items that were Home App concerns stay in Obsidian.
 - [x] Run the API test suite — **12 tests, 0 failures** (needed a JDK 25
       container; this host has no JVM)
 - [x] Run the UI test suite — **7 files, 15 tests, 0 failures**
+- [x] Automate dev environment setup — `scripts/dev-setup.sh`, and
+      `scripts/db-restore.sh` + `migrate-backups.py` for the data
+      ([DEV_SETUP.md](DEV_SETUP.md))
+- [x] Restore the backups: 1 user, 211 products, 14 stores, 717 purchases,
+      verified against a live MongoDB
+- [ ] Exclude `certs/**` and `*.env` from `processResources` **(D10)** — the JWT
+      private key and live credentials are currently packaged into the jar
+- [ ] Pin `TZ=UTC` in the Dockerfile and compose, to match the re-anchored
+      purchase dates
+- [ ] Tidy `docker-compose.dev.yml` — network mismatch, wrong `depends_on`,
+      and move `dev.env` out of the Java resources tree
+- [ ] Complete `example.env` — it omits the OCR, CORS, `UI_PORT`, and
+      `BACKEND_HOST` variables the app actually reads
 - [ ] Make the test suite runnable on a fresh clone **(D9)** — add
       `application-test.yaml` or defaults for the 12 undefaulted placeholders,
       so `SecurityCorsTest` does not need hand-made certs and a `.env`
