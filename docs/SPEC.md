@@ -121,7 +121,7 @@ A single repository, two deployables, one database.
 
 ```text
 receipts/
-├── api/     Spring Boot 3.5.6 · Java 21 · MongoDB
+├── api/     Spring Boot 3.5.6 · Java 25 · MongoDB
 ├── ui/      React 19 · Vite · Tailwind 4 · shadcn/ui
 └── docs/    this specification
 ```
@@ -466,15 +466,19 @@ undermine the one thing the product is for.
 
 ## 11. Conventions
 
-- **Java** 21, Spring Boot 3.5.6. Package root `dev.vasoft.homeapp` *(rename
-  pending — see [§12](#12-open-questions))*.
+- **Java** 25 (Gradle toolchain), Spring Boot 3.5.6, Gradle 9.3.1. Package root
+  `dev.vasoft.homeapp` *(rename pending — see [§12](#12-open-questions))*.
+- **Receipt parsing** uses Spring AI 1.1.2 and Tess4J 5.14.0. The build resolves
+  from Spring milestone and snapshot repositories, which is a reproducibility
+  risk — see Q6.
 - **API** under `/api`, plural nouns, `ProblemDetail` for errors with a stable
   machine-readable `error` code.
 - **Commits** follow Conventional Commits, as the existing history does.
 - **Versioning** from the `VERSION` file; `CHANGELOG.md` in Keep a Changelog
   format.
-- **Tests** live beside the code they cover. The API has six test classes and
-  the UI has eight on the unmerged branches; that is the floor, not the ceiling.
+- **Tests** live beside the code they cover. The API has 6 test classes and the
+  UI has 7 test files / 15 tests. That is the floor, not the ceiling — and
+  neither is currently run by CI (D8).
 
 ---
 
@@ -498,3 +502,9 @@ depends on it.
 - **Q5 — Receipt image retention.** Currently images are parsed and dropped.
   Keeping them would allow re-parsing with a better model later, at a storage
   and privacy cost.
+- **Q6 — Snapshot dependencies.** `build.gradle` resolves from
+  `repo.spring.io/milestone`, `repo.spring.io/snapshot`, and the Central Portal
+  snapshot repository. Snapshot artifacts can be republished or withdrawn, so a
+  build that works today may not work in six months — which is roughly how long
+  this project was dormant. Pin to release versions before relying on
+  reproducible builds.

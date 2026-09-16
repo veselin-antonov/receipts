@@ -13,21 +13,38 @@ below; items that were Home App concerns stay in Obsidian.
 
 **Goal:** get six months of finished work onto `master` and prove the stack runs.
 
-- [ ] Merge `origin/feature/receipt-scanning` into `receipts-api/master`
-      (fast-forward, no conflicts expected)
-- [ ] Merge `origin/feature/receipt-scan-ui` into `receipts-ui/master`
-      (fast-forward, no conflicts expected)
-- [ ] Delete the stale `receipts-api/docs/ROADMAP.md` — superseded by this file
+- [x] Merge `origin/feature/receipt-scanning` into `receipts-api/master` —
+      fast-forward to `30c7b85`, zero conflicts
+- [x] Merge `origin/feature/receipt-scan-ui` into `receipts-ui/master` —
+      fast-forward to `8085295`, zero conflicts
+- [x] Delete the stale `receipts-api/docs/ROADMAP.md` — the branch already did
+      this; superseded by this file
+- [x] Run the API test suite — **12 tests, 0 failures** (needed a JDK 25
+      container; this host has no JVM)
+- [x] Run the UI test suite — **7 files, 15 tests, 0 failures**
+- [ ] Make the test suite runnable on a fresh clone **(D9)** — add
+      `application-test.yaml` or defaults for the 12 undefaulted placeholders,
+      so `SecurityCorsTest` does not need hand-made certs and a `.env`
+- [ ] Commit `gradlew` as mode `100755` **(D7)** — `git update-index --chmod=+x`
+- [ ] **Wire tests into CI (D8)** — the API runs `build -x test` and the UI
+      builds an image with no test or lint step. Six test classes could have
+      rotted unnoticed over six dormant months; they happened not to
+- [ ] Build fresh container images from the merged source — the GHCR `:dev` tags
+      predate the scanning merge, so the existing `compose.yaml` runs old code
 - [ ] Bring up mongo + api + ui against the **existing** data volume
-- [ ] Confirm Tesseract resolves with `eng+bul` data
-- [ ] Confirm the OpenAI key and model still work
-- [ ] Run the API test suite (6 classes) and the UI test suite (8 files)
+- [ ] Confirm Tesseract resolves with `eng+bul` data (not installed on this host)
+- [ ] Confirm the OpenAI key and `gpt-5-mini` still work
+- [ ] Review the 18 npm audit findings (12 high)
 - [ ] **Close the E2E gap that has been open since June:** log in as the verified
       user, upload a real receipt image, review the parsed rows, match a
       product by hand, submit, and see the purchases list refresh
 
 **Done when:** a real receipt goes in one end and a correct purchase comes out
 the other, against the real database.
+
+Status: the merges and both test suites are done. What remains is the runtime —
+fresh images, a database that starts, a working OCR and LLM path, and the
+end-to-end run. That is where the real unknowns are.
 
 ---
 
@@ -143,6 +160,9 @@ that will actually bite.
 structured logging, metrics.
 
 **Contracts** — generate OpenAPI instead of hand-maintaining `API_CONTRACTS.md`.
+
+**Q6** — pin the Spring milestone and snapshot dependencies to release versions,
+so a build that works today still works after another dormant stretch.
 
 **Q4** — rename the `dev.vasoft.homeapp` package now that Receipts is
 standalone.
