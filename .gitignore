@@ -4,3 +4,5 @@ build/
 .env
 *.pem
 .migrated/
+__pycache__/
+*.pyc
