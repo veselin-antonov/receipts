@@ -84,6 +84,26 @@ See [ADR-0002](adr/0002-single-repo.md).
 
 ---
 
+## M0a — Make real photos work at all
+
+**Goal:** a receipt photographed on a table parses. Right now it returns
+nothing, so nothing downstream can be evaluated against real input.
+
+- [ ] **Crop to the receipt before preprocessing (D17)** — the highest-value
+      change by a wide margin; the wood grain currently supplies most of the
+      OCR input
+- [ ] Replace global Otsu with adaptive/local thresholding
+- [ ] Try passing grayscale to Tesseract instead of 1-bit, and compare
+- [ ] **Fail loudly (D17)** — a scan that yields no items must not return
+      HTTP 200 with an empty list and a 1970 epoch date
+- [ ] Add a sanity check on OCR output volume and mean word confidence
+- [ ] Build a small fixture set of real receipt photos and measure against it,
+      so preprocessing changes can be judged instead of guessed at
+
+**Done when:** the Relay receipt yields its store, its date and its one item.
+
+---
+
 ## M2a — Fix what the end-to-end run exposed
 
 **Goal:** make a scanned receipt usable without hand-correcting every row.
@@ -95,6 +115,13 @@ These are not polish; they came out of the first real run.
       add `currency` to `Purchase`, backfill all 717 legacy rows as `BGN`,
       convert to EUR at read time at the fixed 1.95583 rate, keep full
       precision through comparisons, round only in the UI
+- [ ] **Add aliases to `Store` (D18)** — `Product` has them, `Store` does not.
+      Aliases are the only thing that can connect a legal entity such as
+      `ЛАГАРДЕР ТРАВЕЛ РИТЕЙЛ ЕООД` to the brand `Relay`, since no string
+      metric can. Also clean `кастрия еоод`, `мс. Алмонд` and `ройс` out of the
+      catalog — all legal-entity fragments saved as shops
+- [ ] Prefer the `МАГАЗИН "..."` line over the letterhead, and treat a trailing
+      `ЕООД`/`ООД`/`АД` as a marker of the legal entity (D18)
 - [ ] **Store extraction and matching (D13)** — the store came back empty even
       though OCR read `ЛИДЛ` clearly. Fix the prompt, then replace the
       exact-match lookup, and transliterate Cyrillic receipt names onto the

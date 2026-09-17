@@ -377,6 +377,65 @@ is also not populating the store field.
 
 Net effect: **every scanned receipt needs the store chosen by hand.**
 
+### D17 — OCR preprocessing destroys real photos *(critical)*
+
+A real receipt photographed on a wooden table returned **zero** parsed items.
+Not a bad parse — nothing at all: `rawStoreName: ""`, `purchases: []`, and a
+`1970-01-01` epoch date from a null.
+
+`OcrService` applies **global Otsu binarization** to the whole frame (observed:
+`Otsu threshold: 139`, output `3024x4032` at **1-bit** depth). On a photo where
+the receipt sits on a dark textured surface, one global threshold turns the wood
+grain into high-contrast striping across most of the image. Tesseract then
+performs layout analysis over that and reads the texture: **10,911 characters**
+of noise from a receipt holding about twenty lines.
+
+The receipt region itself binarized *fine* — the saved debug image is plainly
+legible to a human. The signal was not degraded, it was **buried**. Grepping the
+OCR output for `RELAY`, `7.49`, `ФИСКАЛЕН` and `2025` returns nothing: none of
+the real text survived layout analysis.
+
+This is why the synthetic test passed and the first real receipt failed. The
+synthetic image had no background.
+
+Fix, in order of value:
+
+1. **Detect and crop to the receipt before anything else.** Nothing else
+   matters while 80% of the frame is furniture. This alone likely fixes it.
+2. **Replace global Otsu with adaptive/local thresholding.** Receipt photos
+   have uneven lighting, shadows and curl; a single global cut cannot serve the
+   whole frame even after cropping.
+3. **Reconsider 1-bit output.** Modern Tesseract does its own thresholding and
+   often does better on a grayscale image than on someone else's binarization.
+4. **Add a sanity check.** ~11k characters from one receipt is self-evidently
+   wrong. Character count far above what the image can hold, or a very low mean
+   word confidence, should fail loudly rather than return an empty success.
+
+That last point is its own defect: the request returned **HTTP 200** with an
+empty result. A total parse failure must not look like a successful scan of an
+empty receipt.
+
+### D18 — Receipts print the legal entity, not the brand
+
+The real receipt's header is `"ЛАГАРДЕР ТРАВЕЛ РИТЕЙЛ" ЕООД`, with the actual
+shop identified further down as `МАГАЗИН "RELAY"`. No normalization,
+transliteration or edit distance will ever connect *Лагардер Травел Ритейл* to
+*Relay* — they are unrelated strings.
+
+This is not hypothetical: the store catalog already contains **`кастрия еоод`**,
+a legal-entity fragment saved as if it were a shop, alongside `мс. Алмонд` and
+`ройс`. The problem has been quietly polluting the catalog for a while.
+
+Two consequences:
+
+- The parser should prefer a `МАГАЗИН "..."` line over the letterhead, and
+  treat a trailing `ЕООД`/`ООД`/`АД` as a signal that it has found the legal
+  entity rather than the brand.
+- **`Store` needs aliases.** `Product` has `aliases` and `normalizedAliases`;
+  `Store` has neither. Without them there is no way to teach the system that
+  *Лагардер Травел Ритейл* means *Relay* — and aliases are the only mechanism
+  that can bridge a legal name to a brand, since no string metric can.
+
 ### D15 — The UI reads "account not verified" out of a bare 403
 
 `LoginForm.jsx` maps **any** 403 from `POST /api/auth/token` to
@@ -466,6 +525,28 @@ Requirements to consider F1 done:
 - Works for Bulgarian and English input, including mixed.
 - Ranks by relevance, then by how recently and often the user buys the thing.
 - Fast enough to run on every keystroke.
+
+#### F2.0a Unit price needs package size, not just quantity
+
+`quantity` and `quantityUnit` make unit price computable, but only make it
+*comparable* when the unit is absolute. Weighed goods are fine: `1,240 x 2,49`
+is 2.49 per kilogram, and that compares against any other kilogram price.
+
+`PIECE` is not absolute. Two pieces of yoghurt at 1.45 each tells you nothing
+about value unless you know whether the pot is 400 g or 500 g, and receipts
+usually do not print it. The existing catalog works around this by smuggling
+the unit into the name — `Лук (цена за кг)`, `Лалета 7 бр.`, `банани на кг` —
+which is unsearchable and unusable for arithmetic.
+
+So the honest scope is:
+
+- **per kg / per litre** comparisons: correct once D1 is fixed
+- **per piece** comparisons: correct only within the same package size
+
+Making the verdict trustworthy for packaged goods needs a `packageSize` on the
+product (amount plus unit), set once per product rather than per purchase.
+Until then the UI must not present a per-piece comparison as though it were
+per-kilogram — showing a confidently wrong verdict is worse than showing none.
 
 #### F2.0 Note on how price is recorded
 
@@ -588,6 +669,19 @@ Rules:
    receipts print both BGN and EUR. The parser must be explicit about which
    figure it takes, and record the matching currency. Taking the wrong column
    silently injects ~2x errors into new data.
+
+   This is confirmed, not theoretical. A real receipt from 03.10.2025 prints:
+
+   ```text
+   ОБЩА СУМА ЛВ          7.49
+   ОБЩА СУМА В ЕВРО      3.8x
+   ВАЛ. КУРС 1 ЕВРО = 1.95583 ЛВ
+   ```
+
+   Two totals and the rate, on one receipt, from *before* adoption. The parser
+   currently has no concept of currency, so which figure it picks is
+   undefined. Useful corollary: receipts state the rate themselves, so a parser
+   that reads it can verify the constant rather than trusting a hard-coded one.
 
 Migration for the existing rows: set `currency: BGN` on all 717. They predate
 the changeover, so this is unambiguous — but it must be an explicit stored
