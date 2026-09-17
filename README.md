@@ -19,8 +19,9 @@ once the current feature branches have landed (see
 | 1 | [docs/SPEC.md](docs/SPEC.md) | What we are building and why. **The spec we follow.** |
 | 2 | [docs/STATE.md](docs/STATE.md) | What actually exists today, and what is broken. |
 | 3 | [docs/DEV_SETUP.md](docs/DEV_SETUP.md) | How to get it running locally, and what is automated. |
-| 4 | [docs/ROADMAP.md](docs/ROADMAP.md) | The order we build it in. |
-| 5 | [docs/adr/](docs/adr/) | Decisions, with the reasoning that produced them. |
+| 4 | [docs/SCANNING_PATHS.md](docs/SCANNING_PATHS.md) | The three routes an uploaded receipt can take, and why they differ. |
+| 5 | [docs/ROADMAP.md](docs/ROADMAP.md) | The order we build it in. |
+| 6 | [docs/adr/](docs/adr/) | Decisions, with the reasoning that produced them. |
 
 ## Documentation ownership
 
