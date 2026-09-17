@@ -114,6 +114,11 @@ Six defects found by reading the code. Full detail in
 | D7 | `gradlew` is committed as mode `100644`, not executable. `./gradlew` fails on Linux and macOS. | Medium |
 | D8 | **Neither repo runs its tests in CI.** The API builds with `./gradlew build -x test`; the UI workflows only build a Docker image, with no lint or test step. | **High** |
 | D9 | The test suite cannot run on a fresh clone. It needs two gitignored files that nothing creates or documents as a test prerequisite. | **High** |
+| D10 | `processResources` packages the JWT private key and `dev.env` credentials into the jar, and so into any image built locally. | **High** |
+| D11 | Every historical price now renders as euros: the `bg-BG` locale reports EUR, so 12.65 лв is served as `"12,65 €"`. | **Critical** |
+| D12 | The product matcher uses whole-string Levenshtein, so it misses on word order and produces confident false positives. | **High** |
+| D13 | Store matching is exact-only, and receipts print Cyrillic store names against a Latin catalog. Every scan needs the store set by hand. | **High** |
+| D14 | `docker-compose.dev.yml` starts mongo with `--auth` but sets no `MONGO_INITDB_ROOT_*`, so a fresh volume has no user and refuses every connection. | Medium |
 
 Also dead or half-finished: `PurchaseService.enrichParsedPurchases` (commented
 out), `storeService` and `productService` injected into `PurchaseService` but
@@ -173,19 +178,46 @@ Run 2026-09-16 after merging both branches.
 The API run needed a JDK 25 container, since this host has no JVM installed, and
 it needed the two files described under D9 to be created first.
 
+## End-to-end run, 2026-09-17
+
+The gap open since June is now closed. The full stack ran and a receipt went
+through the whole pipeline.
+
+| Step | Result |
+|---|---|
+| `docker compose -f docker-compose.dev.yml up -d` | mongo, mailhog, ui all start |
+| MongoDB auth | Works, once `MONGO_INITDB_ROOT_*` is supplied (D14) |
+| Backup restore | 1 user, 211 products, 14 stores, 717 purchases |
+| API boot, Java 25, native | **Started in 3.23 s** |
+| Unauthenticated access | All endpoints 401; rate-limit headers present |
+| Register → verify → login | 201 → 200 → `JWT` cookie, `ACTIVE_USER`, HttpOnly/Secure/SameSite=Strict |
+| Restored data through Spring Data | 211 products and 14 stores deserialize correctly; a purchase maps product, store, date and discount |
+| Tesseract `eng+bul` | Reads Bulgarian cleanly |
+| `POST /api/receipts/scan` | **HTTP 200 in 24 s**, 5 line items parsed |
+
+What the scan got right: the date, all five prices, and every quantity with its
+unit — including `1,240 x 2,49` correctly read as 1.24 KILOGRAM. Product
+matching found good candidates for two of five rows.
+
+What it got wrong is recorded as D11, D12 and D13.
+
 ## Confidence gaps
 
 Still unverified, and each is a plausible source of trouble:
 
-- **The scan pipeline end to end.** Not exercised. The June status review
-  flagged this same gap and it is still open. This is the one that matters.
-- **Tesseract.** Not installed on this host at all. The API container image
-  installs `tesseract-ocr` with `eng` and `bul` data, so the deployed path is
-  probably fine, but the local development path is not.
-- **The OpenAI key and model.** Untested. `gpt-5-mini` is configured; whether
-  the key is still valid is unknown.
-- **The MongoDB volume.** Six months cold, never started since. `receipts-db`
-  has status `Created`, meaning it has never successfully run.
+- **A real receipt.** The end-to-end run used a *synthetic* Bulgarian receipt,
+  clean and machine-rendered. Real receipts are crumpled thermal paper, shot at
+  an angle in bad light. OCR quality on those is still unknown, and it is the
+  single biggest remaining unknown in the capture loop.
+- **The PDF path.** Only the image path was exercised. PDFs take a different
+  route entirely ([ADR-0004](adr/0004-ocr-plus-llm-parsing.md)).
+- **`POST /api/receipts/submit`.** The scan was reviewed but not submitted, so
+  the write path has not been run against real parsed data.
+- **The UI.** Never opened in a browser. `ReceiptScanPanel` is covered by tests
+  but has not been driven by hand.
 - **The published container images.** The `:dev` tags on GHCR are six months old
   and predate the scanning merge, so running the existing `compose.yaml` would
   test the *old* code. New images must be built from the merged source.
+- **The original account's password.** Unknown, so the 717 restored purchases
+  were verified by temporarily reassigning a single document to a test user and
+  reverting it, rather than by logging in as their owner.

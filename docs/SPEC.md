@@ -314,6 +314,68 @@ git is clean — but `./gradlew publishImage` from a developer machine would pus
 them to GHCR. Details and fix in
 [DEV_SETUP.md](DEV_SETUP.md#d10--secrets-are-packaged-into-the-jar).
 
+### D11 — Every historical price now displays as euros *(critical)*
+
+`Formatter.formatPrice` calls `NumberFormat.getCurrencyInstance(bg-BG)`. The
+JDK's CLDR data now reports Bulgaria's currency as **EUR**, so a purchase
+recorded as 12.65 лв is served to the UI as `"12,65 €"`.
+
+Verified on Java 25:
+
+```text
+currency: EUR (Euro)
+12.65 formats as: 12,65 €
+```
+
+No code changed. The database stores a bare `12.65` with no currency attached,
+and the meaning of that number shifted when the platform's locale data was
+updated. At the old peg (1.95583 лв to €1) the app is now overstating three
+years of prices by roughly a factor of two.
+
+This answers **Q1**: the currency transition is real and is already corrupting
+what users see. It is also the strongest possible argument for D2 — formatting
+in the backend, with no currency stored beside the amount, means your data
+silently changes meaning when a dependency updates.
+
+Fix: store an explicit currency per purchase, record the historical BGN values
+as BGN, and convert for display rather than relabelling.
+
+### D12 — The product matcher is word-order sensitive
+
+`MatcherService.scoreProduct` scores with whole-string Levenshtein similarity
+(`1.0 - distance / maxLength`) against the normalized canonical name and
+aliases. Two failure modes, both observed in a real scan:
+
+- **Misses on reordering.** `"мляко прясно"` scored below threshold against
+  `"прясно мляко"` and returned **no match**, although the catalog holds five
+  `Прясно мляко` products. The words are identical; only the order differs, and
+  edit distance punishes that heavily.
+- **Confident false positives.** `"кафе на зърна"` matched
+  `"карфиол на брой"`. Similar length and a shared `"на бро"`/`"на зър"` shape
+  put it over the threshold. There is no coffee in the catalog at all, so the
+  correct answer was no match.
+
+Fix: score on token sets rather than raw strings, so word order stops mattering
+and shared-token overlap drives the score.
+
+### D13 — Store matching cannot work on Bulgarian receipts
+
+Two independent faults, both seen in the same scan:
+
+1. `matchStore` is **not fuzzy at all**. It is a single exact lookup,
+   `findFirstByNormalizedCanonicalName`. Anything short of a character-perfect
+   match after normalization returns nothing.
+2. Receipts print store names in **Cyrillic** (`ЛИДЛ`) while the catalog holds
+   them in **Latin** (`Lidl`). These share no characters, so no amount of
+   normalization or edit distance will ever connect them. Transliteration is
+   required.
+
+In the observed scan the store was not even extracted — `rawStoreName` came
+back as `""` despite OCR reading `ЛИДЛ` clearly — so the LLM's OCR-text prompt
+is also not populating the store field.
+
+Net effect: **every scanned receipt needs the store chosen by hand.**
+
 ### D6 — There is no lookup UI at all
 
 The UI has seven pages: Login, Register, VerifyAccount, SendVerification,
@@ -371,6 +433,13 @@ Requirements to consider F1 done:
 - Works for Bulgarian and English input, including mixed.
 - Ranks by relevance, then by how recently and often the user buys the thing.
 - Fast enough to run on every keystroke.
+
+#### F2.0 Note on how price is recorded
+
+The scan pipeline returns `price` as the **line total**, not the unit price: a
+row of `2 x 1,45` comes back as `price: 2.90, quantity: 2.0`. Unit price is
+therefore `price / quantity`, and any unit-price calculation must divide before
+comparing. Getting this backwards would silently double or halve comparisons.
 
 #### F2.2 The verdict
 

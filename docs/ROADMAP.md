@@ -42,22 +42,24 @@ below; items that were Home App concerns stay in Obsidian.
 - [ ] **Wire tests into CI (D8)** — the API runs `build -x test` and the UI
       builds an image with no test or lint step. Six test classes could have
       rotted unnoticed over six dormant months; they happened not to
+- [x] Bring up mongo + api + ui; API boots natively on Java 25 in 3.23 s
+- [x] Confirm Tesseract resolves with `eng+bul` — reads Bulgarian cleanly
+- [x] Confirm the OpenAI key and `gpt-5-mini` work — scan returned 200 in 24 s
+- [x] **Close the E2E gap open since June** — register → verify via MailHog →
+      login → scan → 5 line items parsed with quantities and units.
+      Caveat: a *synthetic* receipt; a real one is still untested
+- [ ] Repeat with a real crumpled receipt photo, and with a PDF
+- [ ] Exercise `POST /api/receipts/submit` and the UI in a browser
 - [ ] Build fresh container images from the merged source — the GHCR `:dev` tags
       predate the scanning merge, so the existing `compose.yaml` runs old code
-- [ ] Bring up mongo + api + ui against the **existing** data volume
-- [ ] Confirm Tesseract resolves with `eng+bul` data (not installed on this host)
-- [ ] Confirm the OpenAI key and `gpt-5-mini` still work
 - [ ] Review the 18 npm audit findings (12 high)
-- [ ] **Close the E2E gap that has been open since June:** log in as the verified
-      user, upload a real receipt image, review the parsed rows, match a
-      product by hand, submit, and see the purchases list refresh
 
 **Done when:** a real receipt goes in one end and a correct purchase comes out
 the other, against the real database.
 
-Status: the merges and both test suites are done. What remains is the runtime —
-fresh images, a database that starts, a working OCR and LLM path, and the
-end-to-end run. That is where the real unknowns are.
+Status: the pipeline works. A synthetic Bulgarian receipt parsed end to end,
+with correct prices, quantities and units. What it exposed is that the
+*matching* half is much weaker than the *parsing* half — see M2a.
 
 ---
 
@@ -79,6 +81,32 @@ See [ADR-0002](adr/0002-single-repo.md).
       `D:/Documents/...` paths and the `homeapp-infra` reference
 
 **Done when:** one clone, one CI run, one place the spec lives.
+
+---
+
+## M2a — Fix what the end-to-end run exposed
+
+**Goal:** make a scanned receipt usable without hand-correcting every row.
+These are not polish; they came out of the first real run.
+
+- [ ] **Currency (D11)** — `bg-BG` now formats as EUR, so all 717 historical
+      BGN prices display as euros, overstating them roughly twofold. Store an
+      explicit currency per purchase and convert for display. Answers **Q1**
+- [ ] **Store extraction and matching (D13)** — the store came back empty even
+      though OCR read `ЛИДЛ` clearly. Fix the prompt, then replace the
+      exact-match lookup, and transliterate Cyrillic receipt names onto the
+      Latin catalog. Without this every scan needs the store set by hand
+- [ ] **Product matching (D12)** — replace whole-string Levenshtein with token
+      set scoring. `"мляко прясно"` currently misses five `Прясно мляко`
+      products on word order alone, while `"кафе на зърна"` confidently matches
+      `"карфиол на брой"`
+- [ ] Record confirmed matches as aliases, so each correction improves the next
+      scan ([SPEC §8.4](SPEC.md#84-f4--catalog-and-normalization))
+- [ ] Clean the store catalog — it holds `Тест`, `Тест 2`, `кастрия еоод`,
+      `мс. Алмонд`, `ройс`
+
+**Done when:** a scanned receipt comes back with the store identified and most
+rows matched correctly.
 
 ---
 
