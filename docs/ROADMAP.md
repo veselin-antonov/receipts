@@ -89,9 +89,12 @@ See [ADR-0002](adr/0002-single-repo.md).
 **Goal:** make a scanned receipt usable without hand-correcting every row.
 These are not polish; they came out of the first real run.
 
-- [ ] **Currency (D11)** — `bg-BG` now formats as EUR, so all 717 historical
-      BGN prices display as euros, overstating them roughly twofold. Store an
-      explicit currency per purchase and convert for display. Answers **Q1**
+- [ ] **Currency (D11)** — do this together with numeric wire format (D2);
+      they are one change, since you cannot express a currency in a
+      pre-formatted display string. Per [SPEC §9.5](SPEC.md#95-currency-handling):
+      add `currency` to `Purchase`, backfill all 717 legacy rows as `BGN`,
+      convert to EUR at read time at the fixed 1.95583 rate, keep full
+      precision through comparisons, round only in the UI
 - [ ] **Store extraction and matching (D13)** — the store came back empty even
       though OCR read `ЛИДЛ` clearly. Fix the prompt, then replace the
       exact-match lookup, and transliterate Cyrillic receipt names onto the

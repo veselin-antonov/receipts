@@ -337,8 +337,9 @@ what users see. It is also the strongest possible argument for D2 — formatting
 in the backend, with no currency stored beside the amount, means your data
 silently changes meaning when a dependency updates.
 
-Fix: store an explicit currency per purchase, record the historical BGN values
-as BGN, and convert for display rather than relabelling.
+Fix: see [§9.5](#95-currency-handling). The dataset is permanently
+mixed — legacy rows are BGN, new rows are EUR — so currency has to become part
+of the model rather than an assumption.
 
 ### D12 — The product matcher is word-order sensitive
 
@@ -555,6 +556,43 @@ computes every statistic in this spec faster than a cache could be invalidated
 correctly. A stale-cache bug that quietly reports a wrong "lowest price" would
 undermine the one thing the product is for.
 
+### 9.5 Currency handling
+
+The dataset spans Bulgaria's euro changeover, so it is **permanently mixed**:
+
+| | Currency | Count today |
+|---|---|---|
+| Legacy purchases (to Oct 2025) | **BGN** | 717 |
+| New purchases | **EUR** | grows from here |
+| Display, everywhere | **EUR** | — |
+
+Rules:
+
+1. **Store the currency on every purchase.** Never infer it from the date. A
+   date-based rule would be a second hidden assumption of exactly the kind that
+   caused D11, and it would break the moment a backdated row is entered.
+2. **Never rewrite a recorded amount.** `12.65` BGN is what was paid; it stays
+   `12.65` with `currency: BGN`. Converting in place destroys the original
+   figure and makes the error unrecoverable if the rate is ever wrong.
+3. **Convert at read time, to EUR, using the fixed rate.** BGN was pegged, and
+   adoption used the same irrevocable rate: **1 EUR = 1.95583 BGN**. This is a
+   constant, not a market lookup — conversion is deterministic and reproducible.
+4. **Compare only within one currency.** The lookup loop compares prices across
+   three years that straddle the changeover. Convert to EUR *first*, then
+   compare. A BGN figure compared against a EUR figure is wrong by ~2x, which is
+   large enough to invert a "good price" verdict.
+5. **Round only at display.** 12.65 BGN is 6.4678… EUR. Keep full precision
+   through statistics and comparison; round in the UI. Rounding early and then
+   averaging accumulates error across 717 rows.
+6. **Watch the scan path.** During the dual-display transition Bulgarian
+   receipts print both BGN and EUR. The parser must be explicit about which
+   figure it takes, and record the matching currency. Taking the wrong column
+   silently injects ~2x errors into new data.
+
+Migration for the existing rows: set `currency: BGN` on all 717. They predate
+the changeover, so this is unambiguous — but it must be an explicit stored
+value, not an inferred one.
+
 ### 9.4 Parsed data is never persisted unreviewed
 
 `/scan` returns; `/submit` writes. OCR and LLM output is a suggestion.
@@ -597,10 +635,10 @@ undermine the one thing the product is for.
 Decisions deliberately deferred. Each needs an answer before the milestone that
 depends on it.
 
-- **Q1 — Currency.** All existing data is in BGN, and prices are formatted with
-  a `bg-BG` locale. If Bulgaria has moved to the euro, the price history spans a
-  currency change, and comparing a 2025 lev price against a 2026 euro price is
-  meaningless without conversion. Needed before F2.2. *Blocks M3.*
+- **Q1 — Currency.** ~~Open.~~ **Answered.** The changeover happened; the
+  dataset is permanently mixed. Design in [§9.5](#95-currency-handling).
+  One detail still to confirm with the user: that **1 EUR = 1.95583 BGN** is the
+  correct irrevocable rate to hard-code.
 - **Q2 — Quantity backfill.** The 717 existing purchases have no quantity or
   unit and it cannot be recovered automatically. Options: leave them
   unit-price-less and show unit price only for new data; bulk-assign a default
