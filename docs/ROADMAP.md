@@ -115,6 +115,18 @@ These are not polish; they came out of the first real run.
       add `currency` to `Purchase`, backfill all 717 legacy rows as `BGN`,
       convert to EUR at read time at the fixed 1.95583 rate, keep full
       precision through comparisons, round only in the UI
+- [ ] **Stop auto-creating stores (D18)** — `resolveStore` saves any unmatched
+      name as a new store with no review; this is where the catalog junk came
+      from. Nothing may create a store without a human choosing it
+- [ ] Return a **ranked list** of store candidates, not a single suggestion,
+      mirroring how products already work
+- [ ] Record the raw parsed string as an alias on the chosen store, and the
+      raw product wording as a product alias — `Product.aliases` exists and
+      nothing writes to it
+- [ ] **Fix screenshot detection (D19)** — it keys off the PNG extension, so
+      photos exported as PNG skip preprocessing they need and screenshots saved
+      as JPEG get preprocessing that destroys them. Use EXIF presence, which is
+      already read for orientation
 - [ ] **Add aliases to `Store` (D18)** — `Product` has them, `Store` does not.
       Aliases are the only thing that can connect a legal entity such as
       `ЛАГАРДЕР ТРАВЕЛ РИТЕЙЛ ЕООД` to the brand `Relay`, since no string

@@ -415,12 +415,75 @@ That last point is its own defect: the request returned **HTTP 200** with an
 empty result. A total parse failure must not look like a successful scan of an
 empty receipt.
 
-### D18 — Receipts print the legal entity, not the brand
+### D19 — "Screenshot" is decided by file extension
 
-The real receipt's header is `"ЛАГАРДЕР ТРАВЕЛ РИТЕЙЛ" ЕООД`, with the actual
-shop identified further down as `МАГАЗИН "RELAY"`. No normalization,
-transliteration or edit distance will ever connect *Лагардер Травел Ритейл* to
-*Relay* — they are unrelated strings.
+```java
+private boolean isScreenshot(MultipartFile file) {
+    return "image/png".equalsIgnoreCase(file.getContentType());
+}
+```
+
+PNG means screenshot, and screenshots skip preprocessing entirely. Container
+format has no reliable relationship to how an image was produced, so both
+directions misfire:
+
+- a **camera photo exported as PNG** skips the preprocessing it needs and goes
+  raw to Tesseract
+- a **screenshot saved as JPEG** receives the full photo pipeline, including
+  the binarization that destroys images under D17
+
+This also explains why the first synthetic test appeared to succeed: the test
+image was written as a PNG, so it never entered the preprocessing pipeline at
+all. The verification exercised the OCR and LLM path but not the preprocessing
+code, while reporting that the scan flow worked end to end.
+
+Detection should key off image characteristics — colour histogram, noise
+profile, EXIF presence (a camera photo carries EXIF, a screen capture does
+not) — rather than the container. EXIF alone is a far better signal than the
+extension and is already being read for orientation.
+
+Secondary: `saveDebugImage` is only called on the non-screenshot branch, so PNG
+failures leave no debug artefact and are correspondingly harder to diagnose.
+
+### D18 — Store resolution auto-creates instead of asking
+
+`PurchaseService.resolveStore` looks a name up by canonical name and, on a
+miss, **silently saves a new store**. No review, no confirmation. This is the
+origin of `кастрия еоод`, `мс. Алмонд` and `ройс` in the catalog: not a
+matching failure, but a design that creates records from unreviewed parser
+output.
+
+A related observation, held deliberately weakly: the one real receipt examined
+has `"ЛАГАРДЕР ТРАВЕЛ РИТЕЙЛ" ЕООД` in the header and the shop named lower down
+as `МАГАЗИН "RELAY"`. Those two strings cannot be connected by normalization,
+transliteration or edit distance. **But this is a single sample**, and there is
+no evidence Bulgarian receipts reliably carry both forms, so no parsing
+heuristic should be built on it.
+
+The fix is therefore not smarter parsing but an explicit review step, matching
+how the rest of the scan flow already works:
+
+1. `/scan` returns `rawStoreName` plus a **ranked list** of candidates
+   (`ResScanStore` currently returns a single suggestion; the product side
+   already returns a list — mirror it)
+2. the UI offers the candidates, the full searchable store list, and "create
+   new"
+3. choosing an existing store **records the raw parsed string as an alias**
+4. creating a new one takes a display name, with the raw string as its first
+   alias
+5. the next receipt from that shop matches the alias exactly
+
+**`Store` has no `aliases` field** — `Product` has `aliases` and
+`normalizedAliases`, `Store` has neither. Adding it is a prerequisite, since
+aliases are the mechanism this design runs on, and the only thing that can ever
+connect a legal entity to a brand.
+
+Nothing may create a store without a human choosing it. Transliteration is
+still worth having, but only to rank candidates, not to decide. Its failure
+then costs one pick from a short list rather than a wrong record.
+
+Note the same applies to products: `Product.aliases` exists and **nothing
+writes to it**, which is why match quality never improves with use.
 
 This is not hypothetical: the store catalog already contains **`кастрия еоод`**,
 a legal-entity fragment saved as if it were a shop, alongside `мс. Алмонд` and
