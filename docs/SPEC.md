@@ -376,6 +376,38 @@ is also not populating the store field.
 
 Net effect: **every scanned receipt needs the store chosen by hand.**
 
+### D15 — The UI reads "account not verified" out of a bare 403
+
+`LoginForm.jsx` maps **any** 403 from `POST /api/auth/token` to
+`"Account not verified!"` and navigates to `/not-verified`.
+
+403 is not specific to an unverified account. Observed in practice: a CORS
+rejection (browsing from a LAN address that was not in
+`APP_CORS_ALLOWED_ORIGINS`) also returns 403, and the UI confidently reported a
+verified, active account as unverified, then pushed the user into a
+resend-verification flow that failed for the same underlying reason.
+
+A wrong diagnosis is worse than a generic one here — it sends someone to fix
+something that was never broken.
+
+The backend already signals intent properly: `TokenService` sets
+`token_type: limited` for genuinely inactive users, which is what drives the
+403 in `AuthController`. The UI should key off a distinguishable error code in
+the response body rather than inferring meaning from a status code that several
+unrelated conditions share.
+
+### D16 — CORS origins are a hand-maintained list that breaks off-localhost use
+
+`app.cors.allowed-origins` defaults to three `localhost` entries. Any other
+origin — a LAN address, a hostname, a tunnel — is rejected with 403 until
+someone edits configuration. For a headless server browsed from another
+machine, which is this project's actual development setup, the default
+configuration cannot work.
+
+Worth noting for anyone testing this: **curl does not send an `Origin` header**,
+so CORS never engages and every curl check passes. Only a browser reproduces
+it. Verify CORS with an explicit `-H "Origin: ..."` or not at all.
+
 ### D6 — There is no lookup UI at all
 
 The UI has seven pages: Login, Register, VerifyAccount, SendVerification,

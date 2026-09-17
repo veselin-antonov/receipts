@@ -119,6 +119,8 @@ Six defects found by reading the code. Full detail in
 | D12 | The product matcher uses whole-string Levenshtein, so it misses on word order and produces confident false positives. | **High** |
 | D13 | Store matching is exact-only, and receipts print Cyrillic store names against a Latin catalog. Every scan needs the store set by hand. | **High** |
 | D14 | `docker-compose.dev.yml` starts mongo with `--auth` but sets no `MONGO_INITDB_ROOT_*`, so a fresh volume has no user and refuses every connection. | Medium |
+| D15 | The UI reports any 403 as "account not verified", which misdiagnosed a CORS rejection as an unverified account. | **High** |
+| D16 | CORS origins default to `localhost` only, so browsing a headless server from another machine fails with 403. | Medium |
 
 Also dead or half-finished: `PurchaseService.enrichParsedPurchases` (commented
 out), `storeService` and `productService` injected into `PurchaseService` but

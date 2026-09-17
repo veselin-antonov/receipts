@@ -102,6 +102,12 @@ These are not polish; they came out of the first real run.
       `"карфиол на брой"`
 - [ ] Record confirmed matches as aliases, so each correction improves the next
       scan ([SPEC §8.4](SPEC.md#84-f4--catalog-and-normalization))
+- [ ] **Stop inferring "unverified" from a bare 403 (D15)** — return a
+      distinguishable error code and have the UI key off that. The current
+      behaviour reported a healthy account as unverified and sent the user into
+      a dead-end resend flow
+- [ ] Make CORS workable off-localhost (D16) — the dev default cannot work for
+      a headless server browsed from a laptop, which is the real setup
 - [ ] Clean the store catalog — it holds `Тест`, `Тест 2`, `кастрия еоод`,
       `мс. Алмонд`, `ройс`
 
