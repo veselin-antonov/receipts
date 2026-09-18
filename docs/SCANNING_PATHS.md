@@ -181,6 +181,76 @@ worth more than making the detection cleverer.
 
 ---
 
+## Measured baseline, 2026-09-18
+
+Four photographs of **one** Kaufland receipt — 7 items, per-line discounts,
+mixed piece and weight quantities, dual BGN/EUR totals — differing only in
+surface and angle. All Path C. This is what M0a must improve on.
+
+| | Store extracted | Date | Items (of 7) | Time |
+|---|---|---|---|---|
+| **white** | `Кауфланд България ЕООД и Ко. КД` | none | **7/7, all correct** | 52 s |
+| **shadow** | `Хипермаркет Кауфланд Варна-Трошево` | `2021-05-21` (invented) | 4/7, **rows cross-contaminated** | 74 s |
+| **angled** | `Авто Султан ТА` (**invented**) | none | 8 rows, mostly wrong | 78 s |
+| **wood** | `Кауфланд` | `1970-01-01` (null) | **0/7** | 34 s |
+
+### The parser is good; the image pipeline is not
+
+On the clean shot, extraction is close to flawless: every price, every
+quantity — including `0.318` and `0.636` **KILOGRAM** for weighed goods — and
+every per-line discount. Only two trivial OCR slips (`кр. сир.` read as
+`kp. cup`). The LLM parsing stage is not the problem.
+
+Everything below that row is the image pipeline degrading its input.
+
+### Failure severity is the opposite of what it looks like
+
+- **wood — fails loudly.** Zero items. Useless, but obvious; nobody submits it.
+- **shadow — fails quietly.** Four rows, but data is mismatched *across* rows:
+  `Йоанна закв. сметана` is given `19.74` and quantity `6.0`, which belong to
+  `Р.тон в раст.масло`. A plausible row carrying another row's numbers.
+- **angled — fails dangerously.** Eight rows of confident fiction. `Ширацаца`
+  is not a word. `Р.тон в раст.масло` (tuna in oil) became `Растително масло`
+  (vegetable oil) — a different product at the same price. The store is
+  invented outright.
+
+A wrong price entering price history is worse than no price, because the
+lookup loop will later present it as fact. **Angled and shadow are more
+dangerous than wood**, and any confidence threshold must treat quiet corruption
+as the primary risk, not empty results.
+
+### Four names for one store
+
+The same receipt produced four different store strings:
+
+```text
+Кауфланд
+Кауфланд България ЕООД и Ко. КД
+Хипермаркет Кауфланд Варна-Трошево
+Авто Султан ТА          ← invented
+```
+
+**`matched` was `None` for all four**, including the bare `Кауфланд`, which
+should match the catalog's `Kaufland` on transliteration alone (D13).
+
+This is the empirical case for the alias design in D18: no parsing rule
+normalises those four into one store, but a human picking once — and the raw
+string being stored as an alias — handles every one of them, and the next
+receipt from that shop matches directly.
+
+### Other confirmations
+
+- **`price` is the line total *before* discount.** The seven extracted prices
+  sum to 84.32; the seven discounts sum to 2.00; the receipt total is 82.32.
+  Exactly consistent, so `discountAmount` is deducted separately, not baked in.
+- **Product matching is weak (D12).** `Хляб с лимец 500г` matched nothing,
+  though the catalog holds `Вита хляб лимец`.
+- **Date extraction is broken on all four**, and missing dates serialise
+  inconsistently as both `null` and `1970-01-01`.
+- **Every run exceeded the 30 s target**, at 34–78 s.
+- All prices came from the BGN column, which is correct — but by luck, since
+  nothing records a currency.
+
 ## Testing implications
 
 The paths fail differently, which is diagnostically useful:
