@@ -202,14 +202,50 @@ Spring
 parser
 ```
 
-| # | Layer | Where | Value | On breach |
+| # | Layer | Where | Derived from | On breach |
 |---|---|---|---|---|
-| 1 | `client_max_body_size` | `receipts-ui/nginx/nginx.conf.template` | **25m** | `413` from nginx; request never reaches the API |
-| 2 | `max-file-size` / `max-request-size` | `receipts-api` `application.yaml` | **25MB** | `413` from Spring |
-| 3 | `MAX_FILE_SIZE_BYTES` | `ReceiptScanService` | **25 MB** | `422` with `RECEIPT_PARSING_ERROR` |
+| 1 | `client_max_body_size` | `receipts-ui/nginx/nginx.conf.template` | `${MAX_UPLOAD_MB}m` | `413` from nginx; never reaches the API |
+| 2 | `max-file-size` / `max-request-size` | `receipts-api` `application.yaml` | `${MAX_UPLOAD_MB:25}MB` | `413` from Spring |
+| 3 | the service's own check | `ReceiptScanService` | bound from layer 2 | `422` with `RECEIPT_PARSING_ERROR` |
 
-Keep all three equal. Layer 3 is the only one that produces a useful message,
-so it should be the one that actually trips.
+### One value, three layers
+
+All three derive from a single **`MAX_UPLOAD_MB`** environment variable, so
+they cannot drift:
+
+- **nginx** substitutes it at container start, alongside `BACKEND_HOST`
+- **Spring** reads it in `application.yaml`, defaulting to 25
+- **`ReceiptScanService`** binds `spring.servlet.multipart.max-file-size` as a
+  `DataSize` rather than holding a constant
+
+Raising the ceiling means changing one number in `.env`. Layer 3 is the only
+one that returns a useful message, so it should remain the one that trips —
+which is why the layers are equal rather than tiered.
+
+One trap worth knowing: the UI Dockerfile's `envsubst` takes an **explicit
+whitelist**. A `${VAR}` used in the template but missing from that list
+survives into the generated config verbatim, and nginx then refuses to start.
+Every template variable must appear in the `CMD`.
+
+### Tests
+
+| Layer | Test | Runs |
+|---|---|---|
+| Service | `ReceiptScanServiceUploadLimitTest` (6 tests) | `./gradlew test` |
+| nginx + agreement | `scripts/test-upload-limits.sh` | one nginx container, ~5 s |
+
+The script needs no API, no database and no LLM call. nginx answers `413` when
+it rejects a body on size and anything else when it accepts one, so a dead
+upstream is a perfectly good upstream — a `502` proves the body got through.
+
+It checks four things: that `client_max_body_size` is present at all, that
+every template variable is in the envsubst whitelist, that one megabyte under
+the limit passes, and that one over is rejected. Verified against both
+regressions by reintroducing them deliberately.
+
+This is the test that would have caught the 1 MB default, which no amount of
+config-sharing could have flagged — the value was never written down anywhere
+to be shared.
 
 ### Accepted content types
 

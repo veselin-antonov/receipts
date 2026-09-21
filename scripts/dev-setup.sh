@@ -136,6 +136,9 @@ set_default APP_CORS_ALLOWED_ORIGINS "http://localhost:5173,https://localhost:51
 # Dates in the restored backup are anchored to midnight UTC; see
 # migrate-backups.py. Running in any other zone shifts every date by a day.
 set_default TZ UTC
+# Single source for the upload ceiling: the API's multipart config and the UI's
+# nginx client_max_body_size both derive from this one number.
+set_default MAX_UPLOAD_MB 25
 
 if grep -qE '^OPENAI_API_KEY=.+' "$env_file"; then
   ok "OPENAI_API_KEY already set"
@@ -168,6 +171,7 @@ MONGODB_DATAPATH=${MONGODB_DATAPATH:-./.mongo-data}
 SERVER_PORT=${SERVER_PORT:-7002}
 UI_PORT=${UI_PORT:-7863}
 BACKEND_HOST=${BACKEND_HOST:-localhost:7002}
+MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-25}
 TZ=UTC
 DEVENV
 ok "wrote dev.env (compose vars only, no OpenAI key)"
