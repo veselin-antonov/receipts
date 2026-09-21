@@ -74,6 +74,12 @@ See [ADR-0002](adr/0002-single-repo.md).
       `API_CONTRACTS`, and `RECEIPT_SCANNING`; keep setup docs next to their code
 - [ ] Rewrite the GitHub Actions workflows with path filters so an api change
       does not rebuild the ui, and both still publish to GHCR
+- [ ] **Wire `scripts/test-upload-limits.sh` into CI** — parked until now
+      because it reads config from *both* repos, so neither repo's CI can run
+      it. Path-filter it on `ui/nginx/**`, `ui/DOCKERFILE` and
+      `api/.../application.yaml`. Depends on D8 being fixed first, since CI
+      currently runs no tests at all
+- [ ] Revisit end-to-end tests generally once one CI run can see both sides
 - [ ] Single `VERSION` and `CHANGELOG.md` at the root
 - [ ] Version the deployment: move `~/docker-apps/homeapp/compose.yaml` in as
       `/deploy`, with secrets kept out of git
@@ -97,8 +103,15 @@ nothing, so nothing downstream can be evaluated against real input.
 - [ ] **Fail loudly (D17)** — a scan that yields no items must not return
       HTTP 200 with an empty list and a 1970 epoch date
 - [ ] Add a sanity check on OCR output volume and mean word confidence
-- [ ] Build a small fixture set of real receipt photos and measure against it,
-      so preprocessing changes can be judged instead of guessed at
+- [x] Build a fixture set of real receipts — **64 fixtures**, 10 stores, all
+      three paths, in `receipt-fixtures/` with `manifest.json`
+- [ ] **Build the scoring harness** — run every fixture through `/scan` and
+      diff against `expected/`, reporting per-image item accuracy. Nothing in
+      M0a can be judged without it; every change would otherwise be "looks
+      better" on one image, which is how the synthetic receipt passed while
+      every real one failed
+- [ ] Transcribe ground truth from the readable shots, validated by the
+      receipt's own arithmetic (see `receipt-fixtures/README.md`)
 
 **Done when:** the Relay receipt yields its store, its date and its one item.
 

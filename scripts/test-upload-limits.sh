@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+#
+# STATUS: PARKED - nothing runs this automatically. Run it by hand when
+# touching nginx config or the upload limit. It is wired into CI at M1.
+#
+# Why it cannot be wired yet: it reads receipts-api/application.yaml AND
+# receipts-ui/nginx/nginx.conf.template, so it spans both repositories and
+# neither one's CI can run it. The monorepo gives it a home. Separately, D8
+# means neither repo runs any tests in CI at all, so wiring this before that
+# is fixed would achieve nothing.
+#
 # Verify the upload limit end to end across the layers that enforce it.
 #
 # The limit lives in three places and the smallest wins:
