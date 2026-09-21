@@ -6,3 +6,4 @@ build/
 .migrated/
 __pycache__/
 *.pyc
+.harness/
