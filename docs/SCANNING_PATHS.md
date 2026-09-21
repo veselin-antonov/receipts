@@ -181,6 +181,105 @@ worth more than making the detection cleverer.
 
 ---
 
+## Upload requirements
+
+Every constraint a file must satisfy to reach the parser. They live in three
+different places and **the smallest one wins**, so raising any single limit in
+isolation achieves nothing.
+
+### The full chain
+
+```text
+browser
+   │  1. nginx  client_max_body_size      (UI container, deployed only)
+   ▼
+nginx
+   │  2. Spring spring.servlet.multipart  (application.yaml)
+   ▼
+Spring
+   │  3. ReceiptScanService.validateFile  (type, emptiness, size)
+   ▼
+parser
+```
+
+| # | Layer | Where | Value | On breach |
+|---|---|---|---|---|
+| 1 | `client_max_body_size` | `receipts-ui/nginx/nginx.conf.template` | **25m** | `413` from nginx; request never reaches the API |
+| 2 | `max-file-size` / `max-request-size` | `receipts-api` `application.yaml` | **25MB** | `413` from Spring |
+| 3 | `MAX_FILE_SIZE_BYTES` | `ReceiptScanService` | **25 MB** | `422` with `RECEIPT_PARSING_ERROR` |
+
+Keep all three equal. Layer 3 is the only one that produces a useful message,
+so it should be the one that actually trips.
+
+### Accepted content types
+
+Checked against `MultipartFile.getContentType()`, not the file extension:
+
+```text
+image/jpeg   image/jpg   image/png   image/gif   image/webp   application/pdf
+```
+
+Anything else is rejected with `Unsupported file type: <type>`. A missing
+content type is rejected outright. An empty file is rejected before type is
+considered.
+
+Note that `image/heic` is **not** accepted, although it is the default camera
+format on iOS. Phones normally convert on share, but a direct HEIC upload
+fails.
+
+### Rate limit
+
+`POST /api/receipts/scan` is capped at **10 per hour per user**, deliberately
+stricter than the general 100/minute because each scan costs an LLM call.
+Breach returns `429` with `RATE_LIMIT_EXCEEDED`.
+
+### Timeouts
+
+A scan runs OCR and an LLM call. Measured **34–78 s** on real photos.
+
+| Layer | Setting | Value |
+|---|---|---|
+| nginx → API | `proxy_read_timeout`, `proxy_send_timeout` | **180s** |
+| nginx → API | `proxy_connect_timeout` | 30s |
+
+### Two defaults that were silently wrong
+
+Both were found by testing the deployed container rather than the dev proxy,
+and neither was visible in development.
+
+**`client_max_body_size` was unset, so nginx applied its default of 1 MB.**
+Verified against the running container: a 2 MB upload returned `413`, a 0.5 MB
+upload passed through. Every one of the 48 photo fixtures is 2.3–4.0 MB, so
+none of them could have reached the API. This was latent rather than live —
+the deployed UI image predates the scan panel, so there was no upload path to
+exercise it — but it would have fired on the first deploy of the merged UI, and
+presented as a bug in newly shipped UI code rather than in nginx configuration.
+
+**`proxy_read_timeout` was unset, so nginx applied its default of 60 s** against
+scans that measure 34–78 s. Slower scans would have returned `504`.
+
+The general lesson, which applies beyond these two: **the dev proxy and the
+production proxy have different defaults**, and testing through Vite exercises
+neither of nginx's. Upload limits and timeouts have to be verified against the
+container.
+
+### Why 25 MB
+
+| Input | Typical size |
+|---|---|
+| Phone photo, JPEG | 2–4 MB |
+| **Same photo exported as PNG** | **10–12 MB** |
+| Scrolling app screenshot | 2–3 MB |
+| Photo wrapped in a PDF | up to 14 MB |
+
+The old 10 MB limit rejected ordinary receipts, not abusive ones: a lossless
+PNG export of a 12 MP photo exceeds it, and some share sheets produce PNG by
+default. This was hit in practice while building fixtures — the full-resolution
+`probe_photo-as.png` came out at 11.8 MB and had to be downscaled to get under
+the limit.
+
+Abuse is bounded by the rate limit (10 scans/hour/user), not by file size.
+
 ## Measured baseline, 2026-09-18
 
 Four photographs of **one** Kaufland receipt — 7 items, per-line discounts,
