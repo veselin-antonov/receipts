@@ -8,7 +8,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DocumentReference;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @Data
 @NoArgsConstructor
@@ -23,7 +24,7 @@ public class VerificationToken {
     private User user;
 
     private String token;
-    private LocalDateTime expirationDate;
+    private Instant expirationDate;
 
     public VerificationToken(User user, String token) {
         if (user == null) {
@@ -34,8 +35,7 @@ public class VerificationToken {
         }
         this.user = user;
         this.token = token;
-        this.expirationDate = LocalDateTime.now()
-                                           .plusDays(1L);
+        this.expirationDate = Instant.now().plus(1, ChronoUnit.DAYS);
     }
     
     public boolean isSameAs(String token) {

@@ -139,4 +139,19 @@ class PurchaseServiceTest {
         assertThat(savedPurchase.getValue().getCurrency()).isEqualTo(Currency.BGN);
         assertThat(result.getFirst().priceEur()).isEqualTo(12.65 / 1.95583);
     }
+
+    @Test
+    void registerPurchaseUsesSubmittedIdsLikeTheBatchPath() {
+        ObjectId productId = new ObjectId();
+        ObjectId storeId = new ObjectId();
+        ReqPurchase request = new ReqPurchase(productId.toHexString(), null, storeId.toHexString(), null,
+            3.29, null, LocalDate.of(2026, 9, 23), 1.0, ReqPurchase.QuantityUnit.PIECE, 0.0);
+
+        ResPurchase result = purchaseService.registerPurchase(new ObjectId(), request);
+
+        assertThat(result.product().id()).isEqualTo(productId.toHexString());
+        assertThat(result.store().id()).isEqualTo(storeId.toHexString());
+        verify(productRepository, never()).save(any(Product.class));
+        verify(storesRepository, never()).save(any(Store.class));
+    }
 }

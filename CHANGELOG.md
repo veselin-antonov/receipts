@@ -18,14 +18,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - **Breaking:** purchase responses carry numeric `priceEur` and
   `discountAmountEur` (full precision, converted at 1 EUR = 1.95583 BGN)
   instead of the formatted `price` string and `discountAmount`
-- **Breaking:** purchase response dates are ISO `yyyy-MM-dd`
+- **Breaking:** every date on the wire is ISO-8601 in both directions. Purchase
+  requests (`POST /api/purchases`, `/api/receipts/submit`) now take
+  `yyyy-MM-dd` and reject `dd/MM/yyyy` with 400. One global Jackson setting
+  replaces the per-DTO `@JsonFormat` patterns
+- `POST /api/purchases` resolves product and store the same way as submit: a
+  submitted id wins, the name is the fallback
+- Verification token expiry is an `Instant`, not a zoneless `LocalDateTime`
 
 ### Fixed
+- `POST /api/purchases` with ids and no names created a product and a store
+  with empty names
 - Legacy BGN prices were served as euros, ~2x overstated, after the JDK's
   bg-BG locale switched to EUR (D11)
 
 ### Removed
 - `Formatter`; formatting belongs to the UI (D2)
+- `ResParsedPurchase` and `PurchaseMapper.toResParsedPurchases`, unused
 
 ## [0.0.6] - 19.01.2026
 

@@ -12,7 +12,7 @@ import dev.vasoft.homeapp.users.services.exceptions.InvalidVerificationLinkExcep
 import dev.vasoft.homeapp.users.services.exceptions.MissingVerificationTokenException;
 import dev.vasoft.homeapp.users.services.mappers.UserMapper;
 import jakarta.servlet.http.HttpServletRequest;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -78,8 +78,8 @@ public class UserService {
     }
 
     public boolean hasTokenExpired(VerificationToken token) {
-        return token.getExpirationDate() == null || LocalDateTime.now()
-            .isAfter(token.getExpirationDate());
+        return token.getExpirationDate() == null
+            || Instant.now().isAfter(token.getExpirationDate());
     }
 
     public void resendVerification(Authentication authentication) {

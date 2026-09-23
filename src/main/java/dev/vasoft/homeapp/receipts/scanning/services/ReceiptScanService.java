@@ -2,7 +2,6 @@ package dev.vasoft.homeapp.receipts.scanning.services;
 
 import dev.vasoft.homeapp.receipts.purchases.api.request.ReqPurchase;
 import dev.vasoft.homeapp.receipts.purchases.api.response.ResPurchase;
-import dev.vasoft.homeapp.receipts.scanning.api.response.ResParsedPurchase;
 import dev.vasoft.homeapp.receipts.scanning.api.response.ResScanPurchase;
 import dev.vasoft.homeapp.receipts.scanning.api.response.ResScanResult;
 import dev.vasoft.homeapp.receipts.purchases.services.PurchaseService;

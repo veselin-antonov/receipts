@@ -7,14 +7,12 @@ import dev.vasoft.homeapp.receipts.purchases.api.response.ResPurchase;
 import dev.vasoft.homeapp.receipts.products.model.entities.Product;
 import dev.vasoft.homeapp.receipts.purchases.model.entities.Currency;
 import dev.vasoft.homeapp.receipts.purchases.model.entities.Purchase;
-import dev.vasoft.homeapp.receipts.scanning.api.response.ResParsedPurchase;
 import dev.vasoft.homeapp.receipts.scanning.services.NormalizationService;
 import dev.vasoft.homeapp.receipts.stores.model.entities.Store;
 import dev.vasoft.homeapp.receipts.common.model.repositories.CustomRepository;
 import dev.vasoft.homeapp.receipts.common.model.repositories.ProductRepository;
 import dev.vasoft.homeapp.receipts.common.model.repositories.PurchasesRepository;
 import dev.vasoft.homeapp.receipts.common.model.repositories.StoresRepository;
-import dev.vasoft.homeapp.receipts.scanning.services.ParsedReceipt;
 import dev.vasoft.homeapp.receipts.stores.services.StoreService;
 import java.util.ArrayList;
 import java.util.List;
@@ -79,16 +77,13 @@ public class PurchaseService {
     }
 
 
+    /**
+     * Same rules as {@link #registerPurchases}: a submitted id wins, a name is the
+     * fallback. This used to resolve by name alone, so a request carrying only
+     * ids created a product and a store with no name.
+     */
     public ResPurchase registerPurchase(ObjectId userId, ReqPurchase reqPurchase) {
-        Store store = resolveStore(reqPurchase.storeName());
-        Product product = resolveProduct(reqPurchase.productName());
-
-        Purchase purchase = new Purchase(userId, product, reqPurchase.price(),
-            currencyOf(reqPurchase), reqPurchase.date(), store, reqPurchase.discountAmount());
-
-        purchase = purchasesRepository.save(purchase);
-
-        return PurchaseMapper.toResPurchase(purchase);
+        return registerPurchases(userId, List.of(reqPurchase)).getFirst();
     }
 
     /** New purchases are EUR unless the client says otherwise; see SPEC §9.5. */
@@ -160,8 +155,4 @@ public class PurchaseService {
             throw new RuntimeException("Missing product for purchase");
         }
     }
-
-//    public List<ResParsedPurchase> enrichParsedPurchases(ParsedReceipt parsedReceipt) {
-//        Store store = storeService.findStoreByNameFuzzy(parsedReceipt.storeName());
-//    }
 }

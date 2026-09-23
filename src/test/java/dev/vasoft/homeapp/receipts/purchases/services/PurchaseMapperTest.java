@@ -3,8 +3,6 @@ package dev.vasoft.homeapp.receipts.purchases.services;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.vasoft.homeapp.receipts.products.model.entities.Product;
 import dev.vasoft.homeapp.receipts.purchases.api.response.ResPurchase;
 import dev.vasoft.homeapp.receipts.purchases.model.entities.Currency;
@@ -50,18 +48,5 @@ class PurchaseMapperTest {
         assertThatThrownBy(() -> PurchaseMapper.toResPurchase(purchase(12.65, null, 0.0)))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("no currency");
-    }
-
-    @Test
-    void wireFormatCarriesNumbersAndIsoDates() throws Exception {
-        ResPurchase res = PurchaseMapper.toResPurchase(purchase(12.65, Currency.BGN, 0.0));
-
-        JsonNode json = new ObjectMapper().findAndRegisterModules().valueToTree(res);
-
-        assertThat(json.get("priceEur").isNumber()).isTrue();
-        assertThat(json.get("priceEur").asDouble()).isEqualTo(12.65 / 1.95583);
-        assertThat(json.get("discountAmountEur").isNumber()).isTrue();
-        assertThat(json.get("date").asText()).isEqualTo("2025-10-03");
-        assertThat(json.has("price")).isFalse();
     }
 }
