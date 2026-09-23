@@ -400,3 +400,47 @@ The paths fail differently, which is diagnostically useful:
 A fixture set needs all three paths represented, plus the deliberately
 mismatched cases — a photo exported as PNG, and a screenshot saved as JPEG —
 because those are what expose D19. See `receipt-fixtures/README.md`.
+
+## Measured: vision vs OCR for photographed receipts (2026-09-23)
+
+Photos go OCR text to LLM; PDFs go straight to the vision model. That asymmetry
+means Tesseract's output is the ceiling for every photo, so it was worth asking
+whether photos should use vision too. They should not.
+
+Run on all 64 fixtures, `receipts.scanning.vision-for-images=true`, everything
+else held constant (gpt-6-luna, medium reasoning, same prompt). Restricted to
+the 42 fixtures scored in both runs, so the denominator is identical:
+
+| | OCR text | vision |
+|---|---|---|
+| line items matched | 263 | 179 |
+| items with the right price | **253** | **165** |
+| ground-truth prices present anywhere in the output | 75% | 69% |
+| passed L0 (self-consistency) | 24 | **30** |
+| HTTP 200 | 53 | 56 |
+
+Vision reads the price column about as well (75% vs 69%) but **invents the
+product names**. From `kaufland_17_flat.jpeg`, same prices, same positions:
+
+| ground truth | OCR text | vision |
+|---|---|---|
+| `Жарено филе, кг` | `Жарено филе` | `Картофи фини, кг` |
+| `DrKeskin св трици 200` | `Drkeskin ов трици200` | `Бисквити` |
+| `DorBlu Синьо сирене` | `DorBlu Синьо сирене` | `Добруджа бяло саламурено сирене` |
+
+The model recognises the receipt's layout and fills the name column with
+plausible Bulgarian grocery items instead of reading the small dense text.
+OCR's names are mangled but recoverable; vision's are clean, confident and
+wrong, which is worse for a price-history product whose entire value is
+knowing *which* product a price belongs to.
+
+### L0 is not a safe metric on the vision path
+
+L0 went **up** (24 to 30) while the data got materially worse. L0 checks the
+receipt's own arithmetic, and hallucinated names attached to correctly-read
+prices still reconcile to the total. Any future comparison involving vision
+must be scored against ground-truth names, never L0 alone.
+
+The flag stays in `ReceiptScanService` and stays `false`. It costs nothing and
+makes re-running this against a future model a config change. Re-test before
+assuming the result still holds; do not re-derive it from scratch.

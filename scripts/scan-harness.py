@@ -168,7 +168,21 @@ def main() -> int:
     import requests  # imported late so --help works without it
 
     images = args.fixtures / "images"
-    expected_dir = args.fixtures / "expected"
+    # Ground truth is a single file. Receipts whose arithmetic does not reconcile
+    # are used for L0 signal only - scoring line items against a label we know is
+    # wrong would just measure the label.
+    truth_doc = json.loads((args.fixtures / "ground-truth.json").read_text())
+    truth = truth_doc["receipts"]
+    rate = truth_doc.get("_rate", 1.95583)
+
+    def verified(rec):
+        items = rec.get("items") or []
+        if not items or rec.get("total") is None:
+            return False
+        net = (sum(i.get("price", 0) for i in items)
+               - sum(i.get("discount", 0) or 0 for i in items)
+               - sum(rec.get("basket_discounts") or []))
+        return abs(net - rec["total"]) < 0.05
     files = sorted(p for p in images.iterdir()
                    if p.suffix.lower() in {".jpeg", ".jpg", ".png", ".pdf"})
     if args.filter:
@@ -233,9 +247,30 @@ def main() -> int:
             l0 = score_l0(body)
             row["l0"] = l0
             note = ""
-            exp_file = expected_dir / f"{f.stem}.json"
-            if exp_file.exists():
-                exp = json.loads(exp_file.read_text())
+            rec = truth.get(f.name)
+            # The date is scored for every fixture that has one in ground truth.
+            # It does not depend on the line-item arithmetic reconciling, so
+            # gating it behind verified() hid it on half the set. Fixtures with
+            # no date in ground truth are counted apart, never as a pass or a
+            # fail - otherwise the metric measures the transcription, not the
+            # parser.
+            want_date = (rec or {}).get("date")
+            got_date = body.get("purchaseDate")
+            if not want_date:
+                row["date_cmp"] = "untruthed"
+            elif got_date == want_date:
+                row["date_cmp"] = "correct"
+            elif not got_date or str(got_date).startswith("1970"):
+                row["date_cmp"] = "missing"
+            else:
+                row["date_cmp"] = "wrong"
+            row["date_got"], row["date_want"] = got_date, want_date
+            if rec and verified(rec):
+                exp = {"store": rec.get("store"), "date": rec.get("date"),
+                       "total": rec.get("total"),
+                       "items": [{"name": i.get("name"), "price": i.get("price"),
+                                  "quantity": i.get("quantity"),
+                                  "discount": i.get("discount")} for i in rec["items"]]}
                 sc = score_against_expected(body, exp)
                 row["scored"] = sc
                 it = sc["items"]
@@ -244,7 +279,7 @@ def main() -> int:
                 for n, ok, _ in sc["checks"]:
                     note += f"  {n}={'Y' if ok else 'N'}"
             else:
-                note = "(no expected file — L0 only)"
+                note = "(unverified label — L0 only)"
             print(f"{f.name:38} {resp.status_code:>4} {secs:>5.0f} "
                   f"{l0['items']:>5}  {'Y' if l0['ok'] else 'N':>2}  {note}")
         else:
@@ -262,6 +297,14 @@ def main() -> int:
     print(f"  HTTP 200            {len(ok200)}")
     print(f"  passed L0           {len(l0ok)}   (non-empty, priced, dated, store found)")
     print(f"  returned 0 items    {len(empty)}")
+    d = {}
+    for r in ok200:
+        k = r.get("date_cmp", "untruthed")
+        d[k] = d.get(k, 0) + 1
+    graded = len(ok200) - d.get("untruthed", 0)
+    print(f"  dates               {d.get('correct', 0)}/{graded} correct  "
+          f"({d.get('wrong', 0)} wrong, {d.get('missing', 0)} missing, "
+          f"{d.get('untruthed', 0)} with no date in ground truth)")
     if ok200:
         secs = [r['seconds'] for r in ok200]
         print(f"  seconds             min {min(secs):.0f}  median "
@@ -273,6 +316,13 @@ def main() -> int:
         p = sum(r["scored"]["items"]["price_ok"] for r in scored)
         print(f"  line items          {m}/{e} matched, {p} with the right price "
               f"({len(scored)} labelled fixtures)")
+
+    bad_dates = [r for r in ok200 if r.get("date_cmp") in ("wrong", "missing")]
+    if bad_dates:
+        print("\n  dates not matching ground truth:")
+        for r in bad_dates:
+            print(f"    {r['fixture']:32} got {str(r.get('date_got')):>12}  "
+                  f"want {r.get('date_want')}")
 
     summary = {"generated": time.strftime("%Y-%m-%d %H:%M:%S"), "rows": rows}
     (out_dir / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1))
