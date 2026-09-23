@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
+## [Unreleased]
+
+### Added
+
+- `src/lib/format.js`: `formatEur` and `formatDate`. The API now sends numbers
+  and ISO dates, so the UI owns rounding and localisation
+
+### Changed
+
+- The purchases table renders `priceEur` / `discountAmountEur` and ISO dates
+  from the API's new wire format (requires the matching API change)
+- Price inputs in the manual form and the scan review are labelled `(€)`
+
+### Fixed
+
+- The discount icon read `purchase.discount`, which the API never sent, so it
+  was always off; it now reads `discountAmountEur`
+
 ## [0.0.6] - 03.01.2026
 
 ### Added

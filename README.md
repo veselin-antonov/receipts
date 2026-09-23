@@ -88,7 +88,7 @@ src/components/auth/       auth provider and route guards
 src/components/login/      login form behavior
 src/components/receipts/   receipt scan/review/submit panel
 src/components/ui/         shared UI primitives
-src/lib/                   API and fetch hooks
+src/lib/                   API, fetch hooks, and display formatting (format.js)
 src/pages/                 route pages
 ```
 
