@@ -316,6 +316,9 @@ them to GHCR. Details and fix in
 
 ### D11 — Every historical price now displays as euros *(critical)*
 
+> **Fixed 2026-09-23.** Currency is stored on every purchase and the API serves
+> numeric EUR only; see [§9.5](#95-currency-handling).
+
 `Formatter.formatPrice` calls `NumberFormat.getCurrencyInstance(bg-BG)`. The
 JDK's CLDR data now reports Bulgaria's currency as **EUR**, so a purchase
 recorded as 12.65 лв is served to the UI as `"12,65 €"`.
@@ -750,6 +753,15 @@ Migration for the existing rows: set `currency: BGN` on all 717. They predate
 the changeover, so this is unambiguous — but it must be an explicit stored
 value, not an inferred one.
 
+Implemented 2026-09-23. `LegacyCurrencyBackfill` writes `currency: BGN` onto
+every currency-less purchase at startup, before the web server serves
+anything, and `migrate-backups.py` writes it explicitly on restore. The
+backfill refuses to act on a currency-less row dated 2026-01-01 or later,
+since only old code running after the changeover could produce one and it
+could be either currency; startup fails instead. The read path likewise throws
+on a purchase with no currency rather than assume one. On the wire, a purchase
+carries only `priceEur` and `discountAmountEur`, unrounded, and an ISO date.
+
 ### 9.4 Parsed data is never persisted unreviewed
 
 `/scan` returns; `/submit` writes. OCR and LLM output is a suggestion.
@@ -794,8 +806,8 @@ depends on it.
 
 - **Q1 — Currency.** ~~Open.~~ **Answered.** The changeover happened; the
   dataset is permanently mixed. Design in [§9.5](#95-currency-handling).
-  One detail still to confirm with the user: that **1 EUR = 1.95583 BGN** is the
-  correct irrevocable rate to hard-code.
+  The rate **1 EUR = 1.95583 BGN** was confirmed on 2026-09-23 and is
+  implemented as `Currency.BGN_PER_EUR`.
 - **Q2 — Quantity backfill.** The 717 existing purchases have no quantity or
   unit and it cannot be recovered automatically. Options: leave them
   unit-price-less and show unit price only for new data; bulk-assign a default

@@ -30,7 +30,9 @@ below; items that were Home App concerns stay in Obsidian.
 - [ ] Exclude `certs/**` and `*.env` from `processResources` **(D10)** — the JWT
       private key and live credentials are currently packaged into the jar
 - [ ] Pin `TZ=UTC` in the Dockerfile and compose, to match the re-anchored
-      purchase dates
+      purchase dates. Also for `bootRun`: `TZ` in `.env` does not reach the
+      JVM, which runs in Europe/Sofia and stored a purchase dated 2026-09-23
+      as `2026-09-22T21:00Z` during the currency verification
 - [ ] Tidy `docker-compose.dev.yml` — network mismatch, wrong `depends_on`,
       and move `dev.env` out of the Java resources tree
 - [ ] Complete `example.env` — it omits the OCR, CORS, `UI_PORT`, and
@@ -140,12 +142,26 @@ work below, not from prompts or models.
 **Goal:** make a scanned receipt usable without hand-correcting every row.
 These are not polish; they came out of the first real run.
 
-- [ ] **Currency (D11)** — do this together with numeric wire format (D2);
-      they are one change, since you cannot express a currency in a
-      pre-formatted display string. Per [SPEC §9.5](SPEC.md#95-currency-handling):
-      add `currency` to `Purchase`, backfill all 717 legacy rows as `BGN`,
-      convert to EUR at read time at the fixed 1.95583 rate, keep full
-      precision through comparisons, round only in the UI
+- [x] **Currency (D11)** — done together with numeric wire format (D2), per
+      [SPEC §9.5](SPEC.md#95-currency-handling). `Purchase.currency` is stored
+      on every row; `LegacyCurrencyBackfill` tagged all 717 legacy rows `BGN`
+      at startup (verified against the restored DB) and refuses to guess for a
+      currency-less row dated 2026 or later. The API serves only
+      `priceEur` / `discountAmountEur`, unrounded; `Formatter` is deleted and
+      the UI rounds. Submissions with no `currency` are recorded as EUR
+- [ ] **Currency on the scan path (§9.5 rule 6)** — the parser still has no
+      concept of currency, so a scanned dual-display receipt is submitted as
+      EUR whichever column the model read. Needs a `currency` field in
+      `ParsedReceipt` and the prompt; that is a scanning change, so it is
+      measured by the harness (ADR-0007). Batch it with the M0a OCR runs
+- [ ] **Search matches nothing** — `CustomRepository.findBySearchQuery`
+      filters on `productDetails.name` / `storeDetails.name`, but the field is
+      `canonicalName` since the rename. Searching `billa` returns 0 pages
+      against 717 rows. Found 2026-09-23; predates the currency work
+- [ ] **`POST /api/purchases` ignores IDs** — `registerPurchase` resolves by
+      name only, so a request carrying `productId` / `storeId` and no names
+      auto-creates a product and a store with empty names (a D18 instance).
+      `registerPurchases` already handles IDs; the single path should share it
 - [ ] **Stop auto-creating stores (D18)** — `resolveStore` saves any unmatched
       name as a new store with no review; this is where the catalog junk came
       from. Nothing may create a store without a human choosing it
@@ -196,12 +212,15 @@ after it. Fixes D1 and D2 from [SPEC §7](SPEC.md#7-known-defects-that-block-the
 
 - [ ] Add `quantity` and `quantityUnit` to the `Purchase` entity
 - [ ] Persist them in `registerPurchase` and `registerPurchases` **(D1)**
-- [ ] Make prices numeric on the wire; delete `Formatter` from the response path
-      and move formatting into the UI **(D2)**
-- [ ] ISO-8601 dates in both directions, consistently
+- [x] Make prices numeric on the wire; delete `Formatter` from the response path
+      and move formatting into the UI **(D2)** — done with D11, see M2a
+- [ ] ISO-8601 dates in both directions, consistently — *half done*: responses
+      send `yyyy-MM-dd`; `ReqPurchase` and the scan result still use
+      `dd/MM/yyyy`
 - [ ] Drop the unused `statistics` collection, entity, and repository **(D3)**
 - [ ] Decide **Q2**: what to do about quantity for the 717 existing purchases
-- [ ] Decide **Q1**: currency, and whether the history spans a BGN → EUR change
+- [x] Decide **Q1**: currency — answered in [SPEC §9.5](SPEC.md#95-currency-handling)
+      and implemented; rate 1.95583 confirmed 2026-09-23
 - [ ] Tests covering quantity round-tripping through scan → submit → read
 
 **Done when:** a purchase saved through the scan flow retains its quantity and

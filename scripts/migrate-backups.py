@@ -153,6 +153,10 @@ def main() -> int:
             "product": p.get("product"),
             "store": p.get("store"),
             "price": p.get("price"),
+            # Every backup row predates the euro changeover. Stored, never
+            # inferred (SPEC §9.5); the API's startup backfill would tag
+            # them too, but a restore should not depend on it.
+            "currency": "BGN",
             "date": date,
             # The old schema stored a boolean. The amount was never recorded,
             # so it cannot be recovered; 0.0 means "unknown", not "none".
@@ -160,7 +164,7 @@ def main() -> int:
             "_class": CLASS["purchases"],
         })
     report.append(f"purchases  {len(purchases):>4}  userId backfilled, "
-                  f"discount bool -> discountAmount")
+                  f"discount bool -> discountAmount, currency BGN")
 
     for name, docs in (("users", users), ("products", products),
                        ("stores", stores), ("purchases", purchases)):
