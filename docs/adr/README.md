@@ -10,3 +10,5 @@ re-litigate in six months. Each records what was decided, why, and what it cost.
 | [0003](0003-cookie-jwt-auth.md) | JWT in an HttpOnly cookie, not a bearer token in storage | 2026-01 (recorded 2026-09-16) |
 | [0004](0004-ocr-plus-llm-parsing.md) | OCR for images, direct LLM for PDFs | 2026-06 (recorded 2026-09-16) |
 | [0005](0005-pwa-offline-lookup.md) | The lookup loop is a PWA with an offline cache | 2026-09-16 |
+| [0006](0006-model-and-reasoning-effort.md) | gpt-6-luna at medium reasoning effort | 2026-09-23 |
+| [0007](0007-how-scanning-changes-are-measured.md) | Scanning changes are measured against ground truth, never L0 alone | 2026-09-23 |

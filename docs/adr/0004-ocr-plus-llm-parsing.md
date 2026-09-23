@@ -40,9 +40,11 @@ noise and latency for no gain.
   Dockerfile handles this; local development has to be set up by hand, and it is
   the most common cause of "PDFs work but images fail".
 - **Image preprocessing is its own problem.** `OcrService` has to read EXIF
-  orientation and rotate, and it treats PNGs as screenshots that should skip the
-  heavy preprocessing that helps camera photos. This is real complexity that
-  the vision-only approach would not have.
+  orientation and rotate, crop to the paper, and binarize. This is real
+  complexity that the vision-only approach would not have. It once also
+  branched on whether an upload "looked like a screenshot"; that branch was
+  removed in September 2026 because neither signal it used (the PNG extension,
+  then a colour count) actually separated the two classes.
 - **Two prompts to maintain.** A change to receipt parsing behaviour usually
   means touching both.
 - **The two paths fail differently, which is a diagnostic asset:** images
@@ -53,3 +55,35 @@ noise and latency for no gain.
 - Parsed output is never persisted directly. `/scan` returns a review payload
   and `/submit` writes, because neither OCR nor the LLM is trustworthy enough to
   save unreviewed.
+
+## Confirmed by measurement, 2026-09-23
+
+This was challenged - if PDFs go to vision and photos do not, Tesseract is the
+ceiling on every photo - and re-tested by routing photos to vision too, on all
+64 fixtures with the model, reasoning effort and prompt held constant.
+
+Restricted to the 42 fixtures scored in both runs:
+
+| | OCR text | vision |
+|---|---|---|
+| items with the right price | **253** | **165** |
+| line items matched | 263 | 179 |
+| ground-truth prices present anywhere in the output | 75% | 69% |
+
+The decision stands. **The reasoning above was right in conclusion and wrong in
+mechanism**, which matters for anyone re-testing it later. This ADR predicted
+that vision would misread digits and that names would be the recoverable part.
+The opposite happened: vision read the price column about as well as OCR did,
+and fabricated the *names*. From `kaufland_17_flat.jpeg`, identical prices in
+identical positions, `Жарено филе, кг` came back as `Картофи фини, кг` and
+`DrKeskin св трици 200` as `Бисквити`.
+
+So the real argument for OCR is not digit accuracy. It is that OCR fails
+*legibly* - `Drkeskin ов трици200` is mangled but matchable - while vision
+fails *plausibly*, and a confident wrong product name is unreviewable. The user
+cannot catch an error that looks like a correct answer.
+
+Re-test before assuming this still holds for a newer model:
+`receipts.scanning.vision-for-images=true` in `receipts-api`. Score against
+ground-truth names, never L0 - see ADR-0007.
+

@@ -95,25 +95,43 @@ See [ADR-0002](adr/0002-single-repo.md).
 **Goal:** a receipt photographed on a table parses. Right now it returns
 nothing, so nothing downstream can be evaluated against real input.
 
-- [ ] **Crop to the receipt before preprocessing (D17)** — the highest-value
-      change by a wide margin; the wood grain currently supplies most of the
-      OCR input
-- [ ] Replace global Otsu with adaptive/local thresholding
+**Status 2026-09-23: banked as improved, not finished.** Correct prices went
+213 → 254 across the fixture set; scans that return HTTP 200 went 42 → 53. The
+remaining errors are OCR-level, so further gains come from the thresholding
+work below, not from prompts or models.
+
+- [x] **Crop to the receipt before preprocessing (D17)** — 213 → 232 correct
+      prices, well outside the ±2 noise floor. Also removed the
+      screenshot-vs-photo branch entirely: neither the PNG extension nor a
+      colour count separates the two classes
+- [ ] **Replace global Otsu with adaptive/local thresholding (Sauvola)** — now
+      the highest-value remaining change. One global threshold cannot serve a
+      curled or side-lit receipt where the lit and shadowed halves need
+      different ones, which is exactly what the crumpled and low-light fixtures
+      are for
+- [ ] Try PSM 4 (single column, variable sizes) instead of PSM 6 (single
+      uniform block) — a receipt is a variable-width column with a wide gap
+      between name and price, which is not what PSM 6 assumes
+- [ ] Try `load_system_dawg=0` and `load_freq_dawg=0` — Tesseract's dictionary
+      nudges output toward real words, and receipt text is shorthand and digits
+- [ ] Try `bul` alone instead of `eng+bul`, and deskew before OCR
 - [ ] Try passing grayscale to Tesseract instead of 1-bit, and compare
-- [ ] **Fail loudly (D17)** — a scan that yields no items must not return
-      HTTP 200 with an empty list and a 1970 epoch date
+- [x] **Fail loudly (D17)** — a scan yielding no items now throws and maps to
+      422 instead of returning HTTP 200 with an empty list and a 1970 date
 - [ ] Add a sanity check on OCR output volume and mean word confidence
 - [x] Build a fixture set of real receipts — **64 fixtures**, 10 stores, all
       three paths, in `receipt-fixtures/` with `manifest.json`
-- [ ] **Build the scoring harness** — run every fixture through `/scan` and
-      diff against `expected/`, reporting per-image item accuracy. Nothing in
-      M0a can be judged without it; every change would otherwise be "looks
-      better" on one image, which is how the synthetic receipt passed while
-      every real one failed
-- [ ] Transcribe ground truth from the readable shots, validated by the
-      receipt's own arithmetic (see `receipt-fixtures/README.md`)
+- [x] **Build the scoring harness** — `scripts/scan-harness.py`, scoring L0/L1/L2
+      against `ground-truth.json` with a measured ±2 noise floor (ADR-0007)
+- [x] Transcribe ground truth from the readable shots, validated by the
+      receipt's own arithmetic — **64 receipts, 421 items**. Incomplete on
+      dates: 29 of 56 have none recorded, and those are excluded from scoring
+      rather than counted as failures
+- [x] **Settled: photos stay on OCR.** Routing them to vision was measured and
+      is worse — it fabricates product names (ADR-0004)
 
 **Done when:** the Relay receipt yields its store, its date and its one item.
+*(Still failing — `relay_01_flat.jpeg` returns 422.)*
 
 ---
 
