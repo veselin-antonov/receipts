@@ -5,21 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { API_URL } from '@/lib/utils';
 
-const toDisplayDate = (dateValue) => {
-  if (!dateValue) return '';
-
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateValue)) {
-    return dateValue;
-  }
-
-  const [year, month, day] = dateValue.split('-');
-  if (year && month && day) {
-    return `${day}/${month}/${year}`;
-  }
-
-  return dateValue;
-};
-
 const toInitialReviewPurchase = (scanResult, purchase) => {
   const productSuggestion = purchase.productSuggestions?.[0];
   const storeSuggestion = scanResult.storeSuggestion?.storeSuggestion;
@@ -36,7 +21,8 @@ const toInitialReviewPurchase = (scanResult, purchase) => {
       scanResult.rawStoreName ??
       '',
     price: purchase.price ?? 0,
-    date: toDisplayDate(scanResult.purchaseDate),
+    // ISO yyyy-MM-dd from the API, passed back as-is on submit.
+    date: scanResult.purchaseDate ?? null,
     quantity: purchase.quantity ?? 1,
     quantityUnit: purchase.quantityUnit ?? 'PIECE',
     discountAmount: purchase.discountAmount ?? 0,

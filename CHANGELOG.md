@@ -16,9 +16,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - The purchases table renders `priceEur` / `discountAmountEur` and ISO dates
   from the API's new wire format (requires the matching API change)
 - Price inputs in the manual form and the scan review are labelled `(€)`
+- Dates go to the API as ISO `yyyy-MM-dd`, built by `toIsoDate` in
+  `src/lib/format.js` from the local calendar day (not `toISOString()`, which
+  shifts to UTC). The scan panel passes the scan's ISO date through untouched
+  instead of rewriting it to `dd/MM/yyyy`
+- The manual purchase form sends `productName`, `storeName` and a numeric
+  `price`, which is what the API reads; it no longer sends a stale
+  `Authorization: Bearer` header from `localStorage`
 
 ### Fixed
 
+- The manual purchase form sent `product` / `store`, which the API does not
+  read, so every manual entry would have created a nameless product and store
 - The discount icon read `purchase.discount`, which the API never sent, so it
   was always off; it now reads `discountAmountEur`
 

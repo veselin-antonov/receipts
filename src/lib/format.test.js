@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDate, formatEur } from '@/lib/format';
+import { formatDate, formatEur, toIsoDate } from '@/lib/format';
 
 // Intl separates the amount and the sign with a narrow no-break space.
 const normalizeSpaces = (s) => s.replace(/[\u00a0\u202f]/g, ' ');
@@ -29,5 +29,23 @@ describe('formatDate', () => {
   it('renders nothing for anything that is not an ISO date', () => {
     expect(formatDate(undefined)).toBe('');
     expect(formatDate('27.10.25 г.')).toBe('');
+  });
+});
+
+describe('toIsoDate', () => {
+  it('sends the picked calendar day, not its UTC instant', () => {
+    // Local midnight, as a date picker produces. In Sofia this instant is
+    // 21:00 or 22:00 UTC the day before; toISOString() would send that day.
+    expect(toIsoDate(new Date(2026, 0, 1))).toBe('2026-01-01');
+    expect(toIsoDate(new Date(2026, 8, 23, 0, 0, 0))).toBe('2026-09-23');
+  });
+
+  it('round-trips through formatDate', () => {
+    expect(formatDate(toIsoDate(new Date(2025, 9, 27)))).toBe('27.10.2025');
+  });
+
+  it('returns null for anything that is not a valid Date', () => {
+    expect(toIsoDate('')).toBeNull();
+    expect(toIsoDate(new Date('nope'))).toBeNull();
   });
 });

@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { FieldGroup } from '@/components/ui/field';
+import { toIsoDate } from '@/lib/format';
 import useFetchResource from '@/lib/useFetchResource';
 import { API_URL } from '@/lib/utils';
 
@@ -125,20 +126,20 @@ const FormDialog = ({
   const { setValue: setFormValue } = form;
 
   async function handleSubmit(values) {
-    const date = String(values.date.getDate()).padStart(2, '0');
-    const month = String(values.date.getMonth() + 1).padStart(2, '0');
-    const year = String(values.date.getFullYear());
-
-    values.date = `${date}/${month}/${year}`;
-    values.price = values.price.replace(',', '.');
+    // Map form fields onto the API's ReqPurchase. The discount checkbox has no
+    // counterpart: the API records a discount amount, not a flag.
+    const purchase = {
+      productName: values.product,
+      storeName: values.store,
+      price: Number(values.price.replace(',', '.')),
+      date: toIsoDate(values.date),
+    };
 
     fetch(`${API_URL}/purchases`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify(values),
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(purchase),
     })
       .then((response) => response.json())
       .then((purchase) => {
