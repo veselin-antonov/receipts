@@ -326,7 +326,7 @@ const ReceiptScanPanel = ({ onPurchasesCreated }) => {
                   />
                 </label>
                 <label className="space-y-1 text-sm">
-                  <span>Цена</span>
+                  <span>Цена (€)</span>
                   <Input
                     aria-label={`Цена за ред ${index + 1}`}
                     inputMode="decimal"

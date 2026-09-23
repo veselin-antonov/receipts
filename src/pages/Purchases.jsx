@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { formatDate, formatEur } from '@/lib/format';
 import usePaginatedResource from '@/lib/usePaginatedResource';
 
 const toTableRow = (purchase) => {
@@ -33,7 +34,7 @@ const toTableRow = (purchase) => {
           {purchase.product.name}
         </div>
       </TableCell>
-      <TableCell>{purchase.price}</TableCell>
+      <TableCell>{formatEur(purchase.priceEur)}</TableCell>
       <TableCell>
         <div className="flex flex-row items-center gap-2">
           <Icon iconId={purchase.store.iconID} /> {purchase.store.name}
@@ -41,14 +42,14 @@ const toTableRow = (purchase) => {
       </TableCell>
       <TableCell>
         <div className="flex flex-row items-center justify-center">
-          {purchase.discount ? (
+          {purchase.discountAmountEur > 0 ? (
             <CircleCheck className="size-5 stroke-2 text-green-600" />
           ) : (
             <X className="size-5 stroke-2 text-red-600" />
           )}
         </div>
       </TableCell>
-      <TableCell>{purchase.date}</TableCell>
+      <TableCell>{formatDate(purchase.date)}</TableCell>
     </TableRow>
   );
 };

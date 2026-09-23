@@ -37,4 +37,37 @@ describe('Purchases', () => {
       screen.queryByText('Няма намерени покупки.')
     ).not.toBeInTheDocument();
   });
+
+  it("renders the API's EUR numbers and ISO dates for display", () => {
+    usePaginatedResourceMock.mockReturnValue({
+      data: {
+        contents: [
+          {
+            id: 'p1',
+            product: { id: 'x', name: 'Мляко', iconID: null },
+            // 12.65 BGN, converted by the API and deliberately unrounded
+            priceEur: 6.467842297132164,
+            date: '2025-10-27',
+            store: { id: 's', name: 'Billa', iconID: 'billa' },
+            discountAmountEur: 0.5,
+          },
+        ],
+        pageId: 0,
+        totalPages: 1,
+      },
+      isLoading: false,
+      error: null,
+      searchQuery: '',
+      setSearchQuery: vi.fn(),
+      fetchPage: vi.fn(),
+    });
+
+    render(<Purchases />);
+
+    expect(
+      screen.getByText((text) => text.replace(/\s/g, ' ') === '6,47 €')
+    ).toBeInTheDocument();
+    expect(screen.getByText('27.10.2025')).toBeInTheDocument();
+    expect(screen.queryByText(/лв/)).not.toBeInTheDocument();
+  });
 });

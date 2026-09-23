@@ -175,7 +175,7 @@ const FormDialog = ({
             />
             <FormInput
               form={form}
-              label="Сума"
+              label="Сума (€)"
               fieldName={'price'}
               placeholder={'Сума на покупка'}
               parseInput={(input, currentValue) => {
