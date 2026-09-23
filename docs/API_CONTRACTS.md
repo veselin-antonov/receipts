@@ -196,14 +196,14 @@ Success response shape:
         "name": "Milk",
         "iconID": "milk"
       },
-      "price": "3.99",
-      "date": "13/02/2026",
+      "priceEur": 3.99,
+      "date": "2026-02-13",
       "store": {
         "id": "6840c5c4bcb1f563dc1d0101",
         "name": "Kaufland",
         "iconID": "kaufland"
       },
-      "discountAmount": 0.0
+      "discountAmountEur": 0.0
     }
   ],
   "pageId": 0,
@@ -222,6 +222,7 @@ Request body:
   "storeId": "6840c5c4bcb1f563dc1d0101",
   "storeName": "Kaufland",
   "price": 3.99,
+  "currency": "EUR",
   "date": "13/02/2026",
   "quantity": 1.0,
   "quantityUnit": "PIECE",
@@ -239,16 +240,33 @@ Success response shape:
     "name": "Milk",
     "iconID": "milk"
   },
-  "price": "3.99",
-  "date": "13/02/2026",
+  "priceEur": 3.99,
+  "date": "2026-02-13",
   "store": {
     "id": "6840c5c4bcb1f563dc1d0101",
     "name": "Kaufland",
     "iconID": "kaufland"
   },
-  "discountAmount": 0.0
+  "discountAmountEur": 0.0
 }
 ```
+
+Money and dates:
+- responses carry `priceEur` and `discountAmountEur` as plain numbers at full
+  precision, converted from the currency the purchase was paid in at the fixed
+  rate 1 EUR = 1.95583 BGN. Round only for display. There is no `price` field
+  in responses, so no client can read an amount in the wrong currency
+- requests carry `price` and `discountAmount` in `currency`, which is optional:
+  `BGN` or `EUR`, defaulting to `EUR`. The recorded amount is stored as sent
+  and never converted in place
+- response dates are ISO `yyyy-MM-dd`; request dates are still `dd/MM/yyyy`
+- a stored purchase with no currency is a server error, never a guess
+
+Known issues:
+- `searchQuery` currently matches nothing: it filters on a renamed field
+- this endpoint resolves product and store by name only; `productId` and
+  `storeId` are ignored, and a request with IDs but no names creates empty
+  records. `POST /api/receipts/submit` handles IDs correctly
 
 Quantity units accepted by the request DTO:
 - `PIECE`
@@ -346,6 +364,7 @@ Request body:
       "storeId": "6840c5c4bcb1f563dc1d0101",
       "storeName": "Kaufland",
       "price": 3.99,
+      "currency": "EUR",
       "date": "13/02/2026",
       "quantity": 1.0,
       "quantityUnit": "PIECE",
@@ -369,14 +388,14 @@ Success response shape:
       "name": "Milk",
       "iconID": "milk"
     },
-    "price": "3.99",
-    "date": "13/02/2026",
+    "priceEur": 3.99,
+    "date": "2026-02-13",
     "store": {
       "id": "6840c5c4bcb1f563dc1d0101",
       "name": "Kaufland",
       "iconID": "kaufland"
     },
-    "discountAmount": 0.0
+    "discountAmountEur": 0.0
   }
 ]
 ```

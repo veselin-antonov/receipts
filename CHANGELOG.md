@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 
 
+## [Unreleased]
+
+### Added
+- `currency` (`BGN` | `EUR`) stored on every purchase; optional on requests,
+  defaulting to `EUR`
+- `LegacyCurrencyBackfill`: at startup, tags currency-less purchases `BGN`, and
+  fails startup rather than guess for one dated 2026-01-01 or later
+
+### Changed
+- **Breaking:** purchase responses carry numeric `priceEur` and
+  `discountAmountEur` (full precision, converted at 1 EUR = 1.95583 BGN)
+  instead of the formatted `price` string and `discountAmount`
+- **Breaking:** purchase response dates are ISO `yyyy-MM-dd`
+
+### Fixed
+- Legacy BGN prices were served as euros, ~2x overstated, after the JDK's
+  bg-BG locale switched to EUR (D11)
+
+### Removed
+- `Formatter`; formatting belongs to the UI (D2)
+
 ## [0.0.6] - 19.01.2026
 
 ### Added
