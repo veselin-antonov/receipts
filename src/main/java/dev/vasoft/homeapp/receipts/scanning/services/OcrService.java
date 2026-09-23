@@ -37,6 +37,15 @@ import java.time.format.DateTimeFormatter;
 public class OcrService {
 
     private static final int TARGET_MIN_HEIGHT = 2000;
+    /** Nothing below this can be paper, whatever the histogram says. */
+    private static final int MIN_PAPER_LUMINANCE = 140;
+    /** How far below the paper level still counts as paper, for shadowed edges. */
+    private static final int PAPER_TOLERANCE = 45;
+    /** Fraction of a row that must be bright before it counts as part of the receipt. */
+    private static final double MIN_ROW_COVERAGE = 0.06;
+    /** Above this, cropping gains nothing; below it, the detection is not credible. */
+    private static final double MAX_USEFUL_CROP = 0.95;
+    private static final double MIN_PLAUSIBLE_CROP = 0.04;
     private static final int OTSU_HISTOGRAM_BINS = 256;
     private static final DateTimeFormatter DEBUG_TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
 
@@ -82,13 +91,25 @@ public class OcrService {
 
             image = applyExifOrientation(image, exifOrientation);
 
-            BufferedImage ocrInput;
-            if (isScreenshot(file)) {
-                ocrInput = image;
-            } else {
-                ocrInput = preprocessImage(image);
-                saveDebugImage(ocrInput, file.getOriginalFilename());
-            }
+            // One path for every image. There is deliberately no photo-vs-screenshot
+            // branch: the previous one keyed off the PNG extension, so a photo
+            // exported as PNG skipped the preprocessing it needed while a screenshot
+            // saved as JPEG got preprocessing that could destroy it (D19).
+            //
+            // Replacing that test was tried and abandoned. Colour count does not
+            // separate the two on this data - measured across the fixture set,
+            // screen captures land at 345-472 distinct colours and photographs at
+            // 194-392, overlapping completely, because a receipt photo is itself a
+            // low-colour scene. Camera EXIF works but is stripped by messaging apps.
+            //
+            // The branch turned out to be unnecessary. Measured on a real app
+            // screenshot, this pipeline returns 13/15 tokens - identical to feeding
+            // it the raw image - because cropping is a no-op when the document
+            // already fills the frame, and thresholding clean rendered text is close
+            // to identity. Removing the classification removes the bug class.
+            BufferedImage cropped = cropToReceipt(image);
+            BufferedImage ocrInput = preprocessImage(cropped);
+            saveDebugImage(ocrInput, file.getOriginalFilename());
 
             String text = tesseract.doOCR(ocrInput);
 
@@ -122,6 +143,7 @@ public class OcrService {
         }
         return 1;
     }
+
 
     /**
      * Applies rotation/flip based on EXIF orientation tag.
@@ -200,13 +222,111 @@ public class OcrService {
      * doesn't benefit from preprocessing — in fact, sharpening and binarization
      * can degrade their already pixel-perfect edges.
      */
-    private boolean isScreenshot(MultipartFile file) {
-        String contentType = file.getContentType();
-        boolean screenshot = contentType != null && contentType.equalsIgnoreCase("image/png");
-        if (screenshot) {
-            logger.info("PNG detected — skipping preprocessing (screenshot/digital image)");
+    /**
+     * Crops to the receipt so that thresholding sees paper and ink rather than
+     * paper and furniture.
+     *
+     * <p>Finds the largest bright region — the paper against whatever it is lying
+     * on — by scanning rows and columns for a run of pixels above a high
+     * percentile. Deliberately simple: no edge detection, no perspective
+     * correction. The receipt is the brightest thing in a receipt photo, which
+     * is enough.
+     *
+     * <p>Returns the original image when it cannot find a plausible receipt, so
+     * an unusual photo degrades to the previous behaviour rather than failing.
+     */
+    private BufferedImage cropToReceipt(BufferedImage image) {
+        int w = image.getWidth();
+        int h = image.getHeight();
+        int step = Math.max(1, Math.min(w, h) / 400);   // sample, do not read 12M pixels
+
+        int[] histogram = new int[OTSU_HISTOGRAM_BINS];
+        for (int y = 0; y < h; y += step) {
+            for (int x = 0; x < w; x += step) {
+                histogram[luminance(image.getRGB(x, y))]++;
+            }
         }
-        return screenshot;
+        int sampled = 0;
+        for (int count : histogram) {
+            sampled += count;
+        }
+        // Paper sits in the top slice of the histogram; the surface below it.
+        int paperLevel = percentile(histogram, sampled, 0.92);
+        int threshold = Math.max(MIN_PAPER_LUMINANCE, paperLevel - PAPER_TOLERANCE);
+
+        int top = -1, bottom = -1, left = -1, right = -1;
+        for (int y = 0; y < h; y += step) {
+            int bright = 0;
+            for (int x = 0; x < w; x += step) {
+                if (luminance(image.getRGB(x, y)) > threshold) {
+                    bright++;
+                }
+            }
+            if (bright > (w / step) * MIN_ROW_COVERAGE) {
+                if (top < 0) {
+                    top = y;
+                }
+                bottom = y;
+            }
+        }
+        for (int x = 0; x < w; x += step) {
+            int bright = 0;
+            for (int y = 0; y < h; y += step) {
+                if (luminance(image.getRGB(x, y)) > threshold) {
+                    bright++;
+                }
+            }
+            if (bright > (h / step) * MIN_ROW_COVERAGE) {
+                if (left < 0) {
+                    left = x;
+                }
+                right = x;
+            }
+        }
+
+        if (top < 0 || left < 0 || right <= left || bottom <= top) {
+            logger.debug("No receipt region found; using the whole frame");
+            return image;
+        }
+
+        int margin = Math.max(8, Math.min(w, h) / 100);
+        int x0 = Math.max(0, left - margin);
+        int y0 = Math.max(0, top - margin);
+        int x1 = Math.min(w, right + margin);
+        int y1 = Math.min(h, bottom + margin);
+        double area = ((double) (x1 - x0) * (y1 - y0)) / ((double) w * h);
+
+        // A crop covering almost everything gains nothing; one covering almost
+        // nothing means the detection was wrong. Either way, keep the original.
+        if (area > MAX_USEFUL_CROP || area < MIN_PLAUSIBLE_CROP) {
+            logger.debug("Receipt region covers {}% of the frame; using the whole frame",
+                Math.round(area * 100));
+            return image;
+        }
+
+        logger.info("Cropped to receipt: {}x{} -> {}x{} ({}% of the frame)",
+            w, h, x1 - x0, y1 - y0, Math.round(area * 100));
+        return image.getSubimage(x0, y0, x1 - x0, y1 - y0);
+    }
+
+
+
+    private static int luminance(int rgb) {
+        return (int) (0.299 * ((rgb >> 16) & 0xFF)
+            + 0.587 * ((rgb >> 8) & 0xFF)
+            + 0.114 * (rgb & 0xFF));
+    }
+
+    private static int percentile(int[] histogram, int total, double fraction) {
+        int target = (int) (total * (1 - fraction));
+        int seen = 0;
+        for (int level = histogram.length - 1; level >= 0; level--) {
+            seen += histogram[level];
+            if (seen >= target) {
+                return level;
+            }
+        }
+        return 255;
     }
 
     /**
