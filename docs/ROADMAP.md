@@ -29,10 +29,16 @@ below; items that were Home App concerns stay in Obsidian.
       verified against a live MongoDB
 - [ ] Exclude `certs/**` and `*.env` from `processResources` **(D10)** — the JWT
       private key and live credentials are currently packaged into the jar
-- [ ] Pin `TZ=UTC` in the Dockerfile and compose, to match the re-anchored
-      purchase dates. Also for `bootRun`: `TZ` in `.env` does not reach the
-      JVM, which runs in Europe/Sofia and stored a purchase dated 2026-09-23
-      as `2026-09-22T21:00Z` during the currency verification
+- [x] ~~Pin `TZ=UTC`~~ — **superseded 2026-09-23: storage is UTC by
+      construction.** `MongoConfig` uses the MongoDB driver's codecs, so a
+      purchase date is midnight UTC however the JVM is started (verified with
+      a Europe/Sofia JVM, which previously stored 2026-09-23 as
+      `2026-09-22T21:00Z`). The JVM's zone now affects log timestamps only, so
+      the server runs in local time: `docker-compose.yml` sets
+      `TZ=${TZ:-Europe/Sofia}`, and `dev-setup.sh` no longer writes `TZ=UTC`
+- [ ] Add `TZ: Europe/Sofia` to the unversioned deployment compose
+      (`~/docker-apps/homeapp/compose.yaml`) for local-time logs; optional,
+      since without it the container simply logs in UTC
 - [ ] Tidy `docker-compose.dev.yml` — network mismatch, wrong `depends_on`,
       and move `dev.env` out of the Java resources tree
 - [ ] Complete `example.env` — it omits the OCR, CORS, `UI_PORT`, and

@@ -38,7 +38,6 @@ None of this is documented as a test prerequisite, and CI never runs tests
 | `gradlew` | Sets the executable bit, and warns that the fix needs committing |
 | JWT keys | Generates a PKCS#8 RSA keypair into the gitignored `certs/` |
 | Backend `.env` | Writes all 12 undefaulted variables, plus Linux overrides for the OCR paths that `application-dev.yaml` defaults to Windows locations |
-| `TZ=UTC` | Pinned deliberately — see [Timezone](#timezone-this-one-matters) |
 | Compose `dev.env` | Copies the env file where `docker-compose.dev.yml` expects it |
 | UI dependencies | `npm ci` |
 | UI dev certs | Only with `--https`. Skipped by default: browsers treat `http://localhost` as a trustworthy origin, so the backend's `Secure` cookie works over plain http, and a self-signed cert just adds a warning to click through |
@@ -113,35 +112,34 @@ fresh, MailHog catches the verification mail at <http://localhost:8025>.
 
 ---
 
-## Timezone: this one matters
+## Timezones: storage is UTC, logs are local
 
-`scripts/dev-setup.sh` pins `TZ=UTC`, and that is not cosmetic.
+**Stored dates do not depend on the server's timezone.** A purchase date is a
+calendar day, stored as midnight UTC of that day. The API's `MongoConfig` uses
+the MongoDB driver's java.time codecs, which read and write a `LocalDate` as
+midnight UTC whatever zone the JVM runs in. Moments, such as token expiry, are
+`Instant`s and zone-free already. On the wire every date is ISO-8601
+([SPEC §9.1](SPEC.md#91-the-wire-format-carries-data-not-presentation)), and
+the UI formats it for display.
 
-Every one of the 717 purchase dates in the backup is **midnight Europe/Sofia
-stored as a UTC instant** — 22:00Z in winter, 21:00Z in summer. The `Purchase`
-entity maps `date` to a `LocalDate`, so the zone the JVM runs in decides which
-calendar day you read back:
+So the JVM's zone decides only **log timestamps**. Run it in local time:
 
-- in `Europe/Sofia`, the original date
-- in `UTC`, **one day earlier, for all 717 rows**
+- natively, `./gradlew bootRun --args='--spring.profiles.active=dev'` follows
+  the host clock. The `dev` profile is required: without it the JWT keys
+  resolve to the empty `JWT_PUBLIC_KEY` default and startup fails
+- in a container, set `TZ` on the API service. `docker-compose.yml` does,
+  defaulting to `Europe/Sofia`; the image on its own logs in UTC
 
-The Dockerfile is `eclipse-temurin:25-jre-alpine` with no `TZ` set, so
-containers default to UTC. `migrate-backups.py` therefore re-anchors every date
-to midnight UTC, which makes the value mean the same thing in every zone — on
-the condition that the app also runs in UTC.
+Spring Boot's log format includes the offset (`…+03:00`), so local-time logs
+still line up unambiguously with UTC data.
 
-**So: pin `TZ=UTC` in the Dockerfile and in compose too.** Mixing a
-UTC-anchored database with a Sofia-local JVM reintroduces the same off-by-one
-in the other direction.
-
-**The `.env` pin does not reach a natively run JVM.** `spring-dotenv` turns
-`.env` into Spring properties, not process environment, so `TZ` in it has no
-effect on the JVM's zone. Observed 2026-09-23: `./gradlew bootRun` logged
-`+03:00` timestamps and stored a purchase dated 2026-09-23 as
-`2026-09-22T21:00Z`. Until this is fixed in the build, run it as
-`TZ=UTC ./gradlew bootRun --args='--spring.profiles.active=dev'` — the `dev`
-profile is also required, since without it the JWT keys resolve to the empty
-`JWT_PUBLIC_KEY` default and startup fails.
+History, because it explains the migration: the Jan-2026 backup stored each
+date as midnight Europe/Sofia expressed in UTC (21:00Z/22:00Z), since the old
+app mapped dates through the JVM's zone. `migrate-backups.py` re-anchors them
+to midnight UTC. Before `MongoConfig`, correctness depended on running the JVM
+in UTC; a Sofia-time JVM stored 2026-09-23 as `2026-09-22T21:00Z`. `TZ` in
+`.env` never helped with that, because `spring-dotenv` turns `.env` into Spring
+properties, not process environment.
 
 ---
 

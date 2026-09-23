@@ -68,13 +68,14 @@ def midnight_utc(stamp: str) -> str:
     """Re-anchor a stored instant to midnight UTC of the day it represents.
 
     Every date in the backup is midnight Europe/Sofia expressed as UTC, so it
-    reads as 21:00Z in summer and 22:00Z in winter. A LocalDate mapping then
-    resolves the date using whatever zone the JVM happens to run in: correct in
-    Europe/Sofia, a day early in UTC. Alpine containers default to UTC.
+    reads as 21:00Z in summer and 22:00Z in winter: the old app mapped dates
+    through the JVM's zone. Left as-is, the current API would read each one as
+    the previous day.
 
-    Anchoring to midnight UTC makes the value mean the same thing in every
-    zone, on the condition that the app also runs in UTC. dev-setup.sh and the
-    Dockerfile must both pin TZ=UTC for this to hold.
+    Midnight UTC is how the API stores every date: MongoConfig uses the
+    MongoDB driver's codecs, which read and write a LocalDate as midnight UTC
+    whatever zone the JVM runs in. So the re-anchored value means the same day
+    everywhere, and the app's timezone only affects its log timestamps.
     """
     dt = datetime.fromisoformat(stamp.replace("Z", "+00:00")).astimezone(timezone.utc)
     # 21:00Z and 22:00Z are midnight of the *following* day in Europe/Sofia.
@@ -91,8 +92,9 @@ def main() -> int:
     ap.add_argument("--user-id", help="ObjectId to own every purchase "
                                       "(default: the _id from the users backup)")
     ap.add_argument("--keep-instants", action="store_true",
-                    help="leave dates as stored; only safe if the app runs in "
-                         "Europe/Sofia")
+                    help="leave dates as stored, for inspecting the raw backup "
+                         "only: the API decodes dates in UTC, so every one "
+                         "would read back a day early")
     args = ap.parse_args()
 
     if not args.src.is_dir():
@@ -179,8 +181,8 @@ def main() -> int:
     print(f"  - discount amounts on {discounted} discounted purchases; the old")
     print("    schema held only a true/false flag")
     if not args.keep_instants:
-        print("\nDates re-anchored to midnight UTC. The app must run with TZ=UTC,")
-        print("or every date will read back one day early.")
+        print("\nDates re-anchored to midnight UTC, which is how the API stores and reads")
+        print("every date, whatever timezone it runs in.")
     return 0
 
 

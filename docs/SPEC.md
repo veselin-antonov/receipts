@@ -703,7 +703,15 @@ Dates and times are ISO-8601 in both directions: a calendar date is
 This is one global setting (`spring.jackson.serialization.write-dates-as-timestamps: false`),
 never a per-DTO `@JsonFormat` pattern, and anything else in a request is a
 400 rather than a guess. Server-side moments are `Instant`, never a zoneless
-`LocalDateTime`, so no value depends on the JVM's timezone.
+`LocalDateTime`.
+
+Storage is UTC by construction: a calendar date is stored as midnight UTC of
+that day, through the MongoDB driver's codecs (`MongoConfig`), and moments as
+UTC instants. No stored value depends on the JVM's timezone, so the server can
+run in local time and its only effect is on log timestamps. A timezone is
+applied only where one is genuinely needed — displaying a moment, or deciding
+which day a moment falls on — and then explicitly (`Europe/Sofia` for a shop),
+never implicitly through the server's default.
 
 Formatting, rounding and localisation happen in the UI, in one module
 (`src/lib/format.js`). The UI builds a request date from the picked local
