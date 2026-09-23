@@ -208,9 +208,10 @@ any write path.
 | `userId` | **Every read and write is scoped to this. Non-negotiable.** |
 | `product` | Reference |
 | `store` | Reference |
-| `price` | What was paid |
+| `price` | What was paid, in `currency`. Never rewritten |
+| `currency` | `BGN` or `EUR`, stored on every row — see [§9.5](#95-currency-handling) |
 | `date` | When |
-| `discountAmount` | Discount applied |
+| `discountAmount` | Discount applied, in `currency` |
 | `quantity` | **Missing — see D1** |
 | `quantityUnit` | **Missing — see D1** |
 
@@ -258,6 +259,11 @@ cannot be recovered from the database. See [ROADMAP](ROADMAP.md) M2 for the
 backfill decision.
 
 ### D2 — Prices cross the wire as formatted strings *(critical)*
+
+> **Fixed 2026-09-23 for responses**, together with D11. `ResPurchase` carries
+> numeric `priceEur` / `discountAmountEur` and an ISO `yyyy-MM-dd` date, and
+> `Formatter` is deleted. Still open: request dates (`ReqPurchase`, the scan
+> result) are `dd/MM/yyyy`.
 
 `ResPurchase.price` is a `String`, produced by:
 
@@ -687,9 +693,12 @@ None of these block the two loops. See [ADR-0003](adr/0003-cookie-jwt-auth.md).
 
 ### 9.1 The wire format carries data, not presentation
 
-Consequence of D2. Money is `{ "amount": 3.29, "currency": "BGN" }` or a plain
-number with the currency known from context — never a formatted string. Dates
-are ISO-8601. Formatting and localisation happen in the UI.
+Consequence of D2. Money is a plain number whose currency is part of the field
+name — `priceEur`, `discountAmountEur` — never a formatted string, and never a
+bare `price` a client could read in the wrong currency. Responses carry EUR
+only; the stored currency is a server-side detail (§9.5). Requests carry
+`price` plus an optional `currency`, defaulting to EUR. Dates are ISO-8601.
+Formatting, rounding and localisation happen in the UI.
 
 ### 9.2 Everything is scoped to the user
 

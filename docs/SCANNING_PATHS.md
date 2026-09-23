@@ -384,7 +384,9 @@ receipt from that shop matches directly.
   inconsistently as both `null` and `1970-01-01`.
 - **Every run exceeded the 30 s target**, at 34–78 s.
 - All prices came from the BGN column, which is correct — but by luck, since
-  nothing records a currency.
+  nothing records a currency. *(2026-09-23: purchases now store a currency,
+  but the parser still does not emit one, so a scanned submission is recorded
+  as EUR whichever column was read. Tracked in ROADMAP M2a.)*
 
 ## Testing implications
 

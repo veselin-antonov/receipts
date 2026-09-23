@@ -134,6 +134,15 @@ the condition that the app also runs in UTC.
 UTC-anchored database with a Sofia-local JVM reintroduces the same off-by-one
 in the other direction.
 
+**The `.env` pin does not reach a natively run JVM.** `spring-dotenv` turns
+`.env` into Spring properties, not process environment, so `TZ` in it has no
+effect on the JVM's zone. Observed 2026-09-23: `./gradlew bootRun` logged
+`+03:00` timestamps and stored a purchase dated 2026-09-23 as
+`2026-09-22T21:00Z`. Until this is fixed in the build, run it as
+`TZ=UTC ./gradlew bootRun --args='--spring.profiles.active=dev'` — the `dev`
+profile is also required, since without it the JWT keys resolve to the empty
+`JWT_PUBLIC_KEY` default and startup fails.
+
 ---
 
 ## Restoring the backups
@@ -150,7 +159,13 @@ user-scoped purchases.
 | `users` (1) | `_class` rewritten. Already on the new package — this collection was re-saved after the rename, the others were not. |
 | `products` (211) | `name` → `canonicalName`, plus a computed `normalizedCanonicalName`, empty alias arrays, `_class` rewritten |
 | `stores` (14) | Same as products, `iconID` preserved |
-| `purchases` (717) | **`userId` backfilled** from the user document, `discount` boolean → `discountAmount`, dates re-anchored, `_class` rewritten |
+| `purchases` (717) | **`userId` backfilled** from the user document, `discount` boolean → `discountAmount`, **`currency: BGN`** written explicitly, dates re-anchored, `_class` rewritten |
+
+The currency is stored rather than inferred ([SPEC §9.5](SPEC.md#95-currency-handling)).
+A database restored before this change is fixed up anyway: the API's
+`LegacyCurrencyBackfill` tags any currency-less purchase `BGN` at startup and
+logs how many it touched. It refuses — and startup fails — if a currency-less
+purchase is dated 2026-01-01 or later, since that one could be either currency.
 
 The `userId` backfill is the critical one. Nothing in the backup carries a
 `userId`, and every read path scopes by it — so importing untouched gives you a
