@@ -59,15 +59,28 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          # Must match the Gradle toolchain in build.gradle. The receipt
+          # scanning merge moved this from 21 to 25.
+          java-version: 25
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Build app with Gradle
+      - name: Build and test with Gradle
         run: |
           chmod +x ./gradlew
-          ./gradlew build -x test
+          # Tests were previously skipped entirely (-x test), so six test
+          # classes could have rotted through six dormant months unnoticed.
+          # They run on a clean checkout via the `test` profile.
+          ./gradlew build
+
+      - name: Publish test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results
+          path: build/reports/tests/test
+          if-no-files-found: ignore
 
       - name: Get app version from VERSION file
         id: app_version
