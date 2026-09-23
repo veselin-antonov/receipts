@@ -41,3 +41,4 @@ out/
 *.env
 !**/src/main/resources/example.env
 /ocr-debug/
+/.mongo-data/

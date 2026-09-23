@@ -19,7 +19,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 @WebMvcTest(AuthController.class)
 @Import({SecurityConfiguration.class, WebConfig.class})
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 @TestPropertySource(properties = "app.cors.allowed-origins=https://localhost:5173")
 class SecurityCorsTest {
 

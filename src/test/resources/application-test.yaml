@@ -1,0 +1,85 @@
+# Test profile: makes the suite runnable on a fresh clone.
+#
+# Every value here exists because application.yaml has 12 placeholders with no
+# defaults, and spring-dotenv reads a gitignored .env that CI does not have.
+# Without this file, context startup fails on server.port=${SERVER_PORT} not
+# parsing as an Integer, long before any assertion runs (defect D9).
+#
+# Nothing here connects anywhere. Mongo and SMTP values are syntactically valid
+# and deliberately unreachable; tests that need them mock them.
+
+spring:
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: receipts-test
+      authentication-database: admin
+      username: test
+      password: test
+      auto-index-creation: false
+  mail:
+    host: localhost
+    port: 1025
+    username: test
+    password: test
+
+server:
+  port: 0          # random free port; never collides with a running dev server
+
+app:
+  host-url: http://localhost:5173
+  cors:
+    allowed-origins: http://localhost:5173
+  ocr:
+    data-path: /usr/share/tesseract-ocr/5/tessdata
+    language: eng
+    debug-output-path: ''
+
+# Throwaway RSA keypair, generated for tests alone. NOT a secret: it signs
+# nothing outside this suite and is never referenced by any other profile.
+# Inlined rather than kept as .pem files so it cannot be mistaken for the
+# gitignored dev keys, and so the suite has no filesystem prerequisites.
+jwt:
+  private-key: |
+    -----BEGIN PRIVATE KEY-----
+    MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC1aFYsdcTtzte4
+    YjAAmgvOkyCayqwEH9lDOctMNdL1NHWS+caPKMkPPwDp583w+GCSGLNwiPvL3F0k
+    Fy8Sa9/acKS+bHYaaFELoGshU700GZS+gtuLQGHr/Z5OGxhMBWh9D8MZVCqRE6FX
+    PgN/pq4OsaHyF+NhKUXcvduPnX162wLArri86E780AHcNIc0kbILkGYpmohAwEW6
+    lq6pz909oO+h+flSLwuTRiZ3X9C+i7Wx2deXoIMJgmxax0MgHb9hsE4KRE1G2+lW
+    mHcfeEBD4jAzMWSvR2Y4glb9z62ScgOJHoB7n3hqFehiqAGhN+Trx11rXij+0fgt
+    ypWnApVVAgMBAAECggEAAp+u0O26XQM9NFlQvvXKMRTNc+Im7evhY3TzHOkvJrtN
+    FbrZVrKAvaW/v+c/0PAmG0RhMUHpVS11fRqklZxa0CenKH5hVYheBnyZ6enBQsP+
+    kWkj9V/p5bxmNwWtiD9VeDT6MYahE3FnR6SOtFHoV2qah66rnTQak/8aNyEy48Is
+    CGeAzNkNeVgHUVeEAeBmNGnbm13gGe3xyoReXRJedC8tmGopsZ7Eigk2ccmkLPkg
+    FnnxAcG/GCjrEu0iOpclMg5UmjUo39iQfa5fzfKCvY3IAGHSizfK/gniKaxWaQ8d
+    oQ2+QxqWvAQ1As/gLiXCfEs72Wtj9MXHrONw45CRNwKBgQD12vr3bf/rcN5Cs1B5
+    LQAX6YzKWvBr5C7DMTRMuWznSreycyAOMn6IFyI+qrocEyxGJiure/D7JF5sNItG
+    3YQgQsTnXFBYT/mwl9L3ZIj8O5+DjoJzho/a1efh24ep3mHdx9W5wastwA6sROKw
+    /AmpZIkTYrFVtz+d8UZ11DN89wKBgQC85JS8F6ejxPXrnz/efoqRjSpBSClYduYT
+    y6UE/KoDxUjiYa4lufGkSiuw5Bbog4Hij0w2WT8NuMhXJ88fvuOuEOOulPZq1xqj
+    gQM8WmbLxORCAKuzSmKp0Gl6X+uwRIkpuq5fzofWfjrFLJqCnP2dP/T8yuXwL330
+    gfTQ7clpEwKBgQDfknQ4v5pDs48a3s+mciqslCEI/2u04Xs426zwvIpxRnwIVjLn
+    VjnEbi0hCcZWs4TGgf2iYwJAj9Eh2yJwng6B+9XtgwA5Xvj0AwzBFnaP0XR8gQLW
+    JZ755R2KQUV8TxN2SDxuQNT2tLljJP107q2mkhspOs2C4jKC4Z8ulXsA/wKBgBqC
+    wlU7xK15gUJWkXI6tFwFQf7zj8n4tgXlOP3gMERjNf1/1B87X6y9NDCZcpWjj2Eq
+    13lxQSY93vBMiAdelTni6PGhuov4MKbt/nREA9Vphte0nGSHdh17QLKKL9wHYnDW
+    4I5VwD7cbIcr4WufeQDO7yVjnK3/HGBqtN914CS9AoGBAIwKz9A08iYuivhz14Et
+    VL4T/p/ikMxfQiIvBGBR6RhjMWfd5mbYzYnqoWdH5IqenJXSUbT+btHZQIJco2WK
+    sFRAcpTAPcs1ZSF6OYy4QoF3OQjos4ihLwT0qd2nAWAhLAJhF1W736iZjVJBQR8y
+    HSYKVuigwfSCC2krAGYPqhnU
+    -----END PRIVATE KEY-----
+  public-key: |
+    -----BEGIN PUBLIC KEY-----
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtWhWLHXE7c7XuGIwAJoL
+    zpMgmsqsBB/ZQznLTDXS9TR1kvnGjyjJDz8A6efN8PhgkhizcIj7y9xdJBcvEmvf
+    2nCkvmx2GmhRC6BrIVO9NBmUvoLbi0Bh6/2eThsYTAVofQ/DGVQqkROhVz4Df6au
+    DrGh8hfjYSlF3L3bj519etsCwK64vOhO/NAB3DSHNJGyC5BmKZqIQMBFupauqc/d
+    PaDvofn5Ui8Lk0Ymd1/Qvou1sdnXl6CDCYJsWsdDIB2/YbBOCkRNRtvpVph3H3hA
+    Q+IwMzFkr0dmOIJW/c+tknIDiR6Ae594ahXoYqgBoTfk68dda14o/tH4LcqVpwKV
+    VQIDAQAB
+    -----END PUBLIC KEY-----
+
+bucket4j:
+  enabled: false   # rate limiting is not under test and adds startup cost

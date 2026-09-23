@@ -16,7 +16,9 @@ import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -32,6 +34,18 @@ public class ReceiptScanService {
     private static final Set<String> IMAGE_CONTENT_TYPES = Set.of("image/jpeg", "image/jpg",
         "image/png", "image/gif", "image/webp");
 
+    /**
+     * Upload ceiling, bound from {@code spring.servlet.multipart.max-file-size}
+     * rather than hard-coded, so this check cannot drift from the limit Spring
+     * itself enforces.
+     *
+     * <p>That property and nginx's {@code client_max_body_size} are both
+     * derived from a single {@code MAX_UPLOAD_MB} environment variable. The
+     * smallest of the three wins, and only this one produces a useful message,
+     * so it should be the one that trips.
+     */
+    private final DataSize maxFileSize;
+
     private final Logger logger;
     private final OcrService ocrService;
     private final LlmReceiptParser llmReceiptParser;
@@ -39,9 +53,25 @@ public class ReceiptScanService {
     private final StoreService storeService;
     private final MatcherService matcherService;
 
+    /**
+     * Routes photographed receipts to the vision model instead of through OCR.
+     *
+     * <p>Images have always gone OCR text to LLM while PDFs went straight to
+     * vision, so for a photo the model never sees the pixels and Tesseract's
+     * output is the ceiling on everything downstream. Single-digit misreads in
+     * dates are unrecoverable after that point. This flag exists to measure
+     * whether the vision path beats OCR on real photos; it is off by default
+     * until the numbers say otherwise.
+     */
+    private final boolean visionForImages;
+
     @Autowired
     public ReceiptScanService(OcrService ocrService, LlmReceiptParser llmReceiptParser,
-        PurchaseService purchaseService, StoreService storeService, MatcherService matcherService) {
+        PurchaseService purchaseService, StoreService storeService, MatcherService matcherService,
+        @Value("${spring.servlet.multipart.max-file-size}") DataSize maxFileSize,
+        @Value("${receipts.scanning.vision-for-images:false}") boolean visionForImages) {
+        this.maxFileSize = maxFileSize;
+        this.visionForImages = visionForImages;
         this.storeService = storeService;
         this.logger = LoggerFactory.getLogger(ReceiptScanService.class);
         this.ocrService = ocrService;
@@ -63,7 +93,11 @@ public class ReceiptScanService {
         validateFile(file);
 
         ParsedReceipt parsedReceipt =
-            isImage(file) ? parseImageReceipt(file) : llmReceiptParser.parseReceipt(file);
+            isImage(file) && !visionForImages
+                ? parseImageReceipt(file)
+                : llmReceiptParser.parseReceipt(file);
+
+        rejectIfNothingParsed(parsedReceipt, file);
 
         ResScanStore store = matcherService.matchStore(parsedReceipt.storeName());
 
@@ -82,6 +116,28 @@ public class ReceiptScanService {
             file.getOriginalFilename());
         String ocrText = ocrService.extractText(file);
         return llmReceiptParser.parseReceiptText(ocrText);
+    }
+
+    /**
+     * Fails a scan that produced nothing, instead of returning an empty success.
+     *
+     * <p>A total parse failure previously came back as HTTP 200 with an empty
+     * purchase list and a 1970 epoch date, which is indistinguishable from a
+     * successful scan of an empty receipt. It is not: it means OCR or the model
+     * produced nothing usable, and the caller should be told so rather than
+     * shown a blank review screen.
+     *
+     * @throws ReceiptParsingException mapped to 422 by the controller advice
+     */
+    private void rejectIfNothingParsed(ParsedReceipt parsed, MultipartFile file) {
+        if (parsed.items() != null && !parsed.items().isEmpty()) {
+            return;
+        }
+        logger.warn("No items parsed from {}; failing the scan rather than returning an "
+            + "empty result", file.getOriginalFilename());
+        throw new ReceiptParsingException(
+            "No purchases could be read from this receipt. The photo may be blurred, "
+                + "cropped, or taken on a background that hides the paper edges.");
     }
 
     private boolean isImage(MultipartFile file) {
@@ -120,10 +176,9 @@ public class ReceiptScanService {
                 + ". Allowed types: JPEG, PNG, GIF, WebP, PDF");
         }
 
-        // 10MB max file size
-        long maxSize = 10L * 1024 * 1024;
-        if (file.getSize() > maxSize) {
-            throw new ReceiptParsingException("File size exceeds maximum allowed size of 10MB");
+        if (file.getSize() > maxFileSize.toBytes()) {
+            throw new ReceiptParsingException("File size exceeds maximum allowed size of "
+                + maxFileSize.toMegabytes() + "MB");
         }
     }
 }
