@@ -25,11 +25,40 @@ public class LlmReceiptParser {
             You are an expert receipt parser. Analyze this receipt image and extract all purchase information into structured data.
 
             ## Store name
-            Extract the business/store name from the receipt header or top section.
+            Return the name of the SHOP, not the company that owns it.
+
+            Bulgarian receipts print the registered company in the header and the \
+            actual shop on a separate line. Prefer the shop:
+
+            - "\"ЛАГАРДЕР ТРАВЕЛ РИТЕЙЛ\" ЕООД" in the header, "МАГАЗИН \"RELAY\"" \
+              below it -> return Relay
+            - "\"ТРЪНЧЕВ\" ООД" in the header, "Магазин за хр. стоки BulMag 17" \
+              below it -> return BulMag
+            - "ПОЛИМЕКС ЕООД" in the header, "АПТЕКА \"ПОЛИ ВАЛЕНС\"" below it \
+              -> return Поли Валенс
+
+            Look for lines beginning МАГАЗИН, АПТЕКА, Хипермаркет, or a chain name \
+            with a branch number such as "Лидл Варна 144". A trailing ЕООД, ООД, АД \
+            or КД marks the legal entity, so strip it and drop qualifiers like \
+            "България". Where only the legal entity is printed, return its \
+            distinctive part: "Кауфланд България ЕООД енд Ко. КД" -> Кауфланд.
 
             ## Receipt date
-            Extract the purchase date in dd/MM/yyyy format (e.g. 07/03/2026). \
-            If the date format is ambiguous, prefer dd/MM/yyyy interpretation.
+            The date is almost never in the header. On Bulgarian fiscal receipts it \
+            appears BELOW the totals: usually inside the card-payment block prefixed \
+            with '#', or after a "Дата:" label near the very bottom, with a time \
+            beside it.
+
+            Separators vary - 03.10.2025, 15-04-2025 and 24/03/2025 are all the same \
+            shape. Years may be two digits: "Дата: 18.09.26" means 2026.
+
+            Ignore dates inside terms-and-conditions text. A phrase such as \
+            "за стоки, закупени след 01.01.22г" states a policy date, not a purchase \
+            date. A date with a time next to it is almost always the right one.
+
+            If several dates appear, take the transaction date from the payment block. \
+            Return dd/MM/yyyy, preferring that reading when ambiguous. If no purchase \
+            date is present, return null rather than guessing.
 
             ## Items
             Extract every purchased product line item. For each item provide:
@@ -122,11 +151,40 @@ public class LlmReceiptParser {
             ```
 
             ## Store name
-            Extract the business/store name from the receipt header or top section.
+            Return the name of the SHOP, not the company that owns it.
+
+            Bulgarian receipts print the registered company in the header and the \
+            actual shop on a separate line. Prefer the shop:
+
+            - "\"ЛАГАРДЕР ТРАВЕЛ РИТЕЙЛ\" ЕООД" in the header, "МАГАЗИН \"RELAY\"" \
+              below it -> return Relay
+            - "\"ТРЪНЧЕВ\" ООД" in the header, "Магазин за хр. стоки BulMag 17" \
+              below it -> return BulMag
+            - "ПОЛИМЕКС ЕООД" in the header, "АПТЕКА \"ПОЛИ ВАЛЕНС\"" below it \
+              -> return Поли Валенс
+
+            Look for lines beginning МАГАЗИН, АПТЕКА, Хипермаркет, or a chain name \
+            with a branch number such as "Лидл Варна 144". A trailing ЕООД, ООД, АД \
+            or КД marks the legal entity, so strip it and drop qualifiers like \
+            "България". Where only the legal entity is printed, return its \
+            distinctive part: "Кауфланд България ЕООД енд Ко. КД" -> Кауфланд.
 
             ## Receipt date
-            Extract the purchase date in dd/MM/yyyy format (e.g. 07/03/2026). \
-            If the date format is ambiguous, prefer dd/MM/yyyy interpretation.
+            The date is almost never in the header. On Bulgarian fiscal receipts it \
+            appears BELOW the totals: usually inside the card-payment block prefixed \
+            with '#', or after a "Дата:" label near the very bottom, with a time \
+            beside it.
+
+            Separators vary - 03.10.2025, 15-04-2025 and 24/03/2025 are all the same \
+            shape. Years may be two digits: "Дата: 18.09.26" means 2026.
+
+            Ignore dates inside terms-and-conditions text. A phrase such as \
+            "за стоки, закупени след 01.01.22г" states a policy date, not a purchase \
+            date. A date with a time next to it is almost always the right one.
+
+            If several dates appear, take the transaction date from the payment block. \
+            Return dd/MM/yyyy, preferring that reading when ambiguous. If no purchase \
+            date is present, return null rather than guessing.
 
             ## Items
             Extract every purchased product line item. For each item provide:
