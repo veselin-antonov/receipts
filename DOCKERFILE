@@ -26,8 +26,17 @@ COPY nginx/nginx.conf.template /etc/nginx/templates/default.conf.template
 # Set default backend host (can be overridden at runtime)
 ENV BACKEND_HOST=localhost:7002
 
+# Upload ceiling, in MB. Single source shared with the API: its
+# spring.servlet.multipart.max-file-size reads the same variable, and
+# ReceiptScanService binds its check from that property. Raising the limit
+# means changing this one value for both containers.
+ENV MAX_UPLOAD_MB=25
+
 # Expose port 80
 EXPOSE 80
 
 # Use envsubst to substitute environment variables and start nginx
-CMD ["/bin/sh", "-c", "envsubst '${BACKEND_HOST}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# envsubst takes a whitelist: any variable missing from it is left literal in
+# the output, and nginx then fails to parse its own config. Every ${VAR} used
+# in nginx.conf.template must appear here.
+CMD ["/bin/sh", "-c", "envsubst '${BACKEND_HOST} ${MAX_UPLOAD_MB}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -t && nginx -g 'daemon off;'"]
