@@ -16,5 +16,8 @@ services:
     environment:
       - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+      # Log timestamps only. Stored dates are UTC by construction (MongoConfig),
+      # so this can be any zone; the image alone would log in UTC.
+      - TZ=${TZ:-Europe/Sofia}
     depends_on:
       - receipts-db

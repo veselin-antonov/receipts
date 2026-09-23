@@ -25,6 +25,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 - `POST /api/purchases` resolves product and store the same way as submit: a
   submitted id wins, the name is the fallback
 - Verification token expiry is an `Instant`, not a zoneless `LocalDateTime`
+- Dates are stored in UTC regardless of the JVM's timezone: `MongoConfig`
+  switches to the MongoDB driver's java.time codecs, so a purchase date is
+  always midnight UTC of its day. The JVM's zone now affects only log
+  timestamps; `docker-compose.yml` sets `TZ` (default `Europe/Sofia`) for that
 
 ### Fixed
 - `POST /api/purchases` with ids and no names created a product and a store
