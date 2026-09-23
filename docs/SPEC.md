@@ -260,10 +260,9 @@ backfill decision.
 
 ### D2 — Prices cross the wire as formatted strings *(critical)*
 
-> **Fixed 2026-09-23 for responses**, together with D11. `ResPurchase` carries
-> numeric `priceEur` / `discountAmountEur` and an ISO `yyyy-MM-dd` date, and
-> `Formatter` is deleted. Still open: request dates (`ReqPurchase`, the scan
-> result) are `dd/MM/yyyy`.
+> **Fixed 2026-09-23**, together with D11. `ResPurchase` carries numeric
+> `priceEur` / `discountAmountEur`, `Formatter` is deleted, and every date on
+> the wire is ISO-8601 in both directions under one global Jackson setting.
 
 `ResPurchase.price` is a `String`, produced by:
 
@@ -697,8 +696,18 @@ Consequence of D2. Money is a plain number whose currency is part of the field
 name — `priceEur`, `discountAmountEur` — never a formatted string, and never a
 bare `price` a client could read in the wrong currency. Responses carry EUR
 only; the stored currency is a server-side detail (§9.5). Requests carry
-`price` plus an optional `currency`, defaulting to EUR. Dates are ISO-8601.
-Formatting, rounding and localisation happen in the UI.
+`price` plus an optional `currency`, defaulting to EUR.
+
+Dates and times are ISO-8601 in both directions: a calendar date is
+`yyyy-MM-dd`, a moment is a UTC instant such as `2026-09-23T18:15:10Z`.
+This is one global setting (`spring.jackson.serialization.write-dates-as-timestamps: false`),
+never a per-DTO `@JsonFormat` pattern, and anything else in a request is a
+400 rather than a guess. Server-side moments are `Instant`, never a zoneless
+`LocalDateTime`, so no value depends on the JVM's timezone.
+
+Formatting, rounding and localisation happen in the UI, in one module
+(`src/lib/format.js`). The UI builds a request date from the picked local
+calendar day, never from `toISOString()`, which shifts it to UTC.
 
 ### 9.2 Everything is scoped to the user
 

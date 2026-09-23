@@ -163,10 +163,11 @@ These are not polish; they came out of the first real run.
       filters on `productDetails.name` / `storeDetails.name`, but the field is
       `canonicalName` since the rename. Searching `billa` returns 0 pages
       against 717 rows. Found 2026-09-23; predates the currency work
-- [ ] **`POST /api/purchases` ignores IDs** — `registerPurchase` resolves by
-      name only, so a request carrying `productId` / `storeId` and no names
-      auto-creates a product and a store with empty names (a D18 instance).
-      `registerPurchases` already handles IDs; the single path should share it
+- [x] **`POST /api/purchases` ignores IDs** — fixed 2026-09-23: it now shares
+      the id-first resolution of `registerPurchases`. The UI's manual form had
+      the matching bug — it sent `product` / `store`, which the API never read,
+      so every manual entry would have created nameless records. It now sends
+      `productName` / `storeName`. The dev DB had none, so nothing to clean
 - [ ] **Stop auto-creating stores (D18)** — `resolveStore` saves any unmatched
       name as a new store with no review; this is where the catalog junk came
       from. Nothing may create a store without a human choosing it
@@ -219,9 +220,15 @@ after it. Fixes D1 and D2 from [SPEC §7](SPEC.md#7-known-defects-that-block-the
 - [ ] Persist them in `registerPurchase` and `registerPurchases` **(D1)**
 - [x] Make prices numeric on the wire; delete `Formatter` from the response path
       and move formatting into the UI **(D2)** — done with D11, see M2a
-- [ ] ISO-8601 dates in both directions, consistently — *half done*: responses
-      send `yyyy-MM-dd`; `ReqPurchase` and the scan result still use
-      `dd/MM/yyyy`
+- [x] ISO-8601 dates in both directions, consistently — done 2026-09-23. One
+      global Jackson setting, no per-DTO `@JsonFormat`; `dd/MM/yyyy` in a
+      request is a 400. The UI builds dates with `toIsoDate` and formats them
+      only in `src/lib/format.js`. `ParsedReceipt` (the LLM's output schema)
+      keeps `dd/MM/yyyy` on purpose: it is never on the wire, and changing it
+      changes the prompt, so it would be measured per ADR-0007
+- [ ] The manual form's discount checkbox has no API counterpart — the API
+      records a discount *amount*. Replace the checkbox with an amount field,
+      or drop it
 - [ ] Drop the unused `statistics` collection, entity, and repository **(D3)**
 - [ ] Decide **Q2**: what to do about quantity for the 717 existing purchases
 - [x] Decide **Q1**: currency — answered in [SPEC §9.5](SPEC.md#95-currency-handling)
