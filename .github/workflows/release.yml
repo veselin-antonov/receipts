@@ -13,7 +13,12 @@ permissions:
   packages: write
 
 jobs:
+  # Gate the release on lint and tests.
+  checks:
+    uses: ./.github/workflows/checks.yml
+
   build-image:
+    needs: checks
     uses: ./.github/workflows/build-image.yml
     with:
       version: ${{ inputs.version }}

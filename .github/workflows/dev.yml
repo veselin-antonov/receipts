@@ -10,7 +10,12 @@ permissions:
   packages: write
 
 jobs:
+  # Gate the image on lint and tests, so a broken build cannot be published.
+  checks:
+    uses: ./.github/workflows/checks.yml
+
   build-dev:
+    needs: checks
     uses: ./.github/workflows/build-image.yml
     with:
       version: dev
