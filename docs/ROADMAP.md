@@ -102,6 +102,11 @@ nothing, so nothing downstream can be evaluated against real input.
 remaining errors are OCR-level, so further gains come from the thresholding
 work below, not from prompts or models.
 
+Baselines to compare against with `scan-harness.py --baseline`, kept outside
+git next to the ground truth:
+`receipt-fixtures/baselines/2026-09-23-m0a-254/summary.json` (current: 254
+correct prices, 53 HTTP 200) and `2026-09-22-pre-m0a-213/` (before M0a).
+
 - [x] **Crop to the receipt before preprocessing (D17)** — 213 → 232 correct
       prices, well outside the ±2 noise floor. Also removed the
       screenshot-vs-photo branch entirely: neither the PNG extension nor a
