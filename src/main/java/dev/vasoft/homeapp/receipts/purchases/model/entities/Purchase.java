@@ -19,16 +19,18 @@ public class Purchase {
 	@DocumentReference
 	private Product product;
 	private Double price;
+	private Currency currency;
 	private LocalDate date;
 	@DocumentReference
 	private Store store;
 	private Double discountAmount;
 
-	public Purchase(ObjectId userId, Product product, Double price, LocalDate date, Store store,
-		Double discountAmount) {
+	public Purchase(ObjectId userId, Product product, Double price, Currency currency,
+		LocalDate date, Store store, Double discountAmount) {
 		this.userId = userId;
 		this.product = product;
 		this.price = price;
+		this.currency = currency;
 		this.date = date;
 		this.store = store;
 		this.discountAmount = discountAmount;

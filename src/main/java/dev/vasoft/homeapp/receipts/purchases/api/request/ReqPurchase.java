@@ -1,6 +1,7 @@
 package dev.vasoft.homeapp.receipts.purchases.api.request;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import dev.vasoft.homeapp.receipts.purchases.model.entities.Currency;
 
 import java.time.LocalDate;
 
@@ -10,6 +11,8 @@ public record ReqPurchase(
 		String storeId,
 		String storeName,
 		double price,
+		/* The currency price and discountAmount are in; null means EUR. */
+		Currency currency,
 		@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DATE_FORMAT)
 		LocalDate date,
 		double quantity,

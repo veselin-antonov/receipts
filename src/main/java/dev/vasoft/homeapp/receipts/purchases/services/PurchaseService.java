@@ -5,6 +5,7 @@ import dev.vasoft.homeapp.receipts.purchases.api.request.ReqPurchase;
 import dev.vasoft.homeapp.receipts.common.api.response.ResPage;
 import dev.vasoft.homeapp.receipts.purchases.api.response.ResPurchase;
 import dev.vasoft.homeapp.receipts.products.model.entities.Product;
+import dev.vasoft.homeapp.receipts.purchases.model.entities.Currency;
 import dev.vasoft.homeapp.receipts.purchases.model.entities.Purchase;
 import dev.vasoft.homeapp.receipts.scanning.api.response.ResParsedPurchase;
 import dev.vasoft.homeapp.receipts.scanning.services.NormalizationService;
@@ -82,12 +83,17 @@ public class PurchaseService {
         Store store = resolveStore(reqPurchase.storeName());
         Product product = resolveProduct(reqPurchase.productName());
 
-        Purchase purchase = new Purchase(userId, product, reqPurchase.price(), reqPurchase.date(),
-            store, reqPurchase.discountAmount());
+        Purchase purchase = new Purchase(userId, product, reqPurchase.price(),
+            currencyOf(reqPurchase), reqPurchase.date(), store, reqPurchase.discountAmount());
 
         purchase = purchasesRepository.save(purchase);
 
         return PurchaseMapper.toResPurchase(purchase);
+    }
+
+    /** New purchases are EUR unless the client says otherwise; see SPEC §9.5. */
+    private static Currency currencyOf(ReqPurchase reqPurchase) {
+        return reqPurchase.currency() == null ? Currency.EUR : reqPurchase.currency();
     }
 
     private Store resolveStore(String storeName) {
@@ -120,7 +126,7 @@ public class PurchaseService {
             Product product = resolveSubmittedProduct(reqPurchase);
 
             Purchase purchase = new Purchase(userId, product, reqPurchase.price(),
-                reqPurchase.date(), store, reqPurchase.discountAmount());
+                currencyOf(reqPurchase), reqPurchase.date(), store, reqPurchase.discountAmount());
 
             purchase = purchasesRepository.save(purchase);
             results.add(PurchaseMapper.toResPurchase(purchase));

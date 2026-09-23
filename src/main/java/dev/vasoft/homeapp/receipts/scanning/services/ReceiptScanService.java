@@ -1,6 +1,5 @@
 package dev.vasoft.homeapp.receipts.scanning.services;
 
-import dev.vasoft.homeapp.receipts.common.services.Formatter;
 import dev.vasoft.homeapp.receipts.purchases.api.request.ReqPurchase;
 import dev.vasoft.homeapp.receipts.purchases.api.response.ResPurchase;
 import dev.vasoft.homeapp.receipts.scanning.api.response.ResParsedPurchase;

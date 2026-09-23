@@ -43,7 +43,7 @@ class ReceiptScanControllerTest {
     void submitPurchasesDelegatesAuthenticatedUserIdAndReviewedPurchasesToService() {
         ObjectId userId = new ObjectId();
         ReqPurchase reviewedPurchase = new ReqPurchase(null, "Coca Cola Zero", null, "Billa",
-            2.50, LocalDate.of(2026, 3, 7), 1.0, ReqPurchase.QuantityUnit.PIECE, 0.0);
+            2.50, null, LocalDate.of(2026, 3, 7), 1.0, ReqPurchase.QuantityUnit.PIECE, 0.0);
         ReqSubmitPurchases request = new ReqSubmitPurchases(List.of(reviewedPurchase));
         List<ResPurchase> expectedResponse = List.of();
 
