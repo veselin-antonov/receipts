@@ -31,3 +31,14 @@ export const toIsoDate = (date) => {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+
+// A decimal a person typed, as a number for the API. Bulgarian writes 2,49:
+// Number('2,49') is NaN, which JSON sends as null and the API would store as 0.
+// Accepts either separator; anything else is NaN, for the caller to reject.
+export const parseDecimal = (value) => {
+  if (typeof value === 'number') return value;
+  const text = String(value ?? '')
+    .trim()
+    .replace(',', '.');
+  return /^(\d+(\.\d*)?|\.\d+)$/.test(text) ? Number(text) : Number.NaN;
+};

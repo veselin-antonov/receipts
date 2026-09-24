@@ -21,7 +21,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { FieldGroup } from '@/components/ui/field';
-import { toIsoDate } from '@/lib/format';
+import { parseDecimal, toIsoDate } from '@/lib/format';
 import useFetchResource from '@/lib/useFetchResource';
 import { API_URL } from '@/lib/utils';
 
@@ -131,7 +131,7 @@ const FormDialog = ({
     const purchase = {
       productName: values.product,
       storeName: values.store,
-      price: Number(values.price.replace(',', '.')),
+      price: parseDecimal(values.price),
       date: toIsoDate(values.date),
     };
 

@@ -26,6 +26,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
 ### Fixed
 
+- A failed rescan left the previous receipt's rows on screen, submittable as
+  if they belonged to the new one; scanning now clears them first
+- A review price typed with a comma (`2,49`) became `NaN`, sent as `null`, and
+  the API would store 0. `parseDecimal` in `format.js` accepts either
+  separator, and an unreadable amount blocks the submit with an error
+- README and copilot instructions: test counts, and the API proxy is plain
+  HTTP (the API has had no TLS since 0.0.6)
 - The manual purchase form sent `product` / `store`, which the API does not
   read, so every manual entry would have created a nameless product and store
 - The discount icon read `purchase.discount`, which the API never sent, so it

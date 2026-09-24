@@ -193,3 +193,73 @@ describe('ReceiptScanPanel', () => {
     });
   });
 });
+
+describe('ReceiptScanPanel review safety', () => {
+  const scan = async (user) => {
+    await user.upload(
+      screen.getByLabelText(/качете касова бележка/i),
+      new File(['receipt image'], 'receipt.jpg', { type: 'image/jpeg' })
+    );
+    await user.click(screen.getByRole('button', { name: /сканирай/i }));
+  };
+
+  const submittedPurchases = () => {
+    const call = globalThis.fetch.mock.calls.find(([url]) =>
+      String(url).endsWith('/receipts/submit')
+    );
+    return call ? JSON.parse(call[1].body).purchases : undefined;
+  };
+
+  it('drops the previous receipt when a rescan fails', async () => {
+    const user = userEvent.setup();
+    render(<ReceiptScanPanel />);
+    await scan(user);
+    expect(await screen.findByText('MILK 1L')).toBeInTheDocument();
+
+    const succeed = globalThis.fetch.getMockImplementation();
+    globalThis.fetch.mockImplementation((url) =>
+      String(url).endsWith('/receipts/scan')
+        ? Promise.resolve({ ok: false, json: () => Promise.resolve({}) })
+        : succeed(url)
+    );
+    await scan(user);
+
+    expect(
+      await screen.findByText(/сканирането не беше успешно/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByText('MILK 1L')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /запази покупките/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('submits a comma decimal as a number', async () => {
+    const user = userEvent.setup();
+    render(<ReceiptScanPanel />);
+    await scan(user);
+    await screen.findByText('MILK 1L');
+
+    await user.clear(screen.getByLabelText(/цена за ред 1/i));
+    await user.type(screen.getByLabelText(/цена за ред 1/i), '2,79');
+    await user.click(screen.getByRole('button', { name: /запази покупките/i }));
+
+    await waitFor(() => expect(submittedPurchases()).toBeDefined());
+    expect(submittedPurchases()[0].price).toBe(2.79);
+  });
+
+  it('refuses to submit an amount it cannot read', async () => {
+    const user = userEvent.setup();
+    render(<ReceiptScanPanel />);
+    await scan(user);
+    await screen.findByText('MILK 1L');
+
+    await user.clear(screen.getByLabelText(/цена за ред 1/i));
+    await user.type(screen.getByLabelText(/цена за ред 1/i), 'abc');
+    await user.click(screen.getByRole('button', { name: /запази покупките/i }));
+
+    expect(
+      await screen.findByText(/невалидна сума в някой от редовете/i)
+    ).toBeInTheDocument();
+    expect(submittedPurchases()).toBeUndefined();
+  });
+});

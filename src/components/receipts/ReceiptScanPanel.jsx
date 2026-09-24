@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Autocomplete from '@/components/ui/autocomplete';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { parseDecimal } from '@/lib/format';
 import { API_URL } from '@/lib/utils';
 
 const toInitialReviewPurchase = (scanResult, purchase) => {
@@ -62,11 +63,11 @@ const toSubmitPurchase = (purchase) => ({
   productName: purchase.productName,
   storeId: purchase.storeId || null,
   storeName: purchase.storeName,
-  price: Number(purchase.price),
+  price: parseDecimal(purchase.price),
   date: purchase.date,
-  quantity: Number(purchase.quantity),
+  quantity: parseDecimal(purchase.quantity),
   quantityUnit: purchase.quantityUnit,
-  discountAmount: Number(purchase.discountAmount),
+  discountAmount: parseDecimal(purchase.discountAmount),
 });
 
 const ReceiptScanPanel = ({ onPurchasesCreated }) => {
@@ -161,6 +162,9 @@ const ReceiptScanPanel = ({ onPurchasesCreated }) => {
 
     setIsScanning(true);
     setError('');
+    // Drop the previous receipt's rows now: if this scan fails they must not
+    // stay on screen, submittable as if they belonged to the new receipt.
+    setReviewPurchases([]);
 
     const body = new FormData();
     body.append('file', file);
@@ -191,6 +195,18 @@ const ReceiptScanPanel = ({ onPurchasesCreated }) => {
   };
 
   const handleSubmit = async () => {
+    const purchases = reviewPurchases.map(toSubmitPurchase);
+    const hasInvalidAmount = purchases.some(
+      (purchase) =>
+        !Number.isFinite(purchase.price) ||
+        !Number.isFinite(purchase.quantity) ||
+        !Number.isFinite(purchase.discountAmount)
+    );
+    if (hasInvalidAmount) {
+      setError('Невалидна сума в някой от редовете.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
 
@@ -202,7 +218,7 @@ const ReceiptScanPanel = ({ onPurchasesCreated }) => {
         },
         credentials: 'same-origin',
         body: JSON.stringify({
-          purchases: reviewPurchases.map(toSubmitPurchase),
+          purchases,
         }),
       });
 

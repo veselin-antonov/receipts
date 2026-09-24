@@ -8,8 +8,8 @@ This is a React/Vite frontend for a receipts management application that tracks 
 - **Styling**: Tailwind CSS with shadcn/ui component library (New York style)
 - **Forms**: React Hook Form with Zod validation
 - **State Management**: React Context for authentication, local state for components
-- **API Integration**: Proxy setup routes `/api/*` to `https://localhost:7002` backend
-- **Development**: HTTPS dev server with SSL certificates (`localhost.crt`, `localhost.key`)
+- **API Integration**: Proxy setup routes `/api/*` to `http://localhost:7002` backend (plain HTTP: the API has no TLS since 0.0.6; terminate TLS in front of it)
+- **Development**: plain HTTP dev server by default; HTTPS only when `localhost.crt` and `localhost.key` exist (`scripts/dev-setup.sh --https` in the receipts repo)
 
 ## Project Structure Patterns
 

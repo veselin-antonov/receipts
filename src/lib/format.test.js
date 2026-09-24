@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDate, formatEur, toIsoDate } from '@/lib/format';
+import { formatDate, formatEur, parseDecimal, toIsoDate } from '@/lib/format';
 
 // Intl separates the amount and the sign with a narrow no-break space.
 const normalizeSpaces = (s) => s.replace(/[\u00a0\u202f]/g, ' ');
@@ -47,5 +47,25 @@ describe('toIsoDate', () => {
   it('returns null for anything that is not a valid Date', () => {
     expect(toIsoDate('')).toBeNull();
     expect(toIsoDate(new Date('nope'))).toBeNull();
+  });
+});
+
+describe('parseDecimal', () => {
+  it('accepts a Bulgarian comma and a dot alike', () => {
+    expect(parseDecimal('2,49')).toBe(2.49);
+    expect(parseDecimal('2.49')).toBe(2.49);
+    expect(parseDecimal(' 3 ')).toBe(3);
+    expect(parseDecimal(',5')).toBe(0.5);
+  });
+
+  it('passes numbers through', () => {
+    expect(parseDecimal(8.99)).toBe(8.99);
+  });
+
+  it('returns NaN for anything else, so the caller can refuse it', () => {
+    expect(parseDecimal('abc')).toBeNaN();
+    expect(parseDecimal('')).toBeNaN();
+    expect(parseDecimal('1,2,3')).toBeNaN();
+    expect(parseDecimal(undefined)).toBeNaN();
   });
 });
