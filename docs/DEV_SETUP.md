@@ -165,6 +165,14 @@ A database restored before this change is fixed up anyway: the API's
 logs how many it touched. It refuses — and startup fails — if a currency-less
 purchase is dated 2026-01-01 or later, since that one could be either currency.
 
+The API also refuses to start against **unmigrated** data (`LegacyDataGuard`):
+any purchase whose date is not midnight UTC, or that has no `userId`, stops
+startup with the counts and a pointer back here. Both are exactly what this
+migration fixes. A database the old app wrote directly will trip it: the live
+one under `~/docker-apps/homeapp/db` is where the Jan-2026 backups came from,
+and those had both problems (not checked on the live files themselves).
+Migrate it before pointing the new API at it.
+
 The `userId` backfill is the critical one. Nothing in the backup carries a
 `userId`, and every read path scopes by it — so importing untouched gives you a
 database that looks full and an app that shows an empty list.
