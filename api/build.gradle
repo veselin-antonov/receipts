@@ -59,7 +59,7 @@ dependencies {
     implementation 'com.giffing.bucket4j.spring.boot.starter:bucket4j-spring-boot-starter:0.13.0'
 
     // Env variables from .env file
-    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+    implementation 'me.paulschwarz:spring-dotenv:5.1.0'
 
     // Spring AI for receipt scanning
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'
