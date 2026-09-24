@@ -1,19 +1,19 @@
-# Lint and unit tests for the UI.
-#
-# Previously the UI had no check workflow at all — every workflow built a
-# Docker image and nothing ran `npm test` or `npm run lint`, so the 7 test
-# files were never executed by CI (defect D8).
-name: Checks
+# Lint, format check and unit tests for the UI. Reusable: ui.yml and
+# release.yml call it.
+name: UI checks
 
 on:
-  push:
-    branches: [master]
-  pull_request:
   workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   checks:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ui
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -21,9 +21,10 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          # Matches the builder stage in DOCKERFILE.
+          # Matches the builder stage in ui/DOCKERFILE.
           node-version: 22
           cache: npm
+          cache-dependency-path: ui/package-lock.json
 
       - name: Install dependencies
         run: npm ci

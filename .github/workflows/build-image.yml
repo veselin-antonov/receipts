@@ -1,12 +1,24 @@
+# Build and push one component's image. Reusable only: always called after
+# that component's checks, in the same run.
+#
+# Image names are spelled out rather than derived from github.repository, which
+# is now `receipts` for both. The deployment pulls
+# ghcr.io/veselin-antonov/receipts-api and receipts-ui, so those names must not
+# change.
 name: Build Image (reusable)
 
 on:
   workflow_call:
     inputs:
+      component:
+        description: 'api or ui'
+        required: true
+        type: string
       version:
         required: true
         type: string
       tag_list:
+        description: 'Additional tags, one per line, raw values'
         required: false
         type: string
         default: ''
@@ -15,45 +27,41 @@ on:
         type: boolean
         default: true
       include_latest:
-        required: false
-        type: boolean
-        default: false
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Image version (e.g., 0.0.6)'
-        required: true
-        type: string
-      tag_list:
-        description: 'Additional tags (one per line, raw values)'
-        required: false
-        type: string
-        default: ''
-      include_version:
-        description: 'Also tag with the provided version'
-        required: false
-        type: boolean
-        default: true
-      include_latest:
-        description: 'Also tag as latest'
         required: false
         type: boolean
         default: false
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   build-image:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/receipts-${{ inputs.component }}
     steps:
+      - name: Validate component
+        run: |
+          case "${{ inputs.component }}" in
+            api|ui) ;;
+            *) echo "component must be api or ui, got '${{ inputs.component }}'"; exit 1 ;;
+          esac
+
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # The api image copies a prebuilt jar; take the one api-checks tested.
+      - name: Download api jar
+        if: inputs.component == 'api'
+        uses: actions/download-artifact@v4
+        with:
+          name: api-jar
+          path: api/build/libs
+
+      - name: Read VERSION
+        id: app_version
+        run: echo "VERSION=$(cat VERSION)" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -61,7 +69,7 @@ jobs:
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
@@ -69,30 +77,28 @@ jobs:
         id: tags
         shell: bash
         run: |
-          # Validate required inputs
           if [ -z "${{ inputs.version }}" ]; then
             echo "Error: version input is required"
             exit 1
           fi
 
-          # Build tag list
           {
             echo "tags<<EOF"
-            
+
             if [ "${{ inputs.include_version }}" = "true" ]; then
               echo "type=raw,value=${{ inputs.version }}"
             fi
-            
+
             if [ "${{ inputs.include_latest }}" = "true" ]; then
               echo "type=raw,value=latest"
             fi
-            
+
             if [ -n "${{ inputs.tag_list }}" ]; then
               while IFS= read -r line; do
                 [ -n "$line" ] && echo "type=raw,value=${line}"
               done <<< "${{ inputs.tag_list }}"
             fi
-            
+
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -100,16 +106,19 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.IMAGE }}
           tags: ${{ steps.tags.outputs.tags }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: ./DOCKERFILE
+          context: ${{ inputs.component }}
+          file: ${{ inputs.component }}/${{ inputs.component == 'api' && 'Dockerfile' || 'DOCKERFILE' }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ steps.app_version.outputs.VERSION }}
+          # Separate cache scopes, or the two images evict each other's layers.
+          cache-from: type=gha,scope=${{ inputs.component }}
+          cache-to: type=gha,mode=max,scope=${{ inputs.component }}

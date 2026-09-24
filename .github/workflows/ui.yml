@@ -1,0 +1,99 @@
+# UI: checks on every pull request and push that touches it; on master, also
+# publish ghcr.io/<owner>/receipts-ui:dev and :sha-<sha>; on a pull request,
+# publish a :pr-<n> preview image and comment its pull command.
+#
+# Path-filtered, so an api-only change does not build the ui.
+name: UI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'ui/**'
+      - 'VERSION'
+      - '.github/workflows/ui.yml'
+      - '.github/workflows/ui-checks.yml'
+      - '.github/workflows/build-image.yml'
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - 'ui/**'
+      - 'VERSION'
+      - '.github/workflows/ui.yml'
+      - '.github/workflows/ui-checks.yml'
+      - '.github/workflows/build-image.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ui-checks.yml
+
+  image:
+    if: github.event_name != 'pull_request'
+    needs: checks
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-image.yml
+    with:
+      component: ui
+      version: dev
+      tag_list: sha-${{ github.sha }}
+      include_version: true
+      include_latest: false
+    secrets: inherit
+
+  # A fork's pull request gets a read-only token and cannot push packages, so
+  # previews are only built for branches of this repository.
+  preview:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    needs: checks
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-image.yml
+    with:
+      component: ui
+      version: pr-${{ github.event.pull_request.number }}
+      include_version: true
+      include_latest: false
+    secrets: inherit
+
+  comment-preview:
+    needs: preview
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Comment with preview image
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = `pr-${context.issue.number}`;
+            const image = `ghcr.io/${context.repo.owner}/receipts-ui:${tag}`;
+
+            const body = [
+              '🐳 **Preview image built for this PR:**',
+              '',
+              '```bash',
+              `docker pull ${image}`,
+              '```',
+              '',
+              `📦 **Tag:** \`${tag}\``,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });

@@ -1,0 +1,142 @@
+# Release api and ui together at the version in VERSION: run both checks,
+# publish both images as :<version> and :latest, tag v<version>, and create a
+# GitHub release from that version's CHANGELOG.md section.
+#
+# Bump VERSION, ui/package.json and CHANGELOG.md in a pull request first; this
+# workflow refuses to run if they disagree or the tag already exists.
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read and validate the version
+        id: version
+        shell: bash
+        run: |
+          version="$(tr -d '[:space:]' < VERSION)"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] \
+            || { echo "VERSION is not x.y.z: '$version'"; exit 1; }
+
+          ui_version="$(node -pe "require('./ui/package.json').version")"
+          [[ "$ui_version" == "$version" ]] \
+            || { echo "ui/package.json is $ui_version but VERSION is $version"; exit 1; }
+
+          grep -q "^## \[${version}\]" CHANGELOG.md \
+            || { echo "CHANGELOG.md has no '## [${version}]' section"; exit 1; }
+
+          if git rev-parse -q --verify "refs/tags/v${version}" >/dev/null; then
+            echo "tag v${version} already exists"; exit 1
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+  api-checks:
+    needs: prepare
+    uses: ./.github/workflows/api-checks.yml
+
+  ui-checks:
+    needs: prepare
+    uses: ./.github/workflows/ui-checks.yml
+
+  api-image:
+    needs: [prepare, api-checks, ui-checks]
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-image.yml
+    with:
+      component: api
+      version: ${{ needs.prepare.outputs.version }}
+      include_version: true
+      include_latest: true
+    secrets: inherit
+
+  ui-image:
+    needs: [prepare, api-checks, ui-checks]
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-image.yml
+    with:
+      component: ui
+      version: ${{ needs.prepare.outputs.version }}
+      include_version: true
+      include_latest: true
+    secrets: inherit
+
+  release:
+    needs: [prepare, api-image, ui-image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Git tag
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag -a "v${VERSION}" -m "Release version ${VERSION}"
+          git push origin "v${VERSION}"
+
+      - name: Get current date
+        id: date
+        run: echo "DATE=$(date +'%d.%m.%Y')" >> "$GITHUB_OUTPUT"
+
+      - name: Extract changelog notes
+        id: changelog
+        shell: bash
+        run: |
+          changelog_content="$(sed -n "/^## \[${VERSION}\]/,/^## \[/p" CHANGELOG.md | sed '1d;$d')"
+          owner="${{ github.repository_owner }}"
+
+          {
+            echo "notes<<EOF"
+            echo "${changelog_content}"
+            echo ""
+            echo "---"
+            echo ""
+            echo "### 🐳 Docker images"
+            echo ""
+            echo "\`\`\`bash"
+            echo "docker pull ghcr.io/${owner}/receipts-api:${VERSION}"
+            echo "docker pull ghcr.io/${owner}/receipts-ui:${VERSION}"
+            echo "\`\`\`"
+            echo ""
+            echo "Both are also tagged \`latest\`. [\`deploy/compose.yaml\`](https://github.com/${{ github.repository }}/blob/v${VERSION}/deploy/compose.yaml) runs them."
+            echo ""
+            echo "**Full Changelog**: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/v${VERSION}/CHANGELOG.md)"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: '[${{ env.VERSION }}] - ${{ steps.date.outputs.DATE }}'
+          body: ${{ steps.changelog.outputs.notes }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
 #
-# STATUS: PARKED - nothing runs this automatically. Run it by hand when
-# touching nginx config or the upload limit. It is wired into CI at M1.
-#
-# Why it cannot be wired yet: it reads receipts-api/application.yaml AND
-# receipts-ui/nginx/nginx.conf.template, so it spans both repositories and
-# neither one's CI can run it. The monorepo gives it a home. Separately, D8
-# means neither repo runs any tests in CI at all, so wiring this before that
-# is fixed would achieve nothing.
+# Runs in CI (.github/workflows/upload-limits.yml) whenever ui/nginx/**,
+# ui/DOCKERFILE or the api's application.yaml changes. It reads config from
+# both api/ and ui/, which is why it could not run in CI until they shared a
+# repository. Run it by hand too; it needs Docker, curl and python3.
 #
 # Verify the upload limit end to end across the layers that enforce it.
 #

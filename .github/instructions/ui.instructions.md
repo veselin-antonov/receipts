@@ -1,3 +1,7 @@
+---
+applyTo: "ui/**"
+---
+
 # Copilot Instructions for Receipts UI
 
 This is a React/Vite frontend for a receipts management application that tracks product prices from receipts with an interactive UI.

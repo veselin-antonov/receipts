@@ -1,0 +1,39 @@
+# The upload limit is enforced by nginx (ui) and by Spring (api), and the
+# smaller one wins. scripts/test-upload-limits.sh renders the ui's nginx
+# template, checks it against the api's configured limit, and probes a real
+# nginx either side of the boundary. It needs Docker but not the api.
+#
+# This could not run while ui and api were separate repositories: it reads
+# config from both.
+name: Upload limits
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'ui/nginx/**'
+      - 'ui/DOCKERFILE'
+      - 'api/src/main/resources/application.yaml'
+      - 'scripts/test-upload-limits.sh'
+      - '.github/workflows/upload-limits.yml'
+  pull_request:
+    paths:
+      - 'ui/nginx/**'
+      - 'ui/DOCKERFILE'
+      - 'api/src/main/resources/application.yaml'
+      - 'scripts/test-upload-limits.sh'
+      - '.github/workflows/upload-limits.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  upload-limits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Test the upload limit across nginx and the api config
+        run: scripts/test-upload-limits.sh

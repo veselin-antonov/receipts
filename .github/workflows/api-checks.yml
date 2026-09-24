@@ -1,0 +1,52 @@
+# Build and test the API. Reusable: api.yml and release.yml call it.
+#
+# Uploads the boot jar as the `api-jar` artifact, which build-image.yml puts
+# into the image, so the jar that ships is the jar that was tested.
+name: API checks
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # Must match the Gradle toolchain in api/build.gradle.
+          java-version: 25
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build and test
+        # `build` runs the tests; they need no .env or certs, via the `test`
+        # profile (D8, D9).
+        run: ./gradlew build
+
+      - name: Publish test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results
+          path: api/build/reports/tests/test
+          if-no-files-found: ignore
+
+      - name: Upload jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-jar
+          path: api/build/libs/receipts-api-*.jar
+          if-no-files-found: error
+          retention-days: 3

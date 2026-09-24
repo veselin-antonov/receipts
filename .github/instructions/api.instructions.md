@@ -1,3 +1,7 @@
+---
+applyTo: "api/**"
+---
+
 # Copilot Instructions - Receipts API
 
 This file provides context for GitHub Copilot to assist with development on this project.
