@@ -1,0 +1,203 @@
+# Spring specific
+spring:
+  # Spring data
+  data:
+    mongodb:
+      host: ${MONGODB_HOST}
+      port: ${MONGODB_PORT}
+      database: ${MONGODB_DATABASE}
+      authentication-database: ${MONGODB_AUTH_DB}
+      username: ${MONGODB_USER}
+      password: ${MONGODB_PASS}
+      auto-index-creation: true
+
+  # The one wire convention for dates and times: ISO-8601 strings, in both
+  # directions. A LocalDate is yyyy-MM-dd, an Instant is 2026-09-23T18:15:10Z.
+  # No DTO sets its own @JsonFormat pattern; display formats belong to the UI
+  # (SPEC §9.1). This is Spring Boot's default, pinned so it cannot drift.
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+  # Spring caching
+  cache:
+    jcache:
+      provider: com.github.benmanes.caffeine.jcache.spi.CaffeineCachingProvider
+    cache-names:
+      - rate-limit-buckets
+    caffeine:
+      spec: maximumSize=100000,expireAfterAccess=3600s
+
+  # Spring mail
+  mail:
+    protocol: smtps
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT}
+    username: ${SMTP_USER}
+    password: ${SMTP_PASS}
+    properties.mail.smtps:
+      auth: true
+
+  # Spring AI - OpenAI Configuration
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      chat:
+        options:
+          # gpt-6-luna over gpt-5-mini: measured across the 64-fixture set, luna
+          # gets +20 correct prices and +17 correct quantities at roughly a third
+          # of the latency, and its pricing is 2.5x lower on input and 4x on
+          # output - about 8x cheaper per scan for better results.
+          model: ${OPENAI_MODEL:gpt-6-luna}
+          # temperature must stay 1. These are reasoning models and reject any
+          # other value outright; the knob for cost and latency is
+          # reasoning-effort.
+          temperature: 1
+          # Measured on the fixture set: `none` is 3x faster than the medium
+          # default but costs ~6 correct prices and ~8 correct quantities out of
+          # ~250, which is above the +/-2 run-to-run noise floor. Price accuracy
+          # is what the lookup loop depends on, and a capture flow run
+          # occasionally at home does not feel 16s versus 5s.
+          # Supported for this model: none, low, medium, high, xhigh.
+          reasoning-effort: ${OPENAI_REASONING_EFFORT:medium}
+          #
+          # NOTE: OpenAI document reasoning models as performing better on the
+          # Responses API than on Chat Completions. Spring AI only gained a
+          # Responses client in 2.x, which requires Spring Boot 4 - this project
+          # is on Boot 3.5.6, and 1.1.x is Chat Completions only (verified by
+          # inspecting the jars: 1.1.4 references v1/chat/completions and
+          # nothing else). Revisit when Boot is upgraded; it would also unlock
+          # reasoning summaries, which would show why a receipt parsed badly
+          # instead of leaving us to infer it.
+      image:
+        enabled: false
+
+  # Multipart file upload (for receipt scanning)
+  servlet:
+    # MAX_UPLOAD_MB is the single source for the upload ceiling. The UI's
+    # nginx client_max_body_size reads the same variable, and
+    # ReceiptScanService binds its own check from this property rather than
+    # hard-coding a constant, so all three layers move together.
+    multipart:
+      enabled: true
+      max-file-size: ${MAX_UPLOAD_MB:25}MB
+      max-request-size: ${MAX_UPLOAD_MB:25}MB
+
+# Server
+server:
+  port: ${SERVER_PORT}
+
+# JWT signing keys
+# Keys can be provided as:
+# 1. File path: file:/path/to/key.pem or classpath:certs/key.pem
+# 2. PEM content directly: -----BEGIN PUBLIC KEY-----...
+jwt:
+  private-key: ${JWT_PRIVATE_KEY:}
+  public-key: ${JWT_PUBLIC_KEY:}
+
+# Application
+app:
+  host-url: ${APP_HOST_URL}
+  ocr:
+    data-path: ${TESSDATA_PATH:/usr/share/tessdata}
+    language: ${OCR_LANGUAGE:eng+bul}
+    debug-output-path: ${OCR_DEBUG_OUTPUT_PATH:}
+
+# Rate limiting
+bucket4j:
+  # Rate limiting exists to bound LLM cost and abuse in production, where it
+  # should always be on. Benchmarking the scanner against the fixture set needs
+  # ~64 scans in a few minutes against a 10/hour scan limit, so the harness
+  # runs with RATE_LIMIT_ENABLED=false. Never set that in a deployed
+  # environment; scan traffic is the most expensive traffic the API serves.
+  enabled: ${RATE_LIMIT_ENABLED:true}
+  filters:
+    # Public endpoints - strict limits
+    - cache-name: rate-limit-buckets
+      url: ^/api/users/register$
+      filter-method: servlet
+      http-response-body: >
+        {
+          "error": "RATE_LIMIT_EXCEEDED",
+          "message": "Too many registration attempts. Please try again later."
+        }
+      rate-limits:
+        - cache-key: "getRemoteAddr()"  # By IP
+          bandwidths:
+            - capacity: 3
+              time: 1
+              unit: hours
+              refill-speed: interval
+
+    - cache-name: rate-limit-buckets
+      url: ^/api/users/verify$
+      filter-method: servlet
+      http-response-body: >
+        {
+          "error": "RATE_LIMIT_EXCEEDED",
+          "message": "Too many verification attempts. Please try again later."
+        }
+      rate-limits:
+        - cache-key: "getRemoteAddr()"
+          bandwidths:
+            - capacity: 10
+              time: 1
+              unit: hours
+
+    # Auth endpoints
+    - cache-name: rate-limit-buckets
+      url: ^/api/auth/token$
+      filter-method: servlet
+      http-response-body: >
+        {
+          "error": "RATE_LIMIT_EXCEEDED",
+          "message": "Too many login attempts. Please try again in a few minutes."
+        }
+      rate-limits:
+        - cache-key: "getRemoteAddr()"
+          bandwidths:
+            - capacity: 5
+              time: 1
+              unit: minutes
+
+    # Receipt scanning - strict limits due to LLM API costs
+    - cache-name: rate-limit-buckets
+      url: ^/api/receipts/scan$
+      filter-method: servlet
+      http-response-body: >
+        {
+          "error": "RATE_LIMIT_EXCEEDED",
+          "message": "Too many receipt scan requests. Please try again later."
+        }
+      rate-limits:
+        - cache-key: "@rateLimitUserService.getUserId()"
+          bandwidths:
+            - capacity: 10
+              time: 1
+              unit: hours
+              refill-speed: interval
+
+    # Protected endpoints - per user
+    - cache-name: rate-limit-buckets
+      url: ^/api/.*
+      filter-method: servlet
+      rate-limits:
+        - cache-key: "@rateLimitUserService.getUserId()"  # Extract from JWT
+          skip-condition: "@rateLimitUserService.isInactiveUser()"  # Skip for inactive
+          bandwidths:
+            - capacity: 100
+              time: 1
+              unit: minutes
+              refill-speed: greedy
+
+    # Inactive users - different limit
+    - cache-name: rate-limit-buckets
+      url: ^/api/users/resend-verification$
+      filter-method: servlet
+      rate-limits:
+        - cache-key: "@rateLimitUserService.getUserId()"
+          execute-condition: "@rateLimitUserService.isInactiveUser()"
+          bandwidths:
+            - capacity: 2
+              time: 1
+              unit: hours

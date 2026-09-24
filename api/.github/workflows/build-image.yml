@@ -1,0 +1,148 @@
+name: Build Image (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      tag_list:
+        required: false
+        type: string
+        default: ''
+      include_version:
+        required: false
+        type: boolean
+        default: true
+      include_latest:
+        required: false
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Image version (e.g., 0.0.6)'
+        required: true
+        type: string
+      tag_list:
+        description: 'Additional tags (one per line, raw values)'
+        required: false
+        type: string
+        default: ''
+      include_version:
+        description: 'Also tag with the provided version'
+        required: false
+        type: boolean
+        default: true
+      include_latest:
+        description: 'Also tag as latest'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # Must match the Gradle toolchain in build.gradle. The receipt
+          # scanning merge moved this from 21 to 25.
+          java-version: 25
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build and test with Gradle
+        run: |
+          chmod +x ./gradlew
+          # Tests were previously skipped entirely (-x test), so six test
+          # classes could have rotted through six dormant months unnoticed.
+          # They run on a clean checkout via the `test` profile.
+          ./gradlew build
+
+      - name: Publish test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results
+          path: build/reports/tests/test
+          if-no-files-found: ignore
+
+      - name: Get app version from VERSION file
+        id: app_version
+        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tag list
+        id: tags
+        shell: bash
+        run: |
+          # Validate required inputs
+          if [ -z "${{ inputs.version }}" ]; then
+            echo "Error: version input is required"
+            exit 1
+          fi
+
+          # Build tag list
+          {
+            echo "tags<<EOF"
+            
+            if [ "${{ inputs.include_version }}" = "true" ]; then
+              echo "type=raw,value=${{ inputs.version }}"
+            fi
+            
+            if [ "${{ inputs.include_latest }}" = "true" ]; then
+              echo "type=raw,value=latest"
+            fi
+            
+            if [ -n "${{ inputs.tag_list }}" ]; then
+              while IFS= read -r line; do
+                [ -n "$line" ] && echo "type=raw,value=${line}"
+              done <<< "${{ inputs.tag_list }}"
+            fi
+            
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: ${{ steps.tags.outputs.tags }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.app_version.outputs.VERSION }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

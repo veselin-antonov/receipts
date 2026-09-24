@@ -1,0 +1,23 @@
+services:
+  receipts-db:
+    image: mongo:latest
+    container_name: receipts-db
+    ports:
+      - ${MONGODB_PORT}:${MONGODB_PORT}
+    volumes:
+      - ${MONGODB_DATAPATH}:/data/db
+    command:
+      - "--auth"
+  receipts-api:
+    image: ghcr.io/veselin-antonov/receipts-api:latest
+    container_name: receipts-api
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    environment:
+      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+      # Log timestamps only. Stored dates are UTC by construction (MongoConfig),
+      # so this can be any zone; the image alone would log in UTC.
+      - TZ=${TZ:-Europe/Sofia}
+    depends_on:
+      - receipts-db

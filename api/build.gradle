@@ -1,0 +1,154 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'org.springframework.boot' version '3.5.6'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+ext {
+    springAiVersion = "1.1.4"
+    lombokVersion="1.18.42"
+}
+
+group = 'dev.vasoft.homeapp'
+version = file('VERSION').text.trim()
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:$springAiVersion"
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+    implementation 'org.springframework.boot:spring-boot-devtools'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'org.apache.commons:commons-lang3:3.20.0'
+
+    // Caching
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
+    implementation 'com.github.ben-manes.caffeine:jcache:3.1.8'
+    implementation 'javax.cache:cache-api:1.1.1'
+
+    // Rate Limiting
+    implementation 'com.giffing.bucket4j.spring.boot.starter:bucket4j-spring-boot-starter:0.13.0'
+
+    // Env variables from .env file
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
+    // Spring AI for receipt scanning
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
+
+    // OCR for receipt image preprocessing
+    implementation 'net.sourceforge.tess4j:tess4j:5.14.0'
+    implementation 'com.drewnoakes:metadata-extractor:2.19.0'
+
+    compileOnly "org.projectlombok:lombok:$lombokVersion"
+
+    annotationProcessor "org.projectlombok:lombok:$lombokVersion"
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    testCompileOnly "org.projectlombok:lombok:$lombokVersion"
+
+    testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
+}
+
+test {
+    useJUnitPlatform()
+    failOnNoDiscoveredTests = false
+}
+
+// Define a task for building the Docker image
+tasks.register('buildImage', Exec) {
+    group = "Docker Images"
+    description = "Builds docker image and tags them with :latest>"
+
+    def repositoryName = providers.gradleProperty('repositoryName').getOrElse('')
+    def ver = project.version.toString()
+
+    commandLine 'docker', 'build', '-t', "ghcr.io/${repositoryName}:${ver}", '--build-arg', "VERSION=${ver}", '.'
+}
+
+tasks.register('tagImage', Exec) {
+    group = "Docker Images"
+    description = "Tags the versioned docker image with :latest>"
+    dependsOn buildImage
+
+    def repositoryName = providers.gradleProperty('repositoryName').getOrElse('')
+    def ver = project.version.toString()
+
+    commandLine 'docker', 'tag', "ghcr.io/${repositoryName}:${ver}", "ghcr.io/${repositoryName}:latest"
+
+    doLast {
+        println("Created images:")
+
+        project.exec {
+            commandLine 'docker', 'images'
+        }
+    }
+}
+
+tasks.register('publishVersionedImage', Exec) {
+    group = "Docker Images"
+    description = "Publishes the docker image with tag :\\<version\\>"
+    dependsOn buildImage
+
+    def repositoryName = providers.gradleProperty('repositoryName').getOrElse('')
+    def ver = project.version.toString()
+    def imageName = "ghcr.io/${repositoryName}:${ver}"
+
+    doFirst {
+        println("Pushing image: ${imageName}")
+    }
+
+    commandLine 'docker', 'push', imageName
+}
+
+// Define a task for publishing the Docker image with tag :latest
+tasks.register('publishLatestImage', Exec) {
+    group = "Docker Images"
+    description = "Publishes the docker image with tag :latest"
+    dependsOn tagImage
+
+    def repositoryName = providers.gradleProperty('repositoryName').getOrElse('')
+    def imageName = "ghcr.io/${repositoryName}:latest"
+
+    doFirst {
+        println("Pushing image: ${imageName}")
+    }
+
+    commandLine 'docker', 'push', imageName
+
+}
+
+// Define a task that combines both publish actions
+tasks.register('publishImage') {
+    group = "Docker Images"
+    description = "Publishes the docker images with tags :\\<version\\> :latest"
+    dependsOn publishVersionedImage, publishLatestImage
+}

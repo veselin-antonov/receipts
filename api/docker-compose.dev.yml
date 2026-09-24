@@ -1,0 +1,40 @@
+name: homeapp-dev
+
+services:
+  # MongoDB Database
+  receipts-db:
+    image: mongo:latest
+    container_name: receipts-db-dev
+    ports:
+      - ${MONGODB_PORT}:${MONGODB_PORT}
+    volumes:
+      - ${MONGODB_DATAPATH}:/data/db
+    command:
+      - '--auth'
+    env_file: ./src/main/resources/dev.env
+
+  # Mailhog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    networks:
+      - homeapp-network
+
+  # UI Application
+  homeapp-ui:
+    image: ghcr.io/veselin-antonov/receipts-ui:dev
+    container_name: homeapp-ui-dev
+    ports:
+      - ${UI_PORT}:80
+    depends_on:
+      - receipts-db
+    networks:
+      - homeapp-network
+    env_file: ./src/main/resources/dev.env
+
+networks:
+  homeapp-network:
+    driver: bridge
