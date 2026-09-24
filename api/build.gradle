@@ -10,7 +10,8 @@ ext {
 }
 
 group = 'dev.vasoft.homeapp'
-version = file('VERSION').text.trim()
+// One VERSION for api and ui, at the repository root (ADR-0002)
+version = file('../VERSION').text.trim()
 
 java {
     toolchain {

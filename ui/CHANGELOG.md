@@ -4,39 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 
-## [Unreleased]
-
-### Added
-
-- `src/lib/format.js`: `formatEur` and `formatDate`. The API now sends numbers
-  and ISO dates, so the UI owns rounding and localisation
-
-### Changed
-
-- The purchases table renders `priceEur` / `discountAmountEur` and ISO dates
-  from the API's new wire format (requires the matching API change)
-- Price inputs in the manual form and the scan review are labelled `(€)`
-- Dates go to the API as ISO `yyyy-MM-dd`, built by `toIsoDate` in
-  `src/lib/format.js` from the local calendar day (not `toISOString()`, which
-  shifts to UTC). The scan panel passes the scan's ISO date through untouched
-  instead of rewriting it to `dd/MM/yyyy`
-- The manual purchase form sends `productName`, `storeName` and a numeric
-  `price`, which is what the API reads; it no longer sends a stale
-  `Authorization: Bearer` header from `localStorage`
-
-### Fixed
-
-- A failed rescan left the previous receipt's rows on screen, submittable as
-  if they belonged to the new one; scanning now clears them first
-- A review price typed with a comma (`2,49`) became `NaN`, sent as `null`, and
-  the API would store 0. `parseDecimal` in `format.js` accepts either
-  separator, and an unreadable amount blocks the submit with an error
-- README and copilot instructions: test counts, and the API proxy is plain
-  HTTP (the API has had no TLS since 0.0.6)
-- The manual purchase form sent `product` / `store`, which the API does not
-  read, so every manual entry would have created a nameless product and store
-- The discount icon read `purchase.discount`, which the API never sent, so it
-  was always off; it now reads `discountAmountEur`
+> **Frozen at 0.0.6.** From the move into one repository onwards, api and ui
+> share one version and one changelog: see [`../CHANGELOG.md`](../CHANGELOG.md).
+> This file keeps the receipts-ui history from before that.
 
 ## [0.0.6] - 03.01.2026
 
