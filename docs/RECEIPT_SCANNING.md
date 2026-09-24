@@ -32,7 +32,7 @@ POST /api/receipts/submit
 ```
 
 Related contracts live in:
-- `API_CONTRACTS.md`
+- [`API_CONTRACTS.md`](API_CONTRACTS.md)
 
 ## Main user flow
 
@@ -187,7 +187,7 @@ Each submitted purchase uses the same request DTO shape as direct purchase creat
 - `discountAmount`
 
 For concrete examples, use:
-- `API_CONTRACTS.md`
+- [`API_CONTRACTS.md`](API_CONTRACTS.md)
 
 ## Security and ownership rules
 
@@ -260,8 +260,8 @@ Needed locally:
 - JWT dev keys and normal backend dependencies
 
 Useful companion docs:
-- `DEVELOPMENT_SETUP.md`
-- `PRODUCTION_SETUP.md`
+- [`api/docs/DEVELOPMENT_SETUP.md`](../api/docs/DEVELOPMENT_SETUP.md)
+- [`api/docs/PRODUCTION_SETUP.md`](../api/docs/PRODUCTION_SETUP.md)
 
 ### Production
 

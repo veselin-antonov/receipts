@@ -122,7 +122,7 @@ POST /api/receipts/scan
 POST /api/receipts/submit
 ```
 
-Keep endpoint contracts in the `receipts-api` docs/README and update this list only when the UI starts or stops using an endpoint.
+Keep endpoint contracts in [`docs/API_CONTRACTS.md`](../docs/API_CONTRACTS.md) and update this list only when the UI starts or stops using an endpoint.
 
 ## Verification before committing UI changes
 

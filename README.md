@@ -7,10 +7,20 @@ in a couple of seconds: **is this a good price?**
 
 ## What this repo is
 
-This is the home of the Receipts product. Today it holds the specification; the
-`receipts-api` and `receipts-ui` codebases merge in here as `/api` and `/ui`
-once the current feature branches have landed (see
-[ADR-0002](docs/adr/0002-single-repo.md)).
+The whole Receipts product in one repository (see
+[ADR-0002](docs/adr/0002-single-repo.md)):
+
+| Path | What | Tooling |
+|---|---|---|
+| [`api/`](api) | Spring Boot backend — auth, purchases, receipt scanning | Gradle, Java 25 |
+| [`ui/`](ui) | React + Vite frontend, served by nginx | npm, Node 22 |
+| [`docs/`](docs) | Spec, roadmap, decisions, cross-cutting docs | — |
+| [`deploy/`](deploy) | The compose file that runs it | Docker Compose |
+| [`scripts/`](scripts) | Dev setup, backup restore, scan harness, upload-limit test | bash, Python |
+
+`api` and `ui` were separate repositories (`receipts-api`, `receipts-ui`) until
+2026-09; both histories were carried over with `git subtree`. There is one
+[`VERSION`](VERSION) and one [`CHANGELOG.md`](CHANGELOG.md) for both.
 
 ## Reading order
 
@@ -22,6 +32,9 @@ once the current feature branches have landed (see
 | 4 | [docs/SCANNING_PATHS.md](docs/SCANNING_PATHS.md) | The three routes an uploaded receipt can take, and why they differ. |
 | 5 | [docs/ROADMAP.md](docs/ROADMAP.md) | The order we build it in. |
 | 6 | [docs/adr/](docs/adr/) | Decisions, with the reasoning that produced them. |
+| 7 | [docs/ARCHITECTURE_AND_FLOWS.md](docs/ARCHITECTURE_AND_FLOWS.md) | The API's components and request flows. |
+| 8 | [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md) | Request and response shapes, endpoint by endpoint. |
+| 9 | [docs/RECEIPT_SCANNING.md](docs/RECEIPT_SCANNING.md) | The scanning feature: OCR, LLM parsing, matching, submit. |
 
 ## Documentation ownership
 
@@ -33,7 +46,7 @@ One rule, to stop docs scattering again:
 | Kind | Home |
 |---|---|
 | Product spec, roadmap, decisions | `docs/` here |
-| Build / run / test instructions | `api/README.md`, `ui/README.md` |
+| Build / run / test instructions | `api/README.md`, `ui/README.md`, `api/docs/` |
 | API contracts | `docs/` here, next to the spec |
 | Release notes | `CHANGELOG.md` + GitHub releases |
 | Raw ideas, not-yet-built modules | Obsidian `Home App/` |

@@ -9,18 +9,18 @@ This service owns:
 - user-scoped purchases
 - receipt scanning, OCR/LLM parsing, matching, and purchase submission
 
-The React frontend lives in the separate `receipts-ui` repository.
+The React frontend lives next door in [`../ui`](../ui). Product docs — spec,
+roadmap, decisions, and the cross-cutting docs below — live in [`../docs`](../docs).
 
 ## How to use these docs
 
 Start with the docs that match your task:
 
-- `docs/INDEX.md` - full backend docs map
-- `docs/DEVELOPMENT_SETUP.md` - local development setup and day-to-day workflow
-- `docs/PRODUCTION_SETUP.md` - production/runtime configuration and deployment checklist
-- `docs/ARCHITECTURE_AND_FLOWS.md` - main components, endpoints, and request flows
-- `docs/API_CONTRACTS.md` - request/response examples for active endpoints
-- `docs/RECEIPT_SCANNING.md` - canonical feature doc for receipt scanning, OCR, AI parsing, matching, and submit flow
+- [`docs/DEVELOPMENT_SETUP.md`](docs/DEVELOPMENT_SETUP.md) - local development setup and day-to-day workflow
+- [`docs/PRODUCTION_SETUP.md`](docs/PRODUCTION_SETUP.md) - production/runtime configuration and deployment checklist
+- [`../docs/ARCHITECTURE_AND_FLOWS.md`](../docs/ARCHITECTURE_AND_FLOWS.md) - main components, endpoints, and request flows
+- [`../docs/API_CONTRACTS.md`](../docs/API_CONTRACTS.md) - request/response examples for active endpoints
+- [`../docs/RECEIPT_SCANNING.md`](../docs/RECEIPT_SCANNING.md) - canonical feature doc for receipt scanning, OCR, AI parsing, matching, and submit flow
 
 ## Quickstart
 
@@ -69,7 +69,7 @@ Run tests:
 - Receipt scanning accepts images and PDFs, but images and PDFs take different paths internally.
 - Production and development use different configuration sources for JWT keys, OCR paths, and infrastructure.
 
-Those conventions are documented in detail in `docs/ARCHITECTURE_AND_FLOWS.md`, `docs/DEVELOPMENT_SETUP.md`, and `docs/PRODUCTION_SETUP.md`.
+Those conventions are documented in detail in `../docs/ARCHITECTURE_AND_FLOWS.md`, `docs/DEVELOPMENT_SETUP.md`, and `docs/PRODUCTION_SETUP.md`.
 
 ## Verification before committing
 
