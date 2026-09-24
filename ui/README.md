@@ -1,7 +1,7 @@
 # Receipts UI
 
-[![Preview Builds](https://github.com/veselin-antonov/receipts-ui/actions/workflows/preview.yml/badge.svg)](https://github.com/veselin-antonov/receipts-ui/actions/workflows/preview.yml)
-[![Release](https://github.com/veselin-antonov/receipts-ui/actions/workflows/release.yml/badge.svg)](https://github.com/veselin-antonov/receipts-ui/actions/workflows/release.yml)
+[![UI](https://github.com/veselin-antonov/receipts/actions/workflows/ui.yml/badge.svg)](https://github.com/veselin-antonov/receipts/actions/workflows/ui.yml)
+[![Release](https://github.com/veselin-antonov/receipts/actions/workflows/release.yml/badge.svg)](https://github.com/veselin-antonov/receipts/actions/workflows/release.yml)
 
 React/Vite frontend for the Home App / ReceiptsApp project.
 
@@ -11,9 +11,9 @@ The UI lets users authenticate, browse purchases, upload receipts, review parsed
 
 To avoid duplicate and stale docs:
 
-- Product vision, cross-repo flows, and status reviews live in Obsidian under `Home App/`.
-- Backend setup, API behavior, OCR/Tesseract/Spring AI config, and endpoint details live in `receipts-api`.
-- UI setup, scripts, environment variables, and UI-specific behavior live in this repo.
+- Spec, roadmap, decisions, API contracts and cross-cutting flows live in [`../docs`](../docs).
+- Backend setup, OCR/Tesseract/Spring AI config live in [`../api`](../api).
+- UI setup, scripts, environment variables, and UI-specific behavior live here.
 
 This README intentionally references backend endpoints but does not duplicate backend internals.
 

@@ -9,18 +9,8 @@
 
 set -euo pipefail
 
-# --- locate the repos ------------------------------------------------------ #
-# Works both now (receipts-api and receipts-ui as siblings) and after the
-# monorepo migration (api/ and ui/ subdirectories).
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [[ -d "$root/api" && -d "$root/ui" ]]; then
-  API="$root/api"; UI="$root/ui"
-elif [[ -d "$root/../receipts-api" && -d "$root/../receipts-ui" ]]; then
-  API="$(cd "$root/../receipts-api" && pwd)"; UI="$(cd "$root/../receipts-ui" && pwd)"
-else
-  echo "cannot find receipts-api and receipts-ui; expected them beside $root" >&2
-  exit 1
-fi
+API="$root/api"; UI="$root/ui"
 
 MANUAL=()
 ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }

@@ -11,8 +11,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [[ -d "$root/api" ]]; then API="$root/api"
-else API="$(cd "$root/../receipts-api" && pwd)"; fi
+API="$root/api"
 
 SRC="${SRC:-$HOME/docker-apps/homeapp/db/db-backup}"
 OUT="${OUT:-$root/.migrated}"

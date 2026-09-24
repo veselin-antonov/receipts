@@ -204,8 +204,8 @@ parser
 
 | # | Layer | Where | Derived from | On breach |
 |---|---|---|---|---|
-| 1 | `client_max_body_size` | `receipts-ui/nginx/nginx.conf.template` | `${MAX_UPLOAD_MB}m` | `413` from nginx; never reaches the API |
-| 2 | `max-file-size` / `max-request-size` | `receipts-api` `application.yaml` | `${MAX_UPLOAD_MB:25}MB` | `413` from Spring |
+| 1 | `client_max_body_size` | `ui/nginx/nginx.conf.template` | `${MAX_UPLOAD_MB}m` | `413` from nginx; never reaches the API |
+| 2 | `max-file-size` / `max-request-size` | `api/src/main/resources/application.yaml` | `${MAX_UPLOAD_MB:25}MB` | `413` from Spring |
 | 3 | the service's own check | `ReceiptScanService` | bound from layer 2 | `422` with `RECEIPT_PARSING_ERROR` |
 
 ### One value, three layers

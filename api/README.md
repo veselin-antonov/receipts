@@ -1,5 +1,7 @@
 # Receipts API
 
+[![API](https://github.com/veselin-antonov/receipts/actions/workflows/api.yml/badge.svg)](https://github.com/veselin-antonov/receipts/actions/workflows/api.yml)
+
 Spring Boot backend for the Home App / ReceiptsApp project.
 
 This service owns:

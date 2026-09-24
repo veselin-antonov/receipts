@@ -45,7 +45,7 @@ None of this is documented as a test prerequisite, and CI never runs tests
 Database restore is a second script:
 
 ```bash
-docker compose -f ../receipts-api/docker-compose.dev.yml up -d   # mongo + mailhog
+docker compose -f api/docker-compose.dev.yml up -d   # mongo + mailhog
 scripts/db-restore.sh
 ```
 
@@ -88,24 +88,13 @@ value of running the backend natively.
 ### 2. Provide an OpenAI API key
 
 ```bash
-# in receipts-api/.env
+# in api/.env
 OPENAI_API_KEY=sk-...
 ```
 
 Receipt parsing fails without it. Nothing else does.
 
-### 3. Commit the `gradlew` mode fix
-
-```bash
-cd receipts-api
-git update-index --chmod=+x gradlew
-git commit -m "fix: make gradlew executable"
-```
-
-The script sets the bit locally so you can work, but the next fresh clone hits
-the same wall until this is committed.
-
-### 4. Create a verified user, or restore the backup
+### 3. Create a verified user, or restore the backup
 
 The backup contains one already-verified account. If you would rather register
 fresh, MailHog catches the verification mail at <http://localhost:8025>.

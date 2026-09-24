@@ -24,11 +24,7 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [[ -d "$root/api" && -d "$root/ui" ]]; then
-  API="$root/api"; UI="$root/ui"
-else
-  API="$(cd "$root/../receipts-api" && pwd)"; UI="$(cd "$root/../receipts-ui" && pwd)"
-fi
+API="$root/api"; UI="$root/ui"
 
 # pick a free port rather than a fixed one, so the test cannot collide with
 # whatever else is running on the machine
