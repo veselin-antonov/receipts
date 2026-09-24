@@ -47,7 +47,20 @@ public class OcrService {
     private static final double MAX_USEFUL_CROP = 0.95;
     private static final double MIN_PLAUSIBLE_CROP = 0.04;
     private static final int OTSU_HISTOGRAM_BINS = 256;
-    private static final DateTimeFormatter DEBUG_TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+    static final String DEBUG_TIMESTAMP_PATTERN = "yyyyMMdd_HHmmss";
+    private static final DateTimeFormatter DEBUG_TIMESTAMP =
+        DateTimeFormatter.ofPattern(DEBUG_TIMESTAMP_PATTERN);
+    static final String DEBUG_SUFFIX = "_preprocessed.png";
+
+    /**
+     * Longest base name that keeps a debug file's name within 255 bytes, the
+     * filename limit on ext4 and most other filesystems, once
+     * {@code "_" + timestamp} and {@link #DEBUG_SUFFIX} are appended: 222.
+     * The timestamp pattern is all fixed-width numeric fields, so its length
+     * is the pattern's length.
+     */
+    static final int MAX_DEBUG_BASE_NAME =
+        255 - ("_" + DEBUG_TIMESTAMP_PATTERN).length() - DEBUG_SUFFIX.length();
 
     private final Logger logger;
     private final Tesseract tesseract;
@@ -345,7 +358,7 @@ public class OcrService {
 
             String baseName = debugBaseName(originalFilename);
             String timestamp = LocalDateTime.now().format(DEBUG_TIMESTAMP);
-            String debugFilename = baseName + "_" + timestamp + "_preprocessed.png";
+            String debugFilename = baseName + "_" + timestamp + DEBUG_SUFFIX;
             Path outputFile = debugOutputPath.resolve(debugFilename);
 
             ImageIO.write(image, "png", outputFile.toFile());
@@ -359,8 +372,12 @@ public class OcrService {
      * Reduces a client-supplied filename to a safe name for the debug directory.
      * The name comes from the upload, so it can carry path separators or be
      * absolute; resolving it unsanitised could write outside the directory.
-     * Keeps only the last path segment, drops the extension, and replaces
-     * anything outside {@code [A-Za-z0-9._-]}.
+     * Keeps only the last path segment, drops the extension, replaces
+     * anything outside {@code [A-Za-z0-9._-]}, and strips leading dots. The
+     * result is then cut to {@link #MAX_DEBUG_BASE_NAME} characters (ASCII by
+     * now, so also bytes): a client-supplied name can be arbitrarily long, and
+     * past the filesystem's 255-byte limit the debug image could not be saved.
+     * Returns {@code "unknown"} when nothing usable is left.
      */
     static String debugBaseName(String originalFilename) {
         if (originalFilename == null) {
@@ -371,8 +388,8 @@ public class OcrService {
         String safe = lastSegment.replaceAll("\\.[^.]*$", "")
             .replaceAll("[^A-Za-z0-9._-]", "_")
             .replaceAll("^\\.+", "");
-        if (safe.length() > 80) {
-            safe = safe.substring(0, 80);
+        if (safe.length() > MAX_DEBUG_BASE_NAME) {
+            safe = safe.substring(0, MAX_DEBUG_BASE_NAME);
         }
         return safe.isEmpty() ? "unknown" : safe;
     }
