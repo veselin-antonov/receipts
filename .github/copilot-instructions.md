@@ -40,7 +40,7 @@ src/main/java/dev/vasoft/homeapp/
 │   └── scanning/               # Receipt scanning submodule (OCR + LLM pipeline)
 │       ├── api/controllers/    # ReceiptScanController
 │       ├── api/request/        # ReqSubmitPurchases
-│       ├── api/response/       # ResScanResult, ResParsedPurchase
+│       ├── api/response/       # ResScanResult, ResScanPurchase, ResScanStore
 │       ├── config/             # OcrConfig, OcrProperties
 │       └── services/           # ReceiptScanService, LlmReceiptParser, OcrService
 └── users/                       # User management module
@@ -151,7 +151,7 @@ Uses a dual-path pipeline: images go through Tesseract OCR → LLM text parsing,
 - **VerificationToken** - Verification tokens with 24hr expiry
 - **Product** - `products` collection: id, name
 - **Store** - `stores` collection: id, name
-- **Purchase** - `purchases` collection: id, userId, product (ref), price, date, store (ref), isDiscounted
+- **Purchase** - `purchases` collection: id, userId, product (ref), price, currency (`BGN` | `EUR`), date, store (ref), discountAmount. `price` and `discountAmount` are in `currency` and never rewritten; see SPEC §9.5 in the receipts docs repo
 
 ### MongoDB Notes
 - Uses `@DocumentReference` for entity relationships
@@ -200,6 +200,13 @@ See `example.env` for full list. Key variables:
 - Request DTOs prefixed with `Req` (e.g., `ReqPurchase`, `ReqRegisterUser`)
 - Response DTOs prefixed with `Res` (e.g., `ResPurchase`, `ResRegisterUser`)
 - Use Java records for DTOs when appropriate
+- DTOs carry data, never presentation: money is a number with its currency in
+  the field name (`priceEur`), never a formatted string. Formatting is the UI's job
+- Dates are ISO-8601 both ways (`yyyy-MM-dd`, or a UTC instant), set once by
+  `spring.jackson.serialization.write-dates-as-timestamps: false`. Never add a
+  per-field `@JsonFormat` date pattern
+- Moments are `Instant`, never `LocalDateTime`. Calendar dates are stored as
+  midnight UTC via `MongoConfig`, so nothing stored depends on the JVM's zone
 
 ### Mappers
 - Place mapper classes in `services/mappers/` package

@@ -37,7 +37,9 @@ src/main/java/dev/vasoft/homeapp/
 - `receipts.scanning`
   - upload validation, OCR/LLM parsing, normalization, matching, and reviewed submit flow
 - `receipts.common`
-  - shared DTOs, repository utilities, formatting, and web config
+  - shared DTOs, repository utilities, web config, and `MongoConfig` (dates
+    stored as UTC). There is no server-side display formatting: the API emits
+    data and the UI formats it
 
 ## Security model
 
