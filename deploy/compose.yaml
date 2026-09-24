@@ -1,0 +1,36 @@
+# The production deployment: api + ui + mongo on one host.
+# Images are published by this repository's CI (.github/workflows/). Secrets
+# and host paths come from .env beside this file; see example.env and README.md.
+
+services:
+  # Homeapp UI
+  homeapp-ui:
+    image: ghcr.io/veselin-antonov/receipts-ui:dev
+    container_name: homeapp-ui
+    ports:
+      - ${UI_PORT}:80
+    env_file:
+      - ".env"
+    depends_on:
+      - receipts-api
+  # Receipts API
+  receipts-db:
+    image: mongo:latest
+    container_name: receipts-db
+    ports:
+      - ${MONGODB_PORT}:${MONGODB_PORT}
+    volumes:
+      - ${MONGODB_DATAPATH}:/data/db
+    command:
+      - "--auth"
+    env_file:
+      - ".env"
+  receipts-api:
+    image: ghcr.io/veselin-antonov/receipts-api:dev
+    container_name: receipts-api
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    depends_on:
+      - receipts-db
+    env_file:
+      - ".env"
