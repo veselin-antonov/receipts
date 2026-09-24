@@ -1,0 +1,59 @@
+server {
+    listen 80;
+    listen [::]:80;
+    server_name localhost;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Receipt uploads. nginx defaults to 1m, which rejects essentially every
+    # phone photo (2-4 MB JPEG, 10-12 MB if exported as PNG) with 413 before
+    # the request ever reaches the API.
+    #
+    # MAX_UPLOAD_MB is the single source for this limit: the API's
+    # spring.servlet.multipart.max-file-size reads the same variable, and
+    # ReceiptScanService binds its check from that property. Substituted at
+    # container start, like BACKEND_HOST.
+    client_max_body_size ${MAX_UPLOAD_MB}m;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied expired no-cache no-store private auth;
+    gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
+
+    # Proxy API requests to backend
+    location /api/ {
+        proxy_pass http://${BACKEND_HOST};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # A receipt scan runs OCR and an LLM call. Measured 34-78s on real
+        # photos, against an nginx default of 60s - so slow scans returned 504
+        # in the deployed setup while working fine behind the dev proxy.
+        proxy_connect_timeout 30s;
+        proxy_send_timeout   180s;
+        proxy_read_timeout   180s;
+    }
+
+    # Cache static assets
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # SPA routing - serve index.html for all other routes
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+}
