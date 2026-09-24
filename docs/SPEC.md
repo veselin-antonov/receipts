@@ -817,11 +817,11 @@ carries only `priceEur` and `discountAmountEur`, unrounded, and an ISO date.
 - **API** under `/api`, plural nouns, `ProblemDetail` for errors with a stable
   machine-readable `error` code.
 - **Commits** follow Conventional Commits, as the existing history does.
-- **Versioning** from the `VERSION` file; `CHANGELOG.md` in Keep a Changelog
-  format.
-- **Tests** live beside the code they cover. The API has 6 test classes and the
-  UI has 7 test files / 15 tests. That is the floor, not the ceiling — and
-  neither is currently run by CI (D8).
+- **Versioning** from the root `VERSION` file, shared by api and ui;
+  `CHANGELOG.md` at the root in Keep a Changelog format.
+- **Tests** live beside the code they cover. The API has 16 test classes / 58
+  tests and the UI has 8 test files / 30 tests (2026-09-24). That is the floor,
+  not the ceiling. CI runs both on every pull request that touches them.
 
 ---
 

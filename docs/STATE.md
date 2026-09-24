@@ -111,8 +111,8 @@ Six defects found by reading the code. Full detail in
 | D4 | Product details endpoint and its service method are commented out, orphaned by the domain refactor. | High |
 | D5 | `findProductByNameFuzzy` returns `null`. | High |
 | D6 | No product, product-detail, or search UI exists. | High |
-| D7 | `gradlew` is committed as mode `100644`, not executable. `./gradlew` fails on Linux and macOS. | Medium |
-| D8 | **Neither repo runs its tests in CI.** The API builds with `./gradlew build -x test`; the UI workflows only build a Docker image, with no lint or test step. | **High** |
+| D7 | ~~`gradlew` is committed as mode `100644`, not executable.~~ **Fixed:** committed as `100755`. | ~~Medium~~ |
+| D8 | ~~**Neither repo runs its tests in CI.**~~ **Fixed:** `api-checks.yml` runs `./gradlew build` with tests and `ui-checks.yml` runs lint, format and tests, on pull requests and master; images publish only after them. | ~~High~~ |
 | D9 | The test suite cannot run on a fresh clone. It needs two gitignored files that nothing creates or documents as a test prerequisite. | **High** |
 | D10 | `processResources` packages the JWT private key and `dev.env` credentials into the jar, and so into any image built locally. | **High** |
 | D11 | Every historical price now renders as euros: the `bg-BG` locale reports EUR, so 12.65 лв is served as `"12,65 €"`. | **Critical** |

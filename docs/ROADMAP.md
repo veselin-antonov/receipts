@@ -46,10 +46,10 @@ below; items that were Home App concerns stay in Obsidian.
 - [ ] Make the test suite runnable on a fresh clone **(D9)** — add
       `application-test.yaml` or defaults for the 12 undefaulted placeholders,
       so `SecurityCorsTest` does not need hand-made certs and a `.env`
-- [ ] Commit `gradlew` as mode `100755` **(D7)** — `git update-index --chmod=+x`
-- [ ] **Wire tests into CI (D8)** — the API runs `build -x test` and the UI
-      builds an image with no test or lint step. Six test classes could have
-      rotted unnoticed over six dormant months; they happened not to
+- [x] Commit `gradlew` as mode `100755` **(D7)** — it is `100755` in the index
+- [x] **Wire tests into CI (D8)** — the api image workflow runs
+      `./gradlew build` with tests, and the ui gained `checks.yml` (lint,
+      format, tests) gating its images. At M1 both run on pull requests too
 - [x] Bring up mongo + api + ui; API boots natively on Java 25 in 3.23 s
 - [x] Confirm Tesseract resolves with `eng+bul` — reads Bulgarian cleanly
 - [x] Confirm the OpenAI key and `gpt-5-mini` work — scan returned 200 in 24 s
@@ -76,21 +76,27 @@ with correct prices, quantities and units. What it exposed is that the
 **Goal:** collapse three doc locations and two repos into one.
 See [ADR-0002](adr/0002-single-repo.md).
 
-- [ ] `git subtree add` both repos into this one as `/api` and `/ui`, preserving
-      history
-- [ ] Fold `receipts-api/docs/*` into `/docs`, keeping `ARCHITECTURE_AND_FLOWS`,
+- [x] `git subtree add` both repos into this one as `/api` and `/ui`, preserving
+      history — from the unsquashed local branches, since #23 and #31 were
+      squash-merged. Author e-mails rewritten to the GitHub noreply address
+      before publishing
+- [x] Fold `receipts-api/docs/*` into `/docs`, keeping `ARCHITECTURE_AND_FLOWS`,
       `API_CONTRACTS`, and `RECEIPT_SCANNING`; keep setup docs next to their code
-- [ ] Rewrite the GitHub Actions workflows with path filters so an api change
-      does not rebuild the ui, and both still publish to GHCR
-- [ ] **Wire `scripts/test-upload-limits.sh` into CI** — parked until now
-      because it reads config from *both* repos, so neither repo's CI can run
-      it. Path-filter it on `ui/nginx/**`, `ui/DOCKERFILE` and
-      `api/.../application.yaml`. Depends on D8 being fixed first, since CI
-      currently runs no tests at all
+      (`api/docs/DEVELOPMENT_SETUP.md`, `PRODUCTION_SETUP.md`)
+- [x] Rewrite the GitHub Actions workflows with path filters so an api change
+      does not rebuild the ui, and both still publish to GHCR — `api.yml` /
+      `ui.yml`, checks on pull requests and master, images under the same
+      `receipts-api` / `receipts-ui` names. *Not yet run on GitHub*
+- [x] **Wire `scripts/test-upload-limits.sh` into CI** — `upload-limits.yml`,
+      path-filtered on `ui/nginx/**`, `ui/DOCKERFILE` and the api's
+      `application.yaml`
 - [ ] Revisit end-to-end tests generally once one CI run can see both sides
-- [ ] Single `VERSION` and `CHANGELOG.md` at the root
-- [ ] Version the deployment: move `~/docker-apps/homeapp/compose.yaml` in as
-      `/deploy`, with secrets kept out of git
+- [x] Single `VERSION` and `CHANGELOG.md` at the root
+- [x] Version the deployment: `~/docker-apps/homeapp/compose.yaml` is now
+      `deploy/compose.yaml`, with `example.env`; secrets stay in the gitignored
+      `.env`
+- [ ] Publish as the public `veselin-antonov/receipts`, confirm both images
+      publish from it, then archive `receipts-api` and `receipts-ui`
 - [ ] Update the Obsidian notes to point here and drop the stale
       `D:/Documents/...` paths and the `homeapp-infra` reference
 
