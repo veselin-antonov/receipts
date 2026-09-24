@@ -151,7 +151,7 @@ Why PDFs bypass OCR:
 
 - multipart form-data
 - field name: `file`
-- max size: 10MB
+- max size: 25MB by default, configurable with `MAX_UPLOAD_MB`
 - supported types: JPEG, JPG, PNG, GIF, WebP, PDF
 
 ### Scan response
@@ -218,9 +218,14 @@ spring:
       api-key: ${OPENAI_API_KEY:}
       chat:
         options:
-          model: gpt-5-mini
+          model: ${OPENAI_MODEL:gpt-6-luna}
           temperature: 1
+          reasoning-effort: ${OPENAI_REASONING_EFFORT:medium}
 ```
+
+`gpt-6-luna` at medium reasoning effort was chosen by measurement over the
+64-fixture set; see ADR-0006 in the receipts docs. `temperature` must stay 1:
+these are reasoning models and reject any other value.
 
 What matters:
 - `OPENAI_API_KEY` must be present
@@ -293,7 +298,7 @@ This is important because:
 Likely causes:
 - missing file
 - unsupported content type
-- file over 10MB
+- file over the upload limit (`MAX_UPLOAD_MB`, 25MB by default)
 
 Source:
 - `ReceiptScanService.validateFile(...)`
@@ -315,13 +320,12 @@ Check:
 - are the required language packs installed?
 - are debug images readable after preprocessing?
 
-### PNG screenshots parse worse after preprocessing
+### Screenshots versus photos
 
-Expected approach:
-- PNG screenshots should skip heavy preprocessing
-
-Check:
-- `OcrService.isScreenshot(...)`
+There is no screenshot branch any more (D17). Every image takes the same path:
+crop to the receipt, then preprocess. On a screenshot the crop is a no-op and
+thresholding clean rendered text is close to identity, so a separate path only
+added a way to misclassify inputs.
 
 ### PDFs work but images fail
 

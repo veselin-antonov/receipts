@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
@@ -24,8 +25,12 @@ import org.springframework.stereotype.Component;
  * row dated on or after it could only come from old code running after the
  * changeover, and could be either currency. Startup fails instead, so it gets
  * a human decision rather than a silent 2x error.
+ *
+ * <p>That date comparison is only meaningful once every stored date is
+ * midnight UTC, which {@link LegacyDataGuard} enforces first.
  */
 @Component
+@DependsOn("legacyDataGuard")
 public class LegacyCurrencyBackfill implements InitializingBean {
 
     static final LocalDate EURO_ADOPTION = LocalDate.of(2026, 1, 1);

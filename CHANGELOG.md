@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
   defaulting to `EUR`
 - `LegacyCurrencyBackfill`: at startup, tags currency-less purchases `BGN`, and
   fails startup rather than guess for one dated 2026-01-01 or later
+- `LegacyDataGuard`: refuses to start against unmigrated purchase data, i.e.
+  dates not at midnight UTC (they would read as the previous day) or purchases
+  without a `userId` (they would be invisible), and points at
+  `migrate-backups.py`. Runs before the currency backfill
 
 ### Changed
 - **Breaking:** purchase responses carry numeric `priceEur` and
@@ -31,6 +35,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
   timestamps; `docker-compose.yml` sets `TZ` (default `Europe/Sofia`) for that
 
 ### Fixed
+- A null parser result gave a 500; it now takes the 422 "no purchases" path
+- The OCR debug image path used the client's filename unsanitised, so a name
+  with path separators could write outside the debug directory
+- Raw OCR text of a receipt was logged at DEBUG, which the dev profile enables;
+  it is now TRACE
+- Docs gave a 10MB upload limit and `gpt-5-mini`; the defaults are 25MB
+  (`MAX_UPLOAD_MB`) and `gpt-6-luna`
 - `POST /api/purchases` with ids and no names created a product and a store
   with empty names
 - Legacy BGN prices were served as euros, ~2x overstated, after the JDK's

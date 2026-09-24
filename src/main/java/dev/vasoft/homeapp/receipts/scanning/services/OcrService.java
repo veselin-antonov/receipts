@@ -114,7 +114,9 @@ public class OcrService {
             String text = tesseract.doOCR(ocrInput);
 
             logger.info("OCR extracted {} characters from file: {}", text.length(), file.getOriginalFilename());
-            logger.debug("OCR output:\n{}", text);
+            // TRACE, not DEBUG: this is the full text of a real receipt, and DEBUG is on
+            // for this package in the dev profile. Opt in explicitly to see it.
+            logger.trace("OCR output:\n{}", text);
 
             return text;
 
@@ -341,9 +343,7 @@ public class OcrService {
         try {
             Files.createDirectories(debugOutputPath);
 
-            String baseName = originalFilename != null
-                    ? originalFilename.replaceAll("\\.[^.]+$", "")
-                    : "unknown";
+            String baseName = debugBaseName(originalFilename);
             String timestamp = LocalDateTime.now().format(DEBUG_TIMESTAMP);
             String debugFilename = baseName + "_" + timestamp + "_preprocessed.png";
             Path outputFile = debugOutputPath.resolve(debugFilename);
@@ -353,6 +353,28 @@ public class OcrService {
         } catch (IOException e) {
             logger.warn("Failed to save debug image: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Reduces a client-supplied filename to a safe name for the debug directory.
+     * The name comes from the upload, so it can carry path separators or be
+     * absolute; resolving it unsanitised could write outside the directory.
+     * Keeps only the last path segment, drops the extension, and replaces
+     * anything outside {@code [A-Za-z0-9._-]}.
+     */
+    static String debugBaseName(String originalFilename) {
+        if (originalFilename == null) {
+            return "unknown";
+        }
+        String lastSegment = originalFilename.substring(
+            Math.max(originalFilename.lastIndexOf('/'), originalFilename.lastIndexOf('\\')) + 1);
+        String safe = lastSegment.replaceAll("\\.[^.]*$", "")
+            .replaceAll("[^A-Za-z0-9._-]", "_")
+            .replaceAll("^\\.+", "");
+        if (safe.length() > 80) {
+            safe = safe.substring(0, 80);
+        }
+        return safe.isEmpty() ? "unknown" : safe;
     }
 
     /**

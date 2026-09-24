@@ -152,7 +152,8 @@ So production deployment must ensure:
 ### 6. Verify rate limiting and file upload constraints
 
 Current production defaults include:
-- 10MB multipart upload limit
+- a 25MB multipart upload limit by default, set by `MAX_UPLOAD_MB`, which also sizes
+  the UI's nginx `client_max_body_size`
 - strict rate limit for receipt scanning
 - per-IP and per-user limits on sensitive endpoints
 

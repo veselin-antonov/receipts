@@ -291,7 +291,7 @@ Request:
 - `Content-Type: multipart/form-data`
 - file field name: `file`
 - supported types: JPEG, JPG, PNG, GIF, WebP, PDF
-- max size: 10MB
+- max size: 25MB by default, configurable with `MAX_UPLOAD_MB`
 
 Example request:
 

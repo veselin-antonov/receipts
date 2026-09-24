@@ -128,7 +128,7 @@ public class ReceiptScanService {
      * @throws ReceiptParsingException mapped to 422 by the controller advice
      */
     private void rejectIfNothingParsed(ParsedReceipt parsed, MultipartFile file) {
-        if (parsed.items() != null && !parsed.items().isEmpty()) {
+        if (parsed != null && parsed.items() != null && !parsed.items().isEmpty()) {
             return;
         }
         logger.warn("No items parsed from {}; failing the scan rather than returning an "
