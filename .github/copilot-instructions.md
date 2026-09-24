@@ -52,6 +52,14 @@ The app uses a stateful authentication pattern:
 - Backend calls use the `API_URL` constant from `@/lib/utils`
 - Environment variable `VITE_API_URL` or defaults to `/api`
 - Vite proxy forwards `/api/*` requests to backend server
+- Auth is the HttpOnly `JWT` cookie: send `credentials: 'same-origin'`, never an
+  `Authorization` header
+- The API sends data, not presentation: amounts are full-precision EUR numbers
+  (`priceEur`), dates are ISO `yyyy-MM-dd`. Send request dates the same way
+- All display formatting and date conversion lives in `src/lib/format.js`:
+  `formatEur` (the only place amounts are rounded), `formatDate`, and
+  `toIsoDate` for request dates. Never build a request date with
+  `toISOString()`: it shifts the picked day to UTC
 
 ### Styling
 
