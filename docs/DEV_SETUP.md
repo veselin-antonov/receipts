@@ -182,6 +182,31 @@ here would make imported products unmatchable by the scanner.
 
 ---
 
+## End-to-end smoke
+
+`e2e/` runs the whole product the way it ships: the api and ui images built
+from your checkout, MongoDB with auth, MailHog, and a stub in place of OpenAI.
+Playwright registers a new account, verifies it from the mail, logs in, scans a
+receipt, saves the reviewed rows, adds a purchase by hand, and reloads to check
+everything persisted. CI runs the same script on every pull request that
+touches the api, the ui or `e2e/`.
+
+```bash
+cd e2e && npm ci && npx playwright install chromium && cd ..   # once
+E2E_UI_PORT=18780 E2E_MAILHOG_PORT=18725 e2e/run.sh           # next to the dev stack
+E2E_KEEP=1 e2e/run.sh                                          # leave it up to poke at
+```
+
+- The stub answers every scan with the same two-item receipt, so a run is
+  free, deterministic and needs no key. That is also why it runs for
+  Dependabot pull requests, which cannot read repository secrets. It says
+  nothing about parsing quality; that is the harness's job (ADR-0007).
+- A fresh JWT key pair is generated per run into the gitignored `e2e/certs/`.
+- The api runs its default (production) profile. Only the mail protocol is
+  switched to plain SMTP, because MailHog does not speak SMTPS.
+- On failure the Playwright report, trace and every container's log are in
+  `e2e/test-results/`; CI uploads them as the `e2e-report` artifact.
+
 ## Known environment defects
 
 Found while building this setup. Tracked in

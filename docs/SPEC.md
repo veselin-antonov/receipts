@@ -819,9 +819,11 @@ carries only `priceEur` and `discountAmountEur`, unrounded, and an ISO date.
 - **Commits** follow Conventional Commits, as the existing history does.
 - **Versioning** from the root `VERSION` file, shared by api and ui;
   `CHANGELOG.md` at the root in Keep a Changelog format.
-- **Tests** live beside the code they cover. The API has 16 test classes / 58
-  tests and the UI has 8 test files / 30 tests (2026-09-24). That is the floor,
-  not the ceiling. CI runs both on every pull request that touches them.
+- **Tests** live beside the code they cover. The API has 19 test classes / 67
+  tests, one of them against a real MongoDB, and the UI has 8 test files / 30
+  tests (2026-09-25). `e2e/` drives both images end to end with Playwright.
+  That is the floor, not the ceiling. `ci.yml` runs whichever of them a pull
+  request needs and reports once, as `ci-summary`.
 
 ---
 

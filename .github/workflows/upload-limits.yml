@@ -4,7 +4,7 @@
 # nginx either side of the boundary. It needs Docker but not the api.
 #
 # This could not run while ui and api were separate repositories: it reads
-# config from both.
+# config from both. Pull requests run it through ci.yml.
 name: Upload limits
 
 on:
@@ -16,13 +16,7 @@ on:
       - 'api/src/main/resources/application.yaml'
       - 'scripts/test-upload-limits.sh'
       - '.github/workflows/upload-limits.yml'
-  pull_request:
-    paths:
-      - 'ui/nginx/**'
-      - 'ui/DOCKERFILE'
-      - 'api/src/main/resources/application.yaml'
-      - 'scripts/test-upload-limits.sh'
-      - '.github/workflows/upload-limits.yml'
+  workflow_call:
   workflow_dispatch:
 
 permissions:

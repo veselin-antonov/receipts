@@ -1,5 +1,5 @@
-# API: checks on every pull request and push that touches it; on master, also
-# publish ghcr.io/<owner>/receipts-api:dev and :sha-<sha>.
+# API on master: checks, then publish ghcr.io/<owner>/receipts-api:dev and
+# :sha-<sha>. Pull requests are checked by ci.yml.
 #
 # Path-filtered, so a ui-only change does not build the api. The shared
 # workflow files are in the filter so that changing CI re-runs it.
@@ -14,13 +14,6 @@ on:
       - '.github/workflows/api.yml'
       - '.github/workflows/api-checks.yml'
       - '.github/workflows/build-image.yml'
-  pull_request:
-    paths:
-      - 'api/**'
-      - 'VERSION'
-      - '.github/workflows/api.yml'
-      - '.github/workflows/api-checks.yml'
-      - '.github/workflows/build-image.yml'
   workflow_dispatch:
 
 permissions:
@@ -28,7 +21,7 @@ permissions:
 
 concurrency:
   group: api-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: false
 
 jobs:
   checks:
@@ -36,7 +29,6 @@ jobs:
 
   # Gated on the checks, so a broken build cannot be published.
   image:
-    if: github.event_name != 'pull_request'
     needs: checks
     permissions:
       contents: read

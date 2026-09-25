@@ -1,0 +1,150 @@
+# Every pull request, whatever it touches. Decides which checks the change
+# needs, runs only those, and ends in `ci-summary`, which always reports.
+#
+# Path filters on a workflow skip it entirely, and a skipped workflow never
+# reports a status, so a required check behind one would block every pull
+# request that does not touch its paths. Filtering per job here instead, and
+# requiring only ci-summary, avoids that: a check that was not needed counts
+# as passed, one that ran must have passed.
+#
+# Pushes to master still go through api.yml and ui.yml, which publish images.
+name: CI
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      ui: ${{ steps.filter.outputs.ui }}
+      upload_limits: ${{ steps.filter.outputs.upload_limits }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decide which checks this change needs
+        id: filter
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [[ -z "$BASE" ]]; then
+            # workflow_dispatch: run everything
+            files='*'
+          else
+            files="$(git diff --name-only "$BASE...$HEAD")"
+          fi
+          printf 'changed:\n%s\n' "$files"
+
+          # A change to this workflow re-runs everything it gates.
+          always='^\.github/workflows/ci\.yml$'
+          matches() { [[ "$files" == '*' ]] || grep -qE "$1|$always" <<<"$files"; }
+          flag() { if matches "$2"; then echo "$1=true"; else echo "$1=false"; fi >> "$GITHUB_OUTPUT"; }
+
+          flag api '^(api/|VERSION$|\.github/workflows/(api-checks|build-image)\.yml$)'
+          flag ui '^(ui/|VERSION$|\.github/workflows/(ui-checks|build-image)\.yml$)'
+          flag upload_limits '^(ui/nginx/|ui/DOCKERFILE$|api/src/main/resources/application\.yaml$|scripts/test-upload-limits\.sh$|\.github/workflows/upload-limits\.yml$)'
+          flag e2e '^(api/|ui/|e2e/|VERSION$|\.github/workflows/e2e\.yml$)'
+          cat "$GITHUB_OUTPUT"
+
+  api-checks:
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    uses: ./.github/workflows/api-checks.yml
+
+  ui-checks:
+    needs: changes
+    if: needs.changes.outputs.ui == 'true'
+    uses: ./.github/workflows/ui-checks.yml
+
+  # A :pr-<n> image to click through (docs/DEV_SETUP.md). A fork's pull request
+  # gets a read-only token and cannot push packages, so only this repository's
+  # branches get one.
+  ui-preview:
+    needs: ui-checks
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-image.yml
+    with:
+      component: ui
+      version: pr-${{ github.event.pull_request.number }}
+      include_version: true
+      include_latest: false
+    secrets: inherit
+
+  comment-preview:
+    needs: ui-preview
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Comment with preview image
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = `pr-${context.issue.number}`;
+            const image = `ghcr.io/${context.repo.owner}/receipts-ui:${tag}`;
+
+            const body = [
+              '🐳 **Preview image built for this PR:**',
+              '',
+              '```bash',
+              `docker pull ${image}`,
+              '```',
+              '',
+              `📦 **Tag:** \`${tag}\``,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+  upload-limits:
+    needs: changes
+    if: needs.changes.outputs.upload_limits == 'true'
+    uses: ./.github/workflows/upload-limits.yml
+
+  e2e:
+    needs: changes
+    if: needs.changes.outputs.e2e == 'true'
+    uses: ./.github/workflows/e2e.yml
+
+  # The one check to mark required. Passes when every check this change needed
+  # passed; a check that was skipped because it was not needed does not fail
+  # it. The preview comment is left out: it is a convenience, not a check.
+  ci-summary:
+    if: always()
+    needs: [changes, api-checks, ui-checks, ui-preview, upload-limits, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every needed check to have passed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          echo "$RESULTS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          failed="$(echo "$RESULTS" | jq -r 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key')"
+          if [[ -n "$failed" ]]; then
+            echo "::error::failed: $(tr '\n' ' ' <<<"$failed")"
+            exit 1
+          fi
