@@ -8,7 +8,8 @@ import dev.vasoft.homeapp.auth.services.TokenService;
 import dev.vasoft.homeapp.receipts.common.config.WebConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.cache.test.autoconfigure.AutoConfigureCache;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -18,6 +19,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 @WebMvcTest(AuthController.class)
+// Boot 3's @WebMvcTest supplied a no-op CacheManager for @EnableCaching; Boot 4's does not.
+@AutoConfigureCache
 @Import({SecurityConfiguration.class, WebConfig.class})
 @ActiveProfiles("test")
 @TestPropertySource(properties = "app.cors.allowed-origins=https://localhost:5173")

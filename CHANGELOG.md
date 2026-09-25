@@ -39,6 +39,19 @@ Releases up to 0.0.6 were separate; their notes are in
   `migrate-backups.py`. Runs before the currency backfill
 
 #### Changed
+- **Spring Boot 3.5.6 → 4.1.1** (Jackson 3, Spring Security 7) and **Spring AI
+  1.1.4 → 2.1.0-M1**, a milestone chosen for its Responses API support
+  (ADR-0008). Still on Chat Completions; same model, temperature and reasoning
+  effort. Renamed config: `spring.mongodb.*`, `spring.ai.openai.chat.*`,
+  `spring.jackson.datatype.datetime.*`
+- `ParsedReceipt` states `required = true` on every field, because Spring AI 2
+  stopped marking structured-output fields required by default
+- A request that omits a numeric field (`quantity`, `discountAmount`) still
+  reads it as 0, as the ui's manual form relies on; Jackson 3 would reject it
+- spring-dotenv → `springboot4-dotenv` 5.1.0; devtools is no longer packaged
+  in the jar; Gradle 9.7.1; Lombok, Caffeine, bucket4j and metadata-extractor
+  bumped. Tess4J stays at 5.14.0: 5.20 needs leptonica ≥ 1.83 and changes the
+  OCR input path
 - **Breaking:** purchase responses carry numeric `priceEur` and
   `discountAmountEur` (full precision, converted at 1 EUR = 1.95583 BGN)
   instead of the formatted `price` string and `discountAmount`

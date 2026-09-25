@@ -328,7 +328,10 @@ structured logging, metrics.
 
 **Contracts** — generate OpenAPI instead of hand-maintaining `API_CONTRACTS.md`.
 
-**Q6** — pin the Spring milestone and snapshot dependencies to release versions,
+**Q6** — *mostly answered: everything resolves from Maven Central, and the one
+milestone left, Spring AI 2.1.0-M1, has an exit condition in
+[ADR-0008](adr/0008-spring-ai-2.1-milestone.md).* Originally: pin the Spring
+milestone and snapshot dependencies to release versions,
 so a build that works today still works after another dormant stretch.
 
 **Q4** — rename the `dev.vasoft.homeapp` package now that Receipts is

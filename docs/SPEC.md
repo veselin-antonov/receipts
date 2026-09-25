@@ -121,7 +121,7 @@ A single repository, two deployables, one database.
 
 ```text
 receipts/
-├── api/     Spring Boot 3.5.6 · Java 25 · MongoDB
+├── api/     Spring Boot 4.1.1 · Java 25 · MongoDB
 ├── ui/      React 19 · Vite · Tailwind 4 · shadcn/ui
 └── docs/    this specification
 ```
@@ -700,7 +700,7 @@ only; the stored currency is a server-side detail (§9.5). Requests carry
 
 Dates and times are ISO-8601 in both directions: a calendar date is
 `yyyy-MM-dd`, a moment is a UTC instant such as `2026-09-23T18:15:10Z`.
-This is one global setting (`spring.jackson.serialization.write-dates-as-timestamps: false`),
+This is one global setting (`spring.jackson.datatype.datetime.write-dates-as-timestamps: false`),
 never a per-DTO `@JsonFormat` pattern, and anything else in a request is a
 400 rather than a guess. Server-side moments are `Instant`, never a zoneless
 `LocalDateTime`.
@@ -809,11 +809,11 @@ carries only `priceEur` and `discountAmountEur`, unrounded, and an ISO date.
 
 ## 11. Conventions
 
-- **Java** 25 (Gradle toolchain), Spring Boot 3.5.6, Gradle 9.3.1. Package root
+- **Java** 25 (Gradle toolchain), Spring Boot 4.1.1, Gradle 9.7.1. Package root
   `dev.vasoft.homeapp` *(rename pending — see [§12](#12-open-questions))*.
-- **Receipt parsing** uses Spring AI 1.1.2 and Tess4J 5.14.0. The build resolves
-  from Spring milestone and snapshot repositories, which is a reproducibility
-  risk — see Q6.
+- **Receipt parsing** uses Spring AI 2.1.0-M1, a milestone, and Tess4J 5.14.0.
+  Everything resolves from Maven Central; the milestone and its exit condition
+  are [ADR-0008](adr/0008-spring-ai-2.1-milestone.md).
 - **API** under `/api`, plural nouns, `ProblemDetail` for errors with a stable
   machine-readable `error` code.
 - **Commits** follow Conventional Commits, as the existing history does.
@@ -850,4 +850,7 @@ depends on it.
   snapshot repository. Snapshot artifacts can be republished or withdrawn, so a
   build that works today may not work in six months — which is roughly how long
   this project was dormant. Pin to release versions before relying on
-  reproducible builds.
+  reproducible builds. **Mostly answered:** the extra repositories were removed
+  in September 2026 (ADR-0006) and everything resolves from Maven Central. One
+  deliberate exception remains: Spring AI 2.1.0-M1, for the Responses API, with
+  an exit condition in [ADR-0008](adr/0008-spring-ai-2.1-milestone.md).

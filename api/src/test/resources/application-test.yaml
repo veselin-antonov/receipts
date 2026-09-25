@@ -9,14 +9,15 @@
 # and deliberately unreachable; tests that need them mock them.
 
 spring:
+  mongodb:
+    host: localhost
+    port: 27017
+    database: receipts-test
+    authentication-database: admin
+    username: test
+    password: test
   data:
     mongodb:
-      host: localhost
-      port: 27017
-      database: receipts-test
-      authentication-database: admin
-      username: test
-      password: test
       auto-index-creation: false
   mail:
     host: localhost
