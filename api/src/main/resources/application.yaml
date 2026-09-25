@@ -1,14 +1,17 @@
 # Spring specific
 spring:
   # Spring data
+  # Boot 4 moved the connection settings from spring.data.mongodb to
+  # spring.mongodb and no longer reads the old keys; Spring Data settings stay.
+  mongodb:
+    host: ${MONGODB_HOST}
+    port: ${MONGODB_PORT}
+    database: ${MONGODB_DATABASE}
+    authentication-database: ${MONGODB_AUTH_DB}
+    username: ${MONGODB_USER}
+    password: ${MONGODB_PASS}
   data:
     mongodb:
-      host: ${MONGODB_HOST}
-      port: ${MONGODB_PORT}
-      database: ${MONGODB_DATABASE}
-      authentication-database: ${MONGODB_AUTH_DB}
-      username: ${MONGODB_USER}
-      password: ${MONGODB_PASS}
       auto-index-creation: true
 
   # The one wire convention for dates and times: ISO-8601 strings, in both
