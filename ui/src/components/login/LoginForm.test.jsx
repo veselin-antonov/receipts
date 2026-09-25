@@ -48,19 +48,13 @@ describe('LoginForm', () => {
   it('enables login after initial auth check and navigates after successful login', async () => {
     const user = userEvent.setup();
 
-    const { container } = renderLogin();
+    renderLogin();
 
     const submit = await screen.findByRole('button', { name: /влизане/i });
     await waitFor(() => expect(submit).toBeEnabled());
 
-    await user.type(
-      screen.getByRole('textbox', { name: '' }),
-      'vesko@example.com'
-    );
-    await user.type(
-      container.querySelector('input[name="password"]'),
-      'correct-password'
-    );
+    await user.type(screen.getByLabelText('Имейл'), 'vesko@example.com');
+    await user.type(screen.getByLabelText('Парола'), 'correct-password');
     await user.click(submit);
 
     await screen.findByRole('heading', { name: /purchases page/i });
@@ -85,19 +79,13 @@ describe('LoginForm', () => {
       })
     );
 
-    const { container } = renderLogin();
+    renderLogin();
 
     const submit = await screen.findByRole('button', { name: /влизане/i });
     await waitFor(() => expect(submit).toBeEnabled());
 
-    await user.type(
-      screen.getByRole('textbox', { name: '' }),
-      'vesko@example.com'
-    );
-    await user.type(
-      container.querySelector('input[name="password"]'),
-      'correct-password'
-    );
+    await user.type(screen.getByLabelText('Имейл'), 'vesko@example.com');
+    await user.type(screen.getByLabelText('Парола'), 'correct-password');
     await user.click(submit);
 
     await screen.findByText(/профилът не е потвърден/i);

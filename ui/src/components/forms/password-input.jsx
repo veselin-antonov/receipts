@@ -33,6 +33,7 @@ const PasswordField = ({
           </div>
           <div className="relative">
             <Input
+              id={fieldName}
               type={hidden ? 'password' : 'text'}
               aria-invalid={fieldState.invalid}
               {...field}
