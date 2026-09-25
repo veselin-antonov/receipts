@@ -18,6 +18,12 @@ updates:
     groups:
       api-minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Measured worse on 2026-09-25: 5.20 cost 7 correct prices across the
+      # fixture set (floor +/-2) and needs leptonica >= 1.83. A tess4j bump is a
+      # scanning change; take it deliberately with a harness run, not monthly.
+      # See the comment on tess4j in api/build.gradle.
+      - dependency-name: net.sourceforge.tess4j:tess4j
 
   - package-ecosystem: npm
     directory: /ui
