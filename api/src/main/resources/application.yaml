@@ -51,37 +51,37 @@ spring:
 
   # Spring AI - OpenAI Configuration
   ai:
+    # Only the chat model is used. `spring.ai.openai.image.enabled`, which
+    # this replaced, was never a Spring AI property.
+    model:
+      image: none
     openai:
       api-key: ${OPENAI_API_KEY:}
       chat:
-        options:
-          # gpt-6-luna over gpt-5-mini: measured across the 64-fixture set, luna
-          # gets +20 correct prices and +17 correct quantities at roughly a third
-          # of the latency, and its pricing is 2.5x lower on input and 4x on
-          # output - about 8x cheaper per scan for better results.
-          model: ${OPENAI_MODEL:gpt-6-luna}
-          # temperature must stay 1. These are reasoning models and reject any
-          # other value outright; the knob for cost and latency is
-          # reasoning-effort.
-          temperature: 1
-          # Measured on the fixture set: `none` is 3x faster than the medium
-          # default but costs ~6 correct prices and ~8 correct quantities out of
-          # ~250, which is above the +/-2 run-to-run noise floor. Price accuracy
-          # is what the lookup loop depends on, and a capture flow run
-          # occasionally at home does not feel 16s versus 5s.
-          # Supported for this model: none, low, medium, high, xhigh.
-          reasoning-effort: ${OPENAI_REASONING_EFFORT:medium}
-          #
-          # NOTE: OpenAI document reasoning models as performing better on the
-          # Responses API than on Chat Completions. Spring AI only gained a
-          # Responses client in 2.x, which requires Spring Boot 4 - this project
-          # is on Boot 3.5.6, and 1.1.x is Chat Completions only (verified by
-          # inspecting the jars: 1.1.4 references v1/chat/completions and
-          # nothing else). Revisit when Boot is upgraded; it would also unlock
-          # reasoning summaries, which would show why a receipt parsed badly
-          # instead of leaving us to infer it.
-      image:
-        enabled: false
+        # Chat Completions, as before the Boot 4 migration. Spring AI 2.1 can
+        # also speak the Responses API (`responses`), which OpenAI recommend
+        # for reasoning models; moving is a scanning change, so it is measured
+        # against ground truth first (ADR-0007, ADR-0008). Pinned rather than
+        # left to the default so a later 2.1 milestone cannot flip it.
+        api: ${OPENAI_CHAT_API:chat-completions}
+        # Spring AI 2.1 moved these three up from chat.options.
+        #
+        # gpt-6-luna over gpt-5-mini: measured across the 64-fixture set, luna
+        # gets +20 correct prices and +17 correct quantities at roughly a third
+        # of the latency, and its pricing is 2.5x lower on input and 4x on
+        # output - about 8x cheaper per scan for better results.
+        model: ${OPENAI_MODEL:gpt-6-luna}
+        # temperature must stay 1. These are reasoning models and reject any
+        # other value outright; the knob for cost and latency is
+        # reasoning-effort.
+        temperature: 1
+        # Measured on the fixture set: `none` is 3x faster than the medium
+        # default but costs ~6 correct prices and ~8 correct quantities out of
+        # ~250, which is above the +/-2 run-to-run noise floor. Price accuracy
+        # is what the lookup loop depends on, and a capture flow run
+        # occasionally at home does not feel 16s versus 5s.
+        # Supported for this model: none, low, medium, high, xhigh.
+        reasoning-effort: ${OPENAI_REASONING_EFFORT:medium}
 
   # Multipart file upload (for receipt scanning)
   servlet:

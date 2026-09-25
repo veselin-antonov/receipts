@@ -40,7 +40,9 @@ tested and was worse; `gpt-5.6-luna` was tested and did not justify its price
 
 ## Consequences
 
-- **Spring AI stays on 1.1.4.** 2.x has `OpenAiResponsesChatModel` but requires
+- **Spring AI stays on 1.1.4.** *(Superseded 2026-09-25 by Boot 4 and Spring AI
+  2.1.0-M1, [ADR-0008](0008-spring-ai-2.1-milestone.md). Correction: only 2.1
+  has `OpenAiResponsesChatModel`; 2.0.x does not.)* 2.x has `OpenAiResponsesChatModel` but requires
   Spring Boot 4; 2.0.1 on Boot 3 fails at runtime with
   `NoClassDefFoundError: org.springframework.boot.EnvironmentPostProcessor`.
   Boot 4 was trialled and reverted: it drops `spring-boot-starter-aop` in favour

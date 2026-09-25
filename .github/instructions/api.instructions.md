@@ -14,7 +14,7 @@ This file provides context for GitHub Copilot to assist with development on this
 
 - **Base Package**: `dev.vasoft.homeapp`
 - **Java Version**: 25
-- **Spring Boot Version**: 3.5.6
+- **Spring Boot Version**: 4.1.1 (Jackson 3, Spring Security 7)
 - **Database**: MongoDB
 - **Build Tool**: Gradle
 
@@ -207,7 +207,7 @@ See `example.env` for full list. Key variables:
 - DTOs carry data, never presentation: money is a number with its currency in
   the field name (`priceEur`), never a formatted string. Formatting is the UI's job
 - Dates are ISO-8601 both ways (`yyyy-MM-dd`, or a UTC instant), set once by
-  `spring.jackson.serialization.write-dates-as-timestamps: false`. Never add a
+  `spring.jackson.datatype.datetime.write-dates-as-timestamps: false`. Never add a
   per-field `@JsonFormat` date pattern
 - Moments are `Instant`, never `LocalDateTime`. Calendar dates are stored as
   midnight UTC via `MongoConfig`, so nothing stored depends on the JVM's zone
