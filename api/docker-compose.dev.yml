@@ -1,40 +1,66 @@
+# Supporting services for local development: MongoDB, MailHog, and the ui image.
+# The api is not in here - it runs natively (`./gradlew bootRun`, dev profile).
+#
+# Variables are interpolated from api/.env, which compose reads automatically
+# because it sits next to this file. scripts/dev-setup.sh writes it.
+#
+#   docker compose -f api/docker-compose.dev.yml up -d
+#
+# UI_TAG picks the ui image. `dev` is master; every ui pull request publishes a
+# `pr-<n>` preview, so a PR can be clicked through against the same api and data:
+#
+#   UI_TAG=pr-10 docker compose -f api/docker-compose.dev.yml up -d receipts-ui
+#   docker compose -f api/docker-compose.dev.yml up -d receipts-ui   # back to dev
 name: homeapp-dev
 
 services:
-  # MongoDB Database
   receipts-db:
-    image: mongo:latest
+    # Pinned to a major. `latest` would move to the next major on a pull, and
+    # mongod refuses data files more than one featureCompatibilityVersion old.
+    image: mongo:8.2
     container_name: receipts-db-dev
+    restart: unless-stopped
     ports:
-      - ${MONGODB_PORT}:${MONGODB_PORT}
+      - ${MONGODB_PORT:-27017}:27017
     volumes:
-      - ${MONGODB_DATAPATH}:/data/db
-    command:
-      - '--auth'
-    env_file: ./src/main/resources/dev.env
+      - ${MONGODB_DATAPATH:-./.mongo-data}:/data/db
+    command: ['--auth']
+    # Only read when the data directory is empty; creates the root user that
+    # --auth then requires (D14). Same credentials the api uses from .env.
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER:-receipts}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASS:-localdev}
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand("ping").ok']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
-  # Mailhog for email testing
   mailhog:
     image: mailhog/mailhog:latest
     container_name: mailhog
+    restart: unless-stopped
     ports:
-      - "1025:1025"  # SMTP server
-      - "8025:8025"  # Web UI
-    networks:
-      - homeapp-network
+      - '1025:1025' # SMTP
+      - '8025:8025' # web UI
 
-  # UI Application
-  homeapp-ui:
-    image: ghcr.io/veselin-antonov/receipts-ui:dev
+  receipts-ui:
+    image: ghcr.io/veselin-antonov/receipts-ui:${UI_TAG:-dev}
     container_name: homeapp-ui-dev
+    restart: unless-stopped
     ports:
-      - ${UI_PORT}:80
-    depends_on:
-      - receipts-db
-    networks:
-      - homeapp-network
-    env_file: ./src/main/resources/dev.env
-
-networks:
-  homeapp-network:
-    driver: bridge
+      - ${UI_PORT:-7863}:80
+    # nginx proxies /api/ to the api on the host. `localhost` would be this
+    # container itself, which is why the dev ui used to answer every /api call
+    # with 502.
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    environment:
+      BACKEND_HOST: host.docker.internal:${SERVER_PORT:-7002}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
