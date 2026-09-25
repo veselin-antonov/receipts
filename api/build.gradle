@@ -65,7 +65,11 @@ dependencies {
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 
     // OCR for receipt image preprocessing
-    implementation 'net.sourceforge.tess4j:tess4j:5.20.0'
+    // Held at 5.14.0: 5.20 routes every image through a leptonica Pix, which
+    // needs leptonica >= 1.83 (libleptonica; Ubuntu 24.04 ships 1.82 as liblept)
+    // and changes the OCR input path, so it is a scanning change to measure
+    // on its own (ADR-0007).
+    implementation 'net.sourceforge.tess4j:tess4j:5.14.0'
     implementation 'com.drewnoakes:metadata-extractor:2.21.0'
 
     // Hot restart for bootRun. developmentOnly keeps it out of the boot jar.
