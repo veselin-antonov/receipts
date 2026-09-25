@@ -24,6 +24,7 @@ const FormInput = ({ form, label, fieldName, parseInput, ...props }) => {
             {label}
           </FieldLabel>
           <Input
+            id={field.name}
             {...field}
             onChange={(e) => handleChange(e, field)}
             aria-invalid={fieldState.invalid}
