@@ -68,6 +68,25 @@ well, which doubles the exposure. The skew is covered by the test suite and by
 the full harness run, which exercises every scanning path end to end. A
 `NoSuchMethodError` on an untested path is the failure mode to watch for.
 
+## Measured
+
+Full 64-fixture harness, master (Boot 3.5.6, Spring AI 1.1.4) against this
+change, run back to back on 2026-09-25 against the same database, OCR install
+and model. Baselines in `receipt-fixtures/baselines/2026-09-25-{before,after}-boot4/`.
+
+| | before | after | |
+|---|---|---|---|
+| HTTP 200 | 54 | 54 | |
+| L0 passed | 23 | 23 | |
+| L1 store / date / item count / reconciles | 16 / 18 of 27 / 40 / 29 | 16 / 18 of 27 / 39 / 29 | |
+| L2 right price | 253 | 253 | floor ±2 |
+| L2 right quantity | 74 | 73 | floor ±3 |
+| L2 items matched / right discount | 267 / 254 | 269 / 255 | |
+| median scan | 18.5 s | 17.6 s | |
+
+No layer moved outside the noise floor. The before run was itself within ±2 of
+the recorded M0a baseline (254 prices), so the environment is comparable.
+
 ## Exit condition
 
 Move to **Spring AI 2.1.0 GA** as soon as it is released, together with the
