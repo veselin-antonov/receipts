@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'idea'
-    id 'org.springframework.boot' version '3.5.6'
+    id 'org.springframework.boot' version '4.1.1'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 ext {
@@ -37,16 +37,15 @@ dependencyManagement {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
+    // Boot 4 splits the old starters by technology; `web` is now `webmvc`.
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
-    implementation 'org.springframework.boot:spring-boot-devtools'
     implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
-    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-client'
+    implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-aop'
     implementation 'org.apache.commons:commons-lang3:3.20.0'
 
     // Caching
@@ -58,8 +57,9 @@ dependencies {
     // Rate Limiting
     implementation 'com.giffing.bucket4j.spring.boot.starter:bucket4j-spring-boot-starter:0.14.0'
 
-    // Env variables from .env file
-    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+    // Env variables from .env file. From 5.x the Boot hook lives in a
+    // per-Boot-major artifact; bare `spring-dotenv` 5.x no longer loads .env.
+    implementation 'me.paulschwarz:springboot4-dotenv:5.1.0'
 
     // Spring AI for receipt scanning
     implementation 'org.springframework.ai:spring-ai-starter-model-openai'
@@ -68,11 +68,17 @@ dependencies {
     implementation 'net.sourceforge.tess4j:tess4j:5.20.0'
     implementation 'com.drewnoakes:metadata-extractor:2.21.0'
 
+    // Hot restart for bootRun. developmentOnly keeps it out of the boot jar.
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
     compileOnly "org.projectlombok:lombok:$lombokVersion"
 
     annotationProcessor "org.projectlombok:lombok:$lombokVersion"
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    // @WebMvcTest's no-op CacheManager for @EnableCaching lives here since Boot 4
+    testImplementation 'org.springframework.boot:spring-boot-starter-cache-test'
 
     testCompileOnly "org.projectlombok:lombok:$lombokVersion"
 

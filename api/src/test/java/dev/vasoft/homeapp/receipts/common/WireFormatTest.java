@@ -3,9 +3,6 @@ package dev.vasoft.homeapp.receipts.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.vasoft.homeapp.receipts.products.model.entities.Product;
 import dev.vasoft.homeapp.receipts.purchases.api.request.ReqPurchase;
 import dev.vasoft.homeapp.receipts.purchases.model.entities.Currency;
@@ -19,9 +16,12 @@ import java.util.List;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Pins the one wire convention (SPEC §9.1) through the ObjectMapper the app
@@ -47,10 +47,22 @@ class WireFormatTest {
     }
 
     @Test
+    void manualFormPayloadWithoutQuantityOrDiscountIsAccepted() throws Exception {
+        // Exactly what the ui's new-purchase form sends. Jackson 3 would
+        // reject the missing primitives unless told otherwise.
+        ReqPurchase req = objectMapper.readValue(
+            "{\"productName\":\"Мляко\",\"storeName\":\"Billa\",\"price\":3.29,"
+                + "\"date\":\"2026-09-23\"}", ReqPurchase.class);
+
+        assertThat(req.quantity()).isZero();
+        assertThat(req.discountAmount()).isZero();
+    }
+
+    @Test
     void dayFirstRequestDatesAreRejectedRatherThanGuessed() {
         assertThatThrownBy(() -> objectMapper.readValue(
             "{\"price\":3.29,\"date\":\"23/09/2026\"}", ReqPurchase.class))
-            .isInstanceOf(JsonProcessingException.class);
+            .isInstanceOf(JacksonException.class);
     }
 
     @Test
@@ -61,7 +73,7 @@ class WireFormatTest {
 
         JsonNode json = objectMapper.valueToTree(PurchaseMapper.toResPurchase(p));
 
-        assertThat(json.get("date").asText()).isEqualTo("2025-10-03");
+        assertThat(json.get("date").asString()).isEqualTo("2025-10-03");
         assertThat(json.get("priceEur").isNumber()).isTrue();
         assertThat(json.get("priceEur").asDouble()).isEqualTo(12.65 / 1.95583);
         assertThat(json.get("discountAmountEur").isNumber()).isTrue();
@@ -73,7 +85,7 @@ class WireFormatTest {
         JsonNode json = objectMapper.valueToTree(
             new ResScanResult(null, "Billa", LocalDate.of(2026, 6, 8), List.of()));
 
-        assertThat(json.get("purchaseDate").asText()).isEqualTo("2026-06-08");
+        assertThat(json.get("purchaseDate").asString()).isEqualTo("2026-06-08");
     }
 
     @Test
