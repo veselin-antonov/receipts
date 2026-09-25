@@ -93,7 +93,11 @@ See [ADR-0002](adr/0002-single-repo.md).
 - [x] **Wire `scripts/test-upload-limits.sh` into CI** — `upload-limits.yml`,
       path-filtered on `ui/nginx/**`, `ui/DOCKERFILE` and the api's
       `application.yaml`
-- [ ] Revisit end-to-end tests generally once one CI run can see both sides
+- [x] Revisit end-to-end tests generally once one CI run can see both sides —
+      done 2026-09-25: `e2e/` runs both images with MongoDB, MailHog and an
+      OpenAI stub under Playwright on every pull request, and
+      `MongoIntegrationTest` runs the api against a real MongoDB. `ci.yml`
+      ends in `ci-summary`, the one check to require
 - [x] Single `VERSION` and `CHANGELOG.md` at the root
 - [x] Version the deployment: `~/docker-apps/homeapp/compose.yaml` is now
       `deploy/compose.yaml`, with `example.env`; secrets stay in the gitignored

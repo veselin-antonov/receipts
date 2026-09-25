@@ -1,0 +1,12 @@
+{
+  "name": "receipts-e2e",
+  "private": true,
+  "description": "End-to-end smoke: the ui and api images, MongoDB and MailHog, driven by Playwright",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

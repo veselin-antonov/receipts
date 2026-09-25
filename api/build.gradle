@@ -84,6 +84,8 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     // @WebMvcTest's no-op CacheManager for @EnableCaching lives here since Boot 4
     testImplementation 'org.springframework.boot:spring-boot-starter-cache-test'
+    // MongoIntegrationTest: the whole app against a real MongoDB in Docker
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
 
     testCompileOnly "org.projectlombok:lombok:$lombokVersion"
 

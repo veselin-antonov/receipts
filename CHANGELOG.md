@@ -18,6 +18,13 @@ Releases up to 0.0.6 were separate; their notes are in
 - CI rewritten with path filters: an api change runs only the api checks and
   image, a ui change only the ui's. Both now run on pull requests; the api had
   no pull request CI before
+- Pull requests go through one workflow, `ci.yml`, which runs only the checks
+  a change needs and reports once as `ci-summary`, so that one check can be
+  required despite the path filters
+- End-to-end smoke (`e2e/`): both images, MongoDB, MailHog and an OpenAI stub,
+  driven by Playwright from registration to a saved purchase, on every pull
+  request touching the api or the ui
+- `MongoIntegrationTest` runs the api against a real MongoDB with auth
 - The upload-limit test (`scripts/test-upload-limits.sh`) runs in CI whenever
   the nginx config, the ui Dockerfile or the api's `application.yaml` changes
 - The deployment compose file is versioned in `deploy/`

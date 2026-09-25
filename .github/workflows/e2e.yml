@@ -1,0 +1,60 @@
+# End-to-end smoke: the api and ui images built from this commit, with
+# MongoDB, MailHog and a stub in place of OpenAI, driven by Playwright through
+# register, verify, login, scan and a manual purchase. Exactly e2e/run.sh.
+#
+# Needs no secrets, so it runs for Dependabot pull requests too, which cannot
+# read them. Reusable: ci.yml calls it.
+name: E2E smoke
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          # Must match the Gradle toolchain in api/build.gradle.
+          java-version: 25
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+
+      - name: Install Playwright
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run the smoke
+        env:
+          CI: 'true'
+        run: e2e/run.sh
+
+      - name: Upload report and stack logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          if-no-files-found: ignore
+          retention-days: 7

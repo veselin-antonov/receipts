@@ -1,0 +1,102 @@
+# The whole product in one stack, for the end-to-end smoke (e2e/tests):
+# MongoDB, MailHog, the api and ui images built from this checkout, and a stub
+# in place of OpenAI. Nothing here reaches the internet at run time.
+#
+#   (cd api && ./gradlew bootJar)          # the api image copies the jar
+#   e2e/run.sh                              # keys, build, up, test, down
+#
+# Ports: the ui on E2E_UI_PORT (8080), MailHog's web API on E2E_MAILHOG_PORT
+# (8025), which the test reads the verification mail from. Override them to run
+# next to the dev stack, which already has 8025.
+name: receipts-e2e
+
+services:
+  mongo:
+    image: mongo:8.2
+    command: ['--auth']
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: e2e
+      MONGO_INITDB_ROOT_PASSWORD: e2e
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand("ping").ok']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    ports:
+      - '${E2E_MAILHOG_PORT:-8025}:8025'
+
+  openai-stub:
+    image: python:3.13-alpine
+    command: ['python', '/stub/openai_stub.py']
+    volumes:
+      - ./openai-stub:/stub:ro
+    healthcheck:
+      test: ['CMD', 'python', '-c', 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8080/health")']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: ../api
+      args:
+        VERSION: ${VERSION:?set VERSION to the contents of the root VERSION file}
+    environment:
+      SERVER_PORT: 7002
+      MONGODB_HOST: mongo
+      MONGODB_PORT: 27017
+      MONGODB_DATABASE: receipts-e2e
+      MONGODB_AUTH_DB: admin
+      MONGODB_USER: e2e
+      MONGODB_PASS: e2e
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USER: e2e
+      SMTP_PASS: e2e
+      # The default profile speaks SMTPS to a real mail server; MailHog is
+      # plain SMTP, as in the dev profile. Everything else stays production.
+      SPRING_MAIL_PROTOCOL: smtp
+      # Where the verification mail's link points: the ui, as the browser sees it
+      APP_HOST_URL: http://localhost:${E2E_UI_PORT:-8080}
+      JWT_PRIVATE_KEY: file:/certs/private.pem
+      JWT_PUBLIC_KEY: file:/certs/public.pem
+      OPENAI_API_KEY: sk-e2e-stub
+      SPRING_AI_OPENAI_BASE_URL: http://openai-stub:8080
+    volumes:
+      # Generated per run by e2e/run.sh; never committed
+      - ./certs:/certs:ro
+    depends_on:
+      mongo:
+        condition: service_healthy
+      openai-stub:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    healthcheck:
+      # Actuator is not exposed through Security; any HTTP answer, including
+      # the 401 for an anonymous status check, means the api is serving.
+      test: ['CMD-SHELL', 'wget -S -O /dev/null http://127.0.0.1:7002/api/auth/status 2>&1 | grep -q "HTTP/1.1 401"']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  ui:
+    build:
+      context: ../ui
+      dockerfile: DOCKERFILE
+    environment:
+      BACKEND_HOST: api:7002
+    ports:
+      - '${E2E_UI_PORT:-8080}:80'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/']
+      interval: 5s
+      timeout: 5s
+      retries: 20
