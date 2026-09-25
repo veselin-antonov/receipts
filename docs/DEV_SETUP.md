@@ -38,14 +38,13 @@ None of this is documented as a test prerequisite, and CI never runs tests
 | `gradlew` | Sets the executable bit, and warns that the fix needs committing |
 | JWT keys | Generates a PKCS#8 RSA keypair into the gitignored `certs/` |
 | Backend `.env` | Writes all 12 undefaulted variables, plus Linux overrides for the OCR paths that `application-dev.yaml` defaults to Windows locations |
-| Compose `dev.env` | Copies the env file where `docker-compose.dev.yml` expects it |
 | UI dependencies | `npm ci` |
 | UI dev certs | Only with `--https`. Skipped by default: browsers treat `http://localhost` as a trustworthy origin, so the backend's `Secure` cookie works over plain http, and a self-signed cert just adds a warning to click through |
 
 Database restore is a second script:
 
 ```bash
-docker compose -f api/docker-compose.dev.yml up -d   # mongo + mailhog
+docker compose -f api/docker-compose.dev.yml up -d   # mongo, mailhog, ui on :7863
 scripts/db-restore.sh
 ```
 
@@ -199,6 +198,9 @@ build/resources/main/certs/private.pem   the RSA JWT signing key
 build/resources/main/dev.env             MONGODB_PASS, SMTP_PASS, OPENAI_API_KEY
 ```
 
+`dev.env` is no longer written since 2026-09-25 — the dev compose file reads
+`api/.env` for interpolation instead — so the signing key is what remains.
+
 Both files are gitignored, so they never reach git — but they do reach the
 **jar**, and `./gradlew buildImage` bakes that jar into a container image that
 `publishImage` pushes to GHCR.
@@ -211,16 +213,39 @@ Fix: exclude `certs/**` and `*.env` from `processResources`, and move dev keys
 out of the resources tree, referencing them with `file:` rather than
 `classpath:`.
 
-### docker-compose.dev.yml rough edges
+### The dev stack: `api/docker-compose.dev.yml`
 
-- `receipts-db` declares no `networks`, so it sits on `default` while `mailhog`
-  and `homeapp-ui` are on `homeapp-network`. Harmless in the hybrid workflow,
-  because the backend runs on the host and reaches Mongo through its published
-  port — but it would not work container-to-container.
-- `homeapp-ui` declares `depends_on: receipts-db`. The UI does not talk to
-  Mongo; it needs the API, which is not in this compose file at all.
-- The compose `env_file` points at `src/main/resources/dev.env`, inside the Java
-  resources tree. That is what causes half of D10. Compose config does not
-  belong there.
-- `example.env` is missing the OCR, CORS, `UI_PORT`, and `BACKEND_HOST`
-  variables that the app and compose actually read.
+MongoDB, MailHog and the ui image. The api is not in it; it runs natively with
+`./gradlew bootRun --args=--spring.profiles.active=dev`, so it keeps devtools
+hot restart.
+
+- Compose interpolates from `api/.env`, which it reads because the file sits
+  next to it. Nothing is passed to a container with `env_file`, so the OpenAI
+  key never enters one, and there is no compose config in the Java resources
+  tree any more.
+- The ui container's nginx proxies `/api/` to `host.docker.internal:7002`, the
+  natively running api. Until 2026-09-25 it pointed at `localhost:7002`, which
+  inside the container is the container itself, so every `/api` call through
+  <http://localhost:7863> was a 502.
+- MongoDB is pinned to a major (`mongo:8.2`). `latest` can move a major on a
+  pull, and mongod refuses data files more than one feature-compatibility
+  version behind.
+- Data lives in `api/.mongo-data` (gitignored, owned by the container's uid).
+
+#### Testing a ui pull request on its preview image
+
+Every ui pull request publishes `ghcr.io/veselin-antonov/receipts-ui:pr-<n>`.
+`UI_TAG` swaps it in against the same api and data, and leaves the database
+container alone:
+
+```bash
+docker compose -f api/docker-compose.dev.yml pull receipts-ui   # refresh :dev first
+UI_TAG=pr-10 docker compose -f api/docker-compose.dev.yml up -d --pull always receipts-ui
+# click through http://localhost:7863
+docker compose -f api/docker-compose.dev.yml up -d receipts-ui  # back to master's :dev
+```
+
+`--pull always` matters: the preview tag is overwritten on every push to the
+pull request.
+
+`example.env` is still missing the OCR and CORS variables the app reads.

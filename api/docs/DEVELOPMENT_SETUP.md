@@ -95,7 +95,7 @@ You can run MongoDB any way you like, but the repo includes `docker-compose.dev.
 Current compose file includes:
 - `receipts-db` - MongoDB with auth
 - `mailhog` - SMTP sink and email UI
-- `homeapp-ui` - UI container image for local integration
+- `receipts-ui` - UI container image on :7863, proxying `/api` to the api on the host
 
 Note: the compose file does not start the backend container itself. A common local workflow is:
 - run MongoDB and MailHog through Docker Compose
@@ -108,13 +108,9 @@ Start supporting services:
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-The compose file expects values from:
-
-```text
-./src/main/resources/dev.env
-```
-
-That file is intentionally local/dev-specific and should be treated as environment-specific configuration.
+The compose file interpolates from `.env` next to it (the same file the api
+reads). To click through a ui pull request's preview image, set `UI_TAG=pr-<n>`;
+see [DEV_SETUP.md](../../docs/DEV_SETUP.md#testing-a-ui-pull-request-on-its-preview-image).
 
 ### Mail testing
 
@@ -192,4 +188,4 @@ That means local browser behavior depends on how you run the frontend and backen
 - wrong `TESSDATA_PATH`
 - Tesseract installed but language data missing
 - cookie not being sent because of local origin/protocol mismatch
-- compose env values missing from `src/main/resources/dev.env`
+- compose values missing from `.env` (it falls back to the dev defaults)

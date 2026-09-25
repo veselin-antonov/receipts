@@ -39,8 +39,11 @@ below; items that were Home App concerns stay in Obsidian.
 - [ ] Add `TZ: Europe/Sofia` to the unversioned deployment compose
       (`~/docker-apps/homeapp/compose.yaml`) for local-time logs; optional,
       since without it the container simply logs in UTC
-- [ ] Tidy `docker-compose.dev.yml` — network mismatch, wrong `depends_on`,
-      and move `dev.env` out of the Java resources tree
+- [x] Tidy `docker-compose.dev.yml` — network mismatch, wrong `depends_on`,
+      and move `dev.env` out of the Java resources tree. Done 2026-09-25: it
+      interpolates from `api/.env`, `dev.env` is gone, the ui reaches the
+      native api through `host.docker.internal` (it was a 502 before), mongo is
+      pinned to 8.2, and `UI_TAG` swaps in a pull request's preview image
 - [ ] Complete `example.env` — it omits the OCR, CORS, `UI_PORT`, and
       `BACKEND_HOST` variables the app actually reads
 - [ ] Make the test suite runnable on a fresh clone **(D9)** — add
