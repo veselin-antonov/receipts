@@ -86,7 +86,7 @@ See [ADR-0002](adr/0002-single-repo.md).
 - [x] Rewrite the GitHub Actions workflows with path filters so an api change
       does not rebuild the ui, and both still publish to GHCR — `api.yml` /
       `ui.yml`, checks on pull requests and master, images under the same
-      `receipts-api` / `receipts-ui` names. *Not yet run on GitHub*
+      `receipts-api` / `receipts-ui` names. First runs green on 2026-09-24
 - [x] **Wire `scripts/test-upload-limits.sh` into CI** — `upload-limits.yml`,
       path-filtered on `ui/nginx/**`, `ui/DOCKERFILE` and the api's
       `application.yaml`
@@ -95,9 +95,10 @@ See [ADR-0002](adr/0002-single-repo.md).
 - [x] Version the deployment: `~/docker-apps/homeapp/compose.yaml` is now
       `deploy/compose.yaml`, with `example.env`; secrets stay in the gitignored
       `.env`
-- [ ] Publish as the public `veselin-antonov/receipts`, confirm both images
-      publish from it, then archive `receipts-api` and `receipts-ui`
-- [ ] Update the Obsidian notes to point here and drop the stale
+- [x] Publish as the public `veselin-antonov/receipts`, confirm both images
+      publish from it, then archive `receipts-api` and `receipts-ui` — both
+      `:dev` images published from `6311e12`; old repos archived 2026-09-24
+- [x] Update the Obsidian notes to point here and drop the stale
       `D:/Documents/...` paths and the `homeapp-infra` reference
 
 **Done when:** one clone, one CI run, one place the spec lives.
