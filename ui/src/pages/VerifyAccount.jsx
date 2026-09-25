@@ -7,13 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { API_URL, cn } from '@/lib/utils';
 
 const VerifyAccount = () => {
-  const { pathname: path, search: queryString } = useLocation();
+  const { search: queryString } = useLocation();
   const navigate = useNavigate();
 
   const [verificationStatus, setVerificationStatus] = useState('PENDING');
 
   const verifyAccount = useCallback(() => {
-    fetch(API_URL + path + queryString, { method: 'post' })
+    // The page lives at /verify (the link in the mail); the endpoint is
+    // POST /api/users/verify.
+    fetch(API_URL + '/users/verify' + queryString, { method: 'post' })
       .then((response) => {
         if (response.ok) {
           setVerificationStatus('SUCCESS');
@@ -26,7 +28,7 @@ const VerifyAccount = () => {
       .catch((error) => {
         console.error('Error:', error);
       });
-  }, [path, queryString]);
+  }, [queryString]);
 
   useEffect(() => {
     if (!queryString) {

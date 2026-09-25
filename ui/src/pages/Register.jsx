@@ -47,7 +47,7 @@ export const Register = () => {
     // Clear any previous form errors
     form.clearErrors();
 
-    fetch(API_URL + '/register', {
+    fetch(API_URL + '/users/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
