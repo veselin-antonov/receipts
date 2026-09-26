@@ -102,6 +102,10 @@ Releases up to 0.0.6 were separate; their notes are in
   with empty names
 - Legacy BGN prices were served as euros, ~2x overstated, after the JDK's
   bg-BG locale switched to EUR (D11)
+- Purchase search matched nothing: it filtered on the product's and store's
+  `name`, renamed to `canonicalName`. It now matches either name as literal,
+  case-insensitive text, so regex syntax in the query (`(`, `.*`) neither
+  errors nor matches everything
 
 #### Removed
 - `Formatter`; formatting belongs to the UI (D2)

@@ -11,7 +11,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import org.bson.Document;
 import org.bson.types.ObjectId;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -109,13 +108,34 @@ class MongoIntegrationTest {
     }
 
     @Test
-    @Disabled("M2a: findBySearchQuery filters on productDetails.name / storeDetails.name, "
-        + "but the field is canonicalName, so every search returns nothing. Enable with the fix.")
     void searchFindsPurchasesByStoreName() {
         purchaseService.registerPurchase(userId, new ReqPurchase(null, "Сирене", null, "Billa",
             6.10, Currency.EUR, LocalDate.of(2026, 9, 20), 1, null, 0));
 
         assertThat(purchaseService.getPurchasesPage(userId, 0, 10, "billa").contents())
             .hasSize(1);
+    }
+
+    @Test
+    void searchFindsPurchasesByProductNameAndIgnoresOthers() {
+        purchaseService.registerPurchase(userId, new ReqPurchase(null, "Прясно мляко", null, "Lidl",
+            2.10, Currency.EUR, LocalDate.of(2026, 9, 21), 1, null, 0));
+        purchaseService.registerPurchase(userId, new ReqPurchase(null, "Хляб", null, "Lidl",
+            1.20, Currency.EUR, LocalDate.of(2026, 9, 21), 1, null, 0));
+
+        ResPage<ResPurchase> page = purchaseService.getPurchasesPage(userId, 0, 10, "МЛЯКО");
+
+        assertThat(page.contents()).singleElement()
+            .satisfies(p -> assertThat(p.product().name()).isEqualTo("Прясно мляко"));
+    }
+
+    @Test
+    void searchTreatsTheQueryAsLiteralText() {
+        purchaseService.registerPurchase(userId, new ReqPurchase(null, "Кашкавал", null, "Billa",
+            9.80, Currency.EUR, LocalDate.of(2026, 9, 22), 1, null, 0));
+
+        // Unbalanced regex syntax must neither throw nor match everything
+        assertThat(purchaseService.getPurchasesPage(userId, 0, 10, "(").contents()).isEmpty();
+        assertThat(purchaseService.getPurchasesPage(userId, 0, 10, ".*").contents()).isEmpty();
     }
 }

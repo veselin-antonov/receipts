@@ -422,10 +422,12 @@ These are not polish; they came out of the first real run.
       EUR whichever column the model read. Needs a `currency` field in
       `ParsedReceipt` and the prompt; that is a scanning change, so it is
       measured by the harness (ADR-0007). Batch it with the M0a OCR runs
-- [ ] **Search matches nothing** — `CustomRepository.findBySearchQuery`
-      filters on `productDetails.name` / `storeDetails.name`, but the field is
-      `canonicalName` since the rename. Searching `billa` returns 0 pages
-      against 717 rows. Found 2026-09-23; predates the currency work
+- [x] **Search matches nothing** — `CustomRepository.findBySearchQuery`
+      filtered on `productDetails.name` / `storeDetails.name`, but the field is
+      `canonicalName` since the rename. Searching `billa` returned 0 pages
+      against 717 rows. Found 2026-09-23; fixed 2026-09-26, and the query is
+      now matched as literal text. `MongoIntegrationTest` covers store, product
+      and regex-syntax searches against a real MongoDB
 - [x] **`POST /api/purchases` ignores IDs** — fixed 2026-09-23: it now shares
       the id-first resolution of `registerPurchases`. The UI's manual form had
       the matching bug — it sent `product` / `store`, which the API never read,
