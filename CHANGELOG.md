@@ -75,6 +75,14 @@ Releases up to 0.0.6 were separate; their notes are in
   timestamps; `docker-compose.yml` sets `TZ` (default `Europe/Sofia`) for that
 
 #### Fixed
+- **Security:** the JWT signing key (`certs/private.pem`) and any `*.env` in
+  the resources were packaged into the jar, and so into any image built from a
+  developer checkout (D10). Dev keys now live in `api/certs/` and the `dev`
+  profile reads them as `file:./certs/*.pem` (overridable with
+  `JWT_PRIVATE_KEY` / `JWT_PUBLIC_KEY`); the build excludes key and env files,
+  and `verifyNoSecretsInJar` fails `build` if a jar contains one.
+  `example.env` moved to `api/example.env`. Existing checkouts: re-run
+  `scripts/dev-setup.sh`, which moves the keys
 - A null parser result gave a 500; it now takes the 422 "no purchases" path
 - The OCR debug image path used the client's filename unsanitised, so a name
   with path separators could write outside the debug directory

@@ -312,6 +312,10 @@ UC-1 depends entirely on this working.
 
 ### D10 — Secrets are packaged into the jar
 
+> **Fixed 2026-09-26.** Dev keys moved to `api/certs/` and are read with
+> `file:`; `processResources` excludes keys and env files, and
+> `verifyNoSecretsInJar` fails the build on a jar that contains one.
+
 `processResources` copies `src/main/resources/certs/private.pem` (the JWT
 signing key) and `dev.env` (Mongo, SMTP, and OpenAI credentials) into the build
 output, and therefore into the jar and any image built from it. Gitignored, so
