@@ -72,9 +72,22 @@ fi
 # --- 3. JWT signing keys --------------------------------------------------- #
 echo
 echo "3. JWT signing keys"
-certs="$API/src/main/resources/certs"
+# api/certs, outside the resources tree, so the keys never reach the jar (D10).
+# application-dev.yaml reads them as file:./certs/*.pem.
+certs="$API/certs"
+old_certs="$API/src/main/resources/certs"
+if [[ -f "$old_certs/private.pem" && ! -f "$certs/private.pem" ]]; then
+  mkdir -p "$certs"
+  mv "$old_certs"/*.pem "$certs"/
+  rmdir "$old_certs" 2>/dev/null || true
+  ok "moved keys from src/main/resources/certs to api/certs"
+fi
+if [[ -d "$old_certs" ]]; then
+  warn "stale $old_certs - delete it; keys belong in api/certs"
+  MANUAL+=("rm -r $old_certs")
+fi
 if [[ -f "$certs/private.pem" && -f "$certs/public.pem" ]]; then
-  skip "keys already present"
+  skip "keys already present in api/certs"
 else
   mkdir -p "$certs"
   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out "$certs/private.pem" 2>/dev/null

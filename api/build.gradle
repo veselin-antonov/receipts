@@ -97,10 +97,51 @@ test {
     failOnNoDiscoveredTests = false
 }
 
+// Secrets never go into the jar (D10). Dev keys live in api/certs, outside the
+// resources tree; this also drops stale copies left in src/main/resources by
+// an older checkout, instead of shipping them.
+def secretPatterns = ['**/*.pem', '**/*.key', '**/*.p12', '**/*.jks', '**/*.env', '**/.env']
+processResources {
+    exclude secretPatterns
+}
+
+// The guard: fail if a built jar contains a key or an env file, whatever put
+// it there. Runs after every bootJar (so e2e/run.sh and buildImage are covered)
+// and as part of `build` (so CI is).
+def verifyNoSecretsInJar = tasks.register('verifyNoSecretsInJar') {
+    group = 'verification'
+    description = 'Fails if the boot jar or plain jar contains *.pem, *.key, *.p12, *.jks or *.env'
+    def jars = files(tasks.named('bootJar'), tasks.named('jar'))
+    def secret = ~/(?i)(^|.*\/)[^\/]*\.(pem|key|p12|jks|env)$/
+    inputs.files(jars)
+    def marker = layout.buildDirectory.file('verifyNoSecretsInJar/ok')
+    outputs.file(marker)
+    doLast {
+        def found = []
+        jars.files.findAll { it.exists() }.each { jar ->
+            new java.util.zip.ZipFile(jar).withCloseable { zip ->
+                zip.entries().each { e ->
+                    if (!e.directory && e.name ==~ secret) found << "${jar.name}!/${e.name}"
+                }
+            }
+        }
+        if (found) {
+            throw new GradleException("Secrets packaged into the jar (D10):\n  " + found.join('\n  ') +
+                    "\nKeep keys and env files out of src/main/resources; see docs/DEV_SETUP.md.")
+        }
+        marker.get().asFile.text = 'ok\n'
+    }
+}
+tasks.named('bootJar') { finalizedBy verifyNoSecretsInJar }
+tasks.named('jar') { finalizedBy verifyNoSecretsInJar }
+tasks.named('check') { dependsOn verifyNoSecretsInJar }
+
 // Define a task for building the Docker image
 tasks.register('buildImage', Exec) {
     group = "Docker Images"
     description = "Builds docker image and tags them with :latest>"
+    // The image copies the jar from build/libs; build it and check it first
+    dependsOn verifyNoSecretsInJar
 
     def repositoryName = providers.gradleProperty('repositoryName').getOrElse('')
     def ver = project.version.toString()
