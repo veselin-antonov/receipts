@@ -20,10 +20,15 @@ Auth:
 - HTTP Basic credentials in the request
 
 Response behavior:
-- `200 OK` for active users
-- `403 Forbidden` for authenticated but inactive/unverified users
-- response body is a number representing cookie max-age in milliseconds
-- response includes `Set-Cookie`
+- `200 OK` for active users; the body is a number, the cookie max-age in
+  milliseconds
+- `403 Forbidden` with a `ProblemDetail` whose `error` is
+  `ACCOUNT_NOT_VERIFIED` when the credentials are correct but the account is
+  not verified yet
+- `401 Unauthorized` for wrong credentials
+- both `200` and the unverified `403` include `Set-Cookie`; for an unverified
+  account it is a limited token that only allows
+  `POST /api/users/resend-verification` and `GET /api/auth/status`
 
 Example request:
 
@@ -36,24 +41,33 @@ Example success response:
 
 ```http
 HTTP/1.1 200 OK
-Set-Cookie: jwt=...; Path=/; HttpOnly; Secure; SameSite=Strict
+Set-Cookie: JWT=...; Path=/; HttpOnly; Secure; SameSite=Strict
 Content-Type: application/json
 
 3600000
 ```
 
-Example inactive-user response:
+Example unverified-account response:
 
 ```http
 HTTP/1.1 403 Forbidden
-Set-Cookie: jwt=...; Path=/; HttpOnly; Secure; SameSite=Strict
-Content-Type: application/json
+Set-Cookie: JWT=...; Path=/; HttpOnly; Secure; SameSite=Strict
+Content-Type: application/problem+json
 
-3600000
+{
+  "type": "about:blank",
+  "title": "Account Not Verified",
+  "status": 403,
+  "detail": "The account's e-mail address has not been verified yet.",
+  "instance": "/api/auth/token",
+  "error": "ACCOUNT_NOT_VERIFIED"
+}
 ```
 
 Important interpretation:
-- a `403` here can mean the credentials were accepted but the account is still inactive
+- only `error: ACCOUNT_NOT_VERIFIED` means the account is unverified. A `403`
+  without it comes from something else, such as a CORS rejection of the
+  browser's origin, and must not be read as "unverified" (SPEC D15)
 
 ### GET /api/auth/status
 

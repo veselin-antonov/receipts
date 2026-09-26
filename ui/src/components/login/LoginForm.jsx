@@ -17,6 +17,22 @@ const formSchema = z.object({
   password: z.string().min(1, 'Паролата е задължителна'),
 });
 
+// The API's ProblemDetail code for a correct login to an unverified account.
+const ACCOUNT_NOT_VERIFIED = 'ACCOUNT_NOT_VERIFIED';
+
+// Only the error code says the account is unverified; a bare 403 does not (D15).
+const isAccountNotVerified = async (response) => {
+  if (response.status !== 403) {
+    return false;
+  }
+  try {
+    const body = JSON.parse(await response.text());
+    return body?.error === ACCOUNT_NOT_VERIFIED;
+  } catch {
+    return false;
+  }
+};
+
 const LoginForm = () => {
   console.log('Rendering LoginForm component...');
   const [loginError, setLoginError] = useState();
@@ -38,13 +54,18 @@ const LoginForm = () => {
           Authorization: 'Basic ' + btoa(email + ':' + password),
         },
       })
-        .then((response) => {
+        .then(async (response) => {
           if (response.ok) {
             return response.text();
-          } else if (response.status === 403) {
+          } else if (await isAccountNotVerified(response)) {
             console.log('Navigating to /not-verified');
             navigate('/not-verified');
             return Promise.reject(new Error('Account not verified!'));
+          } else if (response.status === 403) {
+            // Not the account: a CORS rejection, for one, is also a 403 (D15)
+            throw new Error(
+              'Сървърът отказа достъп (403). Моля опитайте по-късно.'
+            );
           } else if (response.status === 401) {
             throw new Error(
               'Неправилни имейл и/или парола. Моля опитайте отново.'

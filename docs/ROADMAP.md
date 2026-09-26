@@ -462,10 +462,12 @@ These are not polish; they came out of the first real run.
       `"карфиол на брой"`
 - [ ] Record confirmed matches as aliases, so each correction improves the next
       scan ([SPEC §8.4](SPEC.md#84-f4--catalog-and-normalization))
-- [ ] **Stop inferring "unverified" from a bare 403 (D15)** — return a
-      distinguishable error code and have the UI key off that. The current
+- [x] **Stop inferring "unverified" from a bare 403 (D15)** — return a
+      distinguishable error code and have the UI key off that. The old
       behaviour reported a healthy account as unverified and sent the user into
-      a dead-end resend flow
+      a dead-end resend flow. Fixed 2026-09-26: the login 403 for an unverified
+      account is a `ProblemDetail` with `error: ACCOUNT_NOT_VERIFIED`, and the
+      UI shows a generic error for any other 403
 - [ ] Make CORS workable off-localhost (D16) — the dev default cannot work for
       a headless server browsed from a laptop, which is the real setup
 - [ ] Clean the store catalog — it holds `Тест`, `Тест 2`, `кастрия еоод`,

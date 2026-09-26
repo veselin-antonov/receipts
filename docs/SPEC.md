@@ -513,6 +513,11 @@ Two consequences:
 
 ### D15 — The UI reads "account not verified" out of a bare 403
 
+> **Fixed 2026-09-26.** For an unverified account `POST /api/auth/token` now
+> returns a `ProblemDetail` with `error: ACCOUNT_NOT_VERIFIED` (still 403, still
+> setting the limited cookie the resend flow needs). `LoginForm` routes to
+> `/not-verified` only on that code; any other 403 gets a generic error.
+
 `LoginForm.jsx` maps **any** 403 from `POST /api/auth/token` to
 `"Account not verified!"` and navigates to `/not-verified`.
 
@@ -823,9 +828,9 @@ carries only `priceEur` and `discountAmountEur`, unrounded, and an ISO date.
 - **Commits** follow Conventional Commits, as the existing history does.
 - **Versioning** from the root `VERSION` file, shared by api and ui;
   `CHANGELOG.md` at the root in Keep a Changelog format.
-- **Tests** live beside the code they cover. The API has 19 test classes / 67
-  tests, one of them against a real MongoDB, and the UI has 8 test files / 30
-  tests (2026-09-25). `e2e/` drives both images end to end with Playwright.
+- **Tests** live beside the code they cover. The API has 20 test classes / 73
+  tests, one of them against a real MongoDB, and the UI has 8 test files / 32
+  tests (2026-09-26). `e2e/` drives both images end to end with Playwright.
   That is the floor, not the ceiling. `ci.yml` runs whichever of them a pull
   request needs and reports once, as `ci-summary`.
 
