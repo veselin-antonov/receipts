@@ -32,6 +32,14 @@ Releases up to 0.0.6 were separate; their notes are in
   natively running api (it proxied to itself and returned 502), `UI_TAG`
   selects a pull request's `pr-<n>` preview image, mongo is pinned to 8.2, and
   `dev.env` is gone in favour of interpolating from `api/.env`
+- Pull requests from this repository that touch the api publish a
+  `receipts-api:pr-<n>` preview image, as ui pull requests already did for the
+  ui, built from the jar the api checks tested. One bot comment lists the
+  preview images a pull request has, and is updated on later pushes instead of
+  a new comment per push. The dev stack runs the api image as the optional
+  `receipts-api` service (profile `api`, `API_TAG`, port 7003), and
+  `UI_BACKEND` points the ui at it, so a pull request touching both sides can
+  be tried with two tags (docs/DEV_SETUP.md, "Testing a pull request")
 
 ### API
 

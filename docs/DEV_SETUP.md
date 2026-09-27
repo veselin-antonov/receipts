@@ -244,14 +244,17 @@ Now:
 
 ### The dev stack: `api/docker-compose.dev.yml`
 
-MongoDB, MailHog and the ui image. The api is not in it; it runs natively with
+MongoDB, MailHog and the ui image. The api normally runs natively with
 `./gradlew bootRun --args=--spring.profiles.active=dev`, so it keeps devtools
-hot restart.
+hot restart. An api image can run next to it as `receipts-api`, behind the
+compose profile `api`, for testing a pull request (below); a plain `up -d`
+does not start it.
 
 - Compose interpolates from `api/.env`, which it reads because the file sits
-  next to it. Nothing is passed to a container with `env_file`, so the OpenAI
-  key never enters one, and there is no compose config in the Java resources
-  tree any more.
+  next to it. Nothing is passed to a container with `env_file`: each service
+  lists the variables it gets, so the OpenAI key only enters the optional
+  `receipts-api` container, which scans with it, and there is no compose config
+  in the Java resources tree any more.
 - The ui container's nginx proxies `/api/` to `host.docker.internal:7002`, the
   natively running api. Until 2026-09-25 it pointed at `localhost:7002`, which
   inside the container is the container itself, so every `/api` call through
@@ -261,20 +264,67 @@ hot restart.
   version behind.
 - Data lives in `api/.mongo-data` (gitignored, owned by the container's uid).
 
-#### Testing a ui pull request on its preview image
+#### Testing a pull request on its preview images
 
-Every ui pull request publishes `ghcr.io/veselin-antonov/receipts-ui:pr-<n>`.
-`UI_TAG` swaps it in against the same api and data, and leaves the database
-container alone:
+Every pull request from a branch of this repository publishes a preview image
+for each side it touches: `ghcr.io/veselin-antonov/receipts-api:pr-<n>` and
+`ghcr.io/veselin-antonov/receipts-ui:pr-<n>`. A bot comment on the pull request
+lists the ones it built. They run against the same database and MailHog as the
+native api, so there is no branch to check out and nothing to build.
+
+The variables, all optional:
+
+| Variable | Default | What it does |
+|---|---|---|
+| `UI_TAG` | `dev` | ui image tag for `receipts-ui` (`homeapp-ui-dev`) |
+| `API_TAG` | `dev` | api image tag for `receipts-api` (`receipts-api-dev`) |
+| `API_CONTAINER_PORT` | `7003` | host port of the api container, next to the native api on `SERVER_PORT` (7002) |
+| `UI_BACKEND` | `host.docker.internal:${SERVER_PORT}` | where the ui's nginx sends `/api/`; `host.docker.internal:7003` is the api container |
+
+The api container gets its settings from `api/.env` by interpolation, reaches
+MongoDB and MailHog on the compose network, and reads the dev JWT keys from
+`api/certs`, mounted read-only (the image has none, D10). Its CORS origins are
+`APP_CORS_ALLOWED_ORIGINS` from `api/.env`, so the origin the browser is on
+(e.g. `https://homeapp.vasoft.dev`) must be in it, as for the native api.
+
+`--pull always` matters: a preview tag is overwritten on every push to the pull
+request. `--no-deps` keeps compose away from the database and MailHog
+containers: of the running stack, only `homeapp-ui-dev` is recreated. Run these from the repository root, and write the variables on the
+command line rather than exporting them, so the switch back really switches
+back.
+
+A **ui-only** pull request, against the native api:
 
 ```bash
-docker compose -f api/docker-compose.dev.yml pull receipts-ui   # refresh :dev first
 UI_TAG=pr-10 docker compose -f api/docker-compose.dev.yml up -d --pull always receipts-ui
 # click through http://localhost:7863
-docker compose -f api/docker-compose.dev.yml up -d receipts-ui  # back to master's :dev
 ```
 
-`--pull always` matters: the preview tag is overwritten on every push to the
-pull request.
+An **api-only** pull request: the api container, and master's ui pointed at it:
+
+```bash
+API_TAG=pr-30 docker compose -f api/docker-compose.dev.yml --profile api up -d --pull always --no-deps receipts-api
+UI_BACKEND=host.docker.internal:7003 docker compose -f api/docker-compose.dev.yml up -d --pull always receipts-ui
+# click through http://localhost:7863; the api alone answers on http://localhost:7003
+```
+
+A pull request touching **both**:
+
+```bash
+API_TAG=pr-28 docker compose -f api/docker-compose.dev.yml --profile api up -d --pull always --no-deps receipts-api
+UI_TAG=pr-28 UI_BACKEND=host.docker.internal:7003 docker compose -f api/docker-compose.dev.yml up -d --pull always receipts-ui
+```
+
+**Back to the native api and master's `:dev`**:
+
+```bash
+docker compose -f api/docker-compose.dev.yml --profile api rm -sf receipts-api
+docker compose -f api/docker-compose.dev.yml up -d --pull always receipts-ui
+```
+
+`docker logs -f receipts-api-dev` follows the api container. The native api
+on 7002 keeps running throughout; stop it only if the two should not both
+write to the database. The pull request's api must be able to read the dev
+database as master left it: a migration it runs stays after switching back.
 
 `example.env` is still missing the OCR and CORS variables the app reads.

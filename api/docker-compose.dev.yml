@@ -1,5 +1,7 @@
 # Supporting services for local development: MongoDB, MailHog, and the ui image.
-# The api is not in here - it runs natively (`./gradlew bootRun`, dev profile).
+# The api normally runs natively (`./gradlew bootRun`, dev profile) on
+# SERVER_PORT. An api image can run here too, behind the `api` profile, so a
+# pull request's preview image can be tried without checking out its branch.
 #
 # Variables are interpolated from api/.env, which compose reads automatically
 # because it sits next to this file. scripts/dev-setup.sh writes it.
@@ -57,10 +59,67 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
     environment:
-      BACKEND_HOST: host.docker.internal:${SERVER_PORT:-7002}
+      # UI_BACKEND=host.docker.internal:7003 (API_CONTAINER_PORT) uses the
+      # receipts-api container instead. Not BACKEND_HOST: api/.env already has
+      # one, meant for the native setup.
+      BACKEND_HOST: ${UI_BACKEND:-host.docker.internal:${SERVER_PORT:-7002}}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
     healthcheck:
       test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/']
       interval: 30s
       timeout: 5s
       retries: 3
+
+  # Optional: an api image, e.g. a pull request's :pr-<n> preview, picked by
+  # API_TAG as UI_TAG picks the ui's. Only started with the `api` profile or by
+  # naming it, so a plain `up -d` is unchanged. UI_BACKEND points the ui at it.
+  # docs/DEV_SETUP.md, "Testing a pull request", has the commands.
+  # Same database and MailHog as the native api, reached over this network.
+  # Mirrors the api service in e2e/compose.yaml: the default (production)
+  # profile, with plain SMTP for MailHog.
+  receipts-api:
+    image: ghcr.io/veselin-antonov/receipts-api:${API_TAG:-dev}
+    container_name: receipts-api-dev
+    profiles: [api]
+    restart: unless-stopped
+    ports:
+      # Next to the native api on SERVER_PORT, not in place of it
+      - ${API_CONTAINER_PORT:-7003}:7002
+    environment:
+      SERVER_PORT: 7002
+      MONGODB_HOST: receipts-db
+      MONGODB_PORT: 27017
+      MONGODB_DATABASE: ${MONGODB_DATABASE:-receipts-db}
+      MONGODB_AUTH_DB: ${MONGODB_AUTH_DB:-admin}
+      MONGODB_USER: ${MONGODB_USER:-receipts}
+      MONGODB_PASS: ${MONGODB_PASS:-localdev}
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USER: ${SMTP_USER:-dev}
+      SMTP_PASS: ${SMTP_PASS:-dev}
+      SPRING_MAIL_PROTOCOL: smtp
+      APP_HOST_URL: ${APP_HOST_URL:-http://localhost:5173}
+      # Must list the origin the browser is on, e.g. https://homeapp.vasoft.dev
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:5173,https://localhost:5173,http://localhost:7863}
+      OCR_LANGUAGE: ${OCR_LANGUAGE:-eng+bul}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+      TZ: ${TZ:-UTC}
+      # The image has no keys (D10): the dev ones from api/certs, read-only
+      JWT_PRIVATE_KEY: file:/certs/private.pem
+      JWT_PUBLIC_KEY: file:/certs/public.pem
+    volumes:
+      - ./certs:/certs:ro
+    depends_on:
+      receipts-db:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    healthcheck:
+      # Any HTTP answer, including the 401 for an anonymous status check,
+      # means the api is serving (as in e2e/compose.yaml).
+      test: ['CMD-SHELL', 'wget -S -O /dev/null http://127.0.0.1:7002/api/auth/status 2>&1 | grep -q "HTTP/1.1 401"']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s

@@ -71,9 +71,28 @@ jobs:
     if: needs.changes.outputs.ui == 'true'
     uses: ./.github/workflows/ui-checks.yml
 
-  # A :pr-<n> image to click through (docs/DEV_SETUP.md). A fork's pull request
-  # gets a read-only token and cannot push packages, so only this repository's
-  # branches get one.
+  # :pr-<n> images to click through against the dev stack (docs/DEV_SETUP.md,
+  # "Testing a pull request"). A fork's pull request gets a read-only token and
+  # cannot push packages, so only this repository's branches get them. Each one
+  # runs only after its component's checks passed, so only when that component
+  # changed.
+  api-preview:
+    needs: api-checks
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      packages: write
+    # Puts the jar api-checks built and tested into the image, as api.yml does.
+    uses: ./.github/workflows/build-image.yml
+    with:
+      component: api
+      version: pr-${{ github.event.pull_request.number }}
+      include_version: true
+      include_latest: false
+    secrets: inherit
+
   ui-preview:
     needs: ui-checks
     if: >-
@@ -90,35 +109,64 @@ jobs:
       include_latest: false
     secrets: inherit
 
+  # One comment per pull request listing the preview images this run built,
+  # api, ui or both. Found again by its marker and edited on later pushes,
+  # rather than adding a comment per push.
   comment-preview:
-    needs: ui-preview
+    needs: [api-preview, ui-preview]
+    if: >-
+      !cancelled() &&
+      (needs.api-preview.result == 'success' || needs.ui-preview.result == 'success')
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
-      - name: Comment with preview image
+      - name: Comment with preview images
         uses: actions/github-script@v9
+        env:
+          API_BUILT: ${{ needs.api-preview.result == 'success' }}
+          UI_BUILT: ${{ needs.ui-preview.result == 'success' }}
         with:
           script: |
-            const tag = `pr-${context.issue.number}`;
-            const image = `ghcr.io/${context.repo.owner}/receipts-ui:${tag}`;
+            const marker = '<!-- receipts-preview-images -->';
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const tag = `pr-${issue_number}`;
+            const sha = context.payload.pull_request.head.sha.slice(0, 7);
+
+            const built = [
+              ['api', process.env.API_BUILT === 'true'],
+              ['ui', process.env.UI_BUILT === 'true'],
+            ].filter(([, ok]) => ok).map(([component]) => component);
+
+            const pulls = built.map((c) => `docker pull ghcr.io/${owner}/receipts-${c}:${tag}`);
+            const envs = built.map((c) => `${c.toUpperCase()}_TAG=${tag}`).join(' ');
 
             const body = [
-              '🐳 **Preview image built for this PR:**',
+              marker,
+              `🐳 **Preview images built for this PR** (${built.join(' + ')}, at ${sha}):`,
               '',
               '```bash',
-              `docker pull ${image}`,
+              ...pulls,
               '```',
               '',
-              `📦 **Tag:** \`${tag}\``,
+              `📦 **Tag:** \`${tag}\` - run it on the dev stack with \`${envs}\`, see docs/DEV_SETUP.md, "Testing a pull request".`,
             ].join('\n');
 
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body,
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number, per_page: 100,
             });
+            const existing = comments.find(
+              (c) => c.user?.type === 'Bot' && c.body?.includes(marker),
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+              core.info(`updated comment ${existing.html_url}`);
+            } else {
+              const { data } = await github.rest.issues.createComment({ owner, repo, issue_number, body });
+              core.info(`created comment ${data.html_url}`);
+            }
 
   upload-limits:
     needs: changes
@@ -135,7 +183,7 @@ jobs:
   # it. The preview comment is left out: it is a convenience, not a check.
   ci-summary:
     if: always()
-    needs: [changes, api-checks, ui-checks, ui-preview, upload-limits, e2e]
+    needs: [changes, api-checks, ui-checks, api-preview, ui-preview, upload-limits, e2e]
     runs-on: ubuntu-latest
     steps:
       - name: Require every needed check to have passed
