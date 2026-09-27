@@ -36,9 +36,9 @@ Prerequisites:
 Generate local JWT keys:
 
 ```bash
-mkdir -p src/main/resources/certs
-openssl genrsa -out src/main/resources/certs/private.pem 2048
-openssl rsa -in src/main/resources/certs/private.pem -pubout -out src/main/resources/certs/public.pem
+mkdir -p certs   # api/certs, gitignored; never src/main/resources (D10)
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out certs/private.pem
+openssl rsa -in certs/private.pem -pubout -out certs/public.pem
 ```
 
 Set local environment variables:

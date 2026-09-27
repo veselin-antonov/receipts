@@ -27,8 +27,11 @@ below; items that were Home App concerns stay in Obsidian.
       ([DEV_SETUP.md](DEV_SETUP.md))
 - [x] Restore the backups: 1 user, 211 products, 14 stores, 717 purchases,
       verified against a live MongoDB
-- [ ] Exclude `certs/**` and `*.env` from `processResources` **(D10)** — the JWT
-      private key and live credentials are currently packaged into the jar
+- [x] Exclude `certs/**` and `*.env` from `processResources` **(D10)** — done
+      2026-09-26: dev keys moved to `api/certs/` and are read as `file:`,
+      `processResources` excludes key and env files, `verifyNoSecretsInJar`
+      fails `build` on a jar containing one, and `example.env` moved to
+      `api/example.env`
 - [x] ~~Pin `TZ=UTC`~~ — **superseded 2026-09-23: storage is UTC by
       construction.** `MongoConfig` uses the MongoDB driver's codecs, so a
       purchase date is midnight UTC however the JVM is started (verified with

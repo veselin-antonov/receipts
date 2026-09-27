@@ -169,10 +169,10 @@ Uses a dual-path pipeline: images go through Tesseract OCR → LLM text parsing,
 
 ### Profiles
 - **default** (`application.yaml`) - Production configuration, reads from environment variables
-- **dev** (`application-dev.yaml`) - Development profile with debug logging, classpath JWT keys
+- **dev** (`application-dev.yaml`) - Development profile with debug logging, JWT keys from `file:./certs/` (never the classpath)
 
 ### Environment Variables
-See `example.env` for full list. Key variables:
+See `api/example.env` for full list. Key variables:
 - `MONGODB_*` - Database connection
 - `SMTP_*` - Email server
 - `JWT_PRIVATE_KEY`, `JWT_PUBLIC_KEY` - RSA keys (PEM content or file path)
@@ -251,8 +251,8 @@ See `example.env` for full list. Key variables:
 - JWT keys passed as environment variables
 
 ### Local Development (Windows)
-1. Copy `example.env` to `.env` and fill values
-2. Generate RSA keys in `src/main/resources/certs/` (see README.md)
+1. Copy `example.env` to `.env` and fill values (or run `scripts/dev-setup.sh`)
+2. Generate RSA keys in `api/certs/` (see README.md); never under `src/main/resources`, the build rejects a jar containing them
 3. Install [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki) with English + Bulgarian language packs
 4. Run with `dev` profile: `./gradlew bootRun --args='--spring.profiles.active=dev'`
 

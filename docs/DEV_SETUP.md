@@ -22,8 +22,8 @@ A fresh clone cannot build, test, or run. Three separate reasons:
    `spring-dotenv` reads a `.env` that is gitignored. Without it,
    `server.port=${SERVER_PORT}` fails to parse as an `Integer` and even
    `gradlew test` dies during context startup (D9).
-3. The `dev` profile resolves `jwt.private-key` to `classpath:certs/private.pem`,
-   a gitignored path that nothing creates.
+3. The `dev` profile resolves `jwt.private-key` to `file:./certs/private.pem`
+   (that is, `api/certs/`), a gitignored path that nothing else creates.
 
 None of this is documented as a test prerequisite, and CI never runs tests
 (D8), so nothing catches it.
@@ -36,7 +36,7 @@ None of this is documented as a test prerequisite, and CI never runs tests
 |---|---|
 | Prerequisite audit | Checks java 25, node, docker, openssl, tesseract and its `eng`/`bul` language data; reports what is missing instead of guessing |
 | `gradlew` | Sets the executable bit, and warns that the fix needs committing |
-| JWT keys | Generates a PKCS#8 RSA keypair into the gitignored `certs/` |
+| JWT keys | Generates a PKCS#8 RSA keypair into the gitignored `api/certs/`, outside the resources tree so it never reaches the jar (D10). Moves keys found in the old `src/main/resources/certs/` there |
 | Backend `.env` | Writes all 12 undefaulted variables, plus Linux overrides for the OCR paths that `application-dev.yaml` defaults to Windows locations |
 | UI dependencies | `npm ci` |
 | UI dev certs | Only with `--https`. Skipped by default: browsers treat `http://localhost` as a trustworthy origin, so the backend's `Secure` cookie works over plain http, and a self-signed cert just adds a warning to click through |
@@ -215,28 +215,32 @@ Found while building this setup. Tracked in
 
 ### D10 — Secrets are packaged into the jar
 
-`processResources` copies everything under `src/main/resources` into the build
-output. Verified contents:
+> **Fixed 2026-09-26.** The keys are out of the resources tree, the build
+> excludes them, and a check refuses any jar that contains one.
 
-```text
-build/resources/main/certs/private.pem   the RSA JWT signing key
-build/resources/main/dev.env             MONGODB_PASS, SMTP_PASS, OPENAI_API_KEY
-```
+`processResources` copied everything under `src/main/resources` into the build
+output, and from there into the jar. That included the JWT signing key,
+`certs/private.pem`, because the `dev` profile read it from the classpath, and
+until 2026-09-25 `dev.env` with the Mongo, SMTP and OpenAI credentials. Both
+were gitignored, so git was clean, but every locally built jar carried them,
+and so did any image built from one (`./gradlew buildImage`, `e2e/run.sh`).
+CI was not affected: it builds from a fresh checkout where neither file
+exists.
 
-`dev.env` is no longer written since 2026-09-25 — the dev compose file reads
-`api/.env` for interpolation instead — so the signing key is what remains.
+Now:
 
-Both files are gitignored, so they never reach git — but they do reach the
-**jar**, and `./gradlew buildImage` bakes that jar into a container image that
-`publishImage` pushes to GHCR.
-
-CI is not affected: it builds from a fresh checkout where neither file exists.
-The exposure is building and pushing an image **from a developer machine**,
-which would ship the JWT signing key and live credentials to a registry.
-
-Fix: exclude `certs/**` and `*.env` from `processResources`, and move dev keys
-out of the resources tree, referencing them with `file:` rather than
-`classpath:`.
+- Dev keys live in `api/certs/` (gitignored). `application-dev.yaml` reads
+  `file:./certs/private.pem` and `file:./certs/public.pem`, relative to the
+  working directory, which is `api/` under `bootRun`. `JWT_PRIVATE_KEY` and
+  `JWT_PUBLIC_KEY` override them, with a `file:` path or PEM content.
+- `processResources` excludes `*.pem`, `*.key`, `*.p12`, `*.jks` and `*.env`,
+  so a stale copy in `src/main/resources` is dropped rather than shipped.
+  `scripts/dev-setup.sh` moves keys from the old location to the new one.
+- `verifyNoSecretsInJar` fails the build if the boot jar or the plain jar
+  contains any of those. It runs after every `bootJar`, as part of `check`
+  (so `./gradlew build` and CI run it), and before `buildImage`.
+- `example.env` is documentation, not configuration, and moved from the
+  resources to `api/example.env`.
 
 ### The dev stack: `api/docker-compose.dev.yml`
 

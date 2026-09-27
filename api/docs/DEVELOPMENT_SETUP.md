@@ -24,7 +24,7 @@ Two configuration layers matter in development:
    - MongoDB, mail, Spring AI, multipart, JWT, OCR, rate limiting
 2. `application-dev.yaml`
    - local development overrides
-   - classpath JWT keys
+   - JWT keys from `api/certs/` (`file:` paths)
    - local OCR defaults
    - allowed local frontend origins
    - verbose logging
@@ -37,22 +37,25 @@ Run the app with the `dev` profile:
 
 ## Step 1: generate local JWT keys
 
-The dev profile expects key files on the classpath.
+`scripts/dev-setup.sh` does this for you. By hand, from `api/`:
 
 ```bash
-mkdir -p src/main/resources/certs
-openssl genrsa -out src/main/resources/certs/private.pem 2048
-openssl rsa -in src/main/resources/certs/private.pem -pubout -out src/main/resources/certs/public.pem
+mkdir -p certs
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out certs/private.pem
+openssl rsa -in certs/private.pem -pubout -out certs/public.pem
 ```
 
-Expected dev configuration:
+The dev profile reads them from the working directory, which is `api/` under
+`bootRun`:
 
 ```text
-jwt.private-key=classpath:certs/private.pem
-jwt.public-key=classpath:certs/public.pem
+jwt.private-key=${JWT_PRIVATE_KEY:file:./certs/private.pem}
+jwt.public-key=${JWT_PUBLIC_KEY:file:./certs/public.pem}
 ```
 
-These files are local-only and must never be committed.
+`api/certs/` is gitignored. Never put keys under `src/main/resources`: they
+would be packaged into the jar, so the build excludes them and
+`verifyNoSecretsInJar` fails any jar that contains a `.pem` or `.env` (D10).
 
 ## Step 2: set environment variables
 

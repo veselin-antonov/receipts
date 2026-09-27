@@ -100,7 +100,7 @@ server:
 
 # JWT signing keys
 # Keys can be provided as:
-# 1. File path: file:/path/to/key.pem or classpath:certs/key.pem
+# 1. File path: file:/path/to/key.pem (never classpath: keys must not be in the jar)
 # 2. PEM content directly: -----BEGIN PUBLIC KEY-----...
 jwt:
   private-key: ${JWT_PRIVATE_KEY:}

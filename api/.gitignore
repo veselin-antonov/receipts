@@ -37,8 +37,9 @@ out/
 .vscode/
 
 ### User ###
-/src/main/resources/certs/*
+# Dev JWT keys, outside the resources tree so they never reach the jar (D10)
+/certs/
 *.env
-!**/src/main/resources/example.env
+!/example.env
 /ocr-debug/
 /.mongo-data/
