@@ -28,6 +28,11 @@ Releases up to 0.0.6 were separate; their notes are in
 - The upload-limit test (`scripts/test-upload-limits.sh`) runs in CI whenever
   the nginx config, the ui Dockerfile or the api's `application.yaml` changes
 - The deployment compose file is versioned in `deploy/`
+- Containers and compose projects are named `receipts`, not `homeapp`: the
+  dev stack is project `receipts-dev` with `receipts-ui-dev`, and
+  `deploy/compose.yaml` sets `name: receipts` and runs `receipts-ui`. A running
+  stack has to be taken down under its old project name once, then brought up
+  again
 - Dev stack (`api/docker-compose.dev.yml`): the ui container now reaches the
   natively running api (it proxied to itself and returned 502), `UI_TAG`
   selects a pull request's `pr-<n>` preview image, mongo is pinned to 8.2, and

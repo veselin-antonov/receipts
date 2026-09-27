@@ -48,7 +48,8 @@ redesigned rather than adapted.
 - Receipts gets its own spec, roadmap, and release cadence — this repository.
 - The `dev.vasoft.homeapp` Java package name and the `homeapp-ui` container name
   are now misleading. Renaming is deferred as Q5/Q4 in the spec; it is invasive
-  and buys nothing functional.
+  and buys nothing functional. *(2026-09-27: the containers and compose projects
+  are renamed to `receipts-*`; the package rename, Q4, is still deferred.)*
 - If Home App is built later, it will need to decide whether to link out to
   Receipts or duplicate a thin read-only view of it. Linking out is the
   expectation.
