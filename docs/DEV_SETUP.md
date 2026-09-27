@@ -327,4 +327,4 @@ on 7002 keeps running throughout; stop it only if the two should not both
 write to the database. The pull request's api must be able to read the dev
 database as master left it: a migration it runs stays after switching back.
 
-`example.env` is still missing the OCR and CORS variables the app reads.
+`api/example.env` lists every variable the api and this compose file read.
