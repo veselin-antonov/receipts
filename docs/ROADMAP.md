@@ -47,8 +47,10 @@ below; items that were Home App concerns stay in Obsidian.
       interpolates from `api/.env`, `dev.env` is gone, the ui reaches the
       native api through `host.docker.internal` (it was a 502 before), mongo is
       pinned to 8.2, and `UI_TAG` swaps in a pull request's preview image
-- [ ] Complete `example.env` — it omits the OCR, CORS, `UI_PORT`, and
-      `BACKEND_HOST` variables the app actually reads
+- [x] Complete `example.env` — it omits the OCR, CORS, `UI_PORT`, and
+      `BACKEND_HOST` variables the app actually reads. Done in #30: every
+      placeholder in `application*.yaml` and every variable the dev compose
+      file reads is listed; `BACKEND_HOST` is set by compose (`UI_BACKEND`)
 - [ ] Make the test suite runnable on a fresh clone **(D9)** — add
       `application-test.yaml` or defaults for the 12 undefaulted placeholders,
       so `SecurityCorsTest` does not need hand-made certs and a `.env`
@@ -218,9 +220,9 @@ No open questions remain.
 - [ ] **dotenv reads the root `.env` (decision 11)** — `bootRun` keeps cwd
       `api/`, so `file:./certs/*.pem` still resolves to `api/certs/`, where
       dev keys stay
-- [ ] **Complete the root `example.env`** — closes the M0 item: OCR, CORS,
-      `UI_PORT`, `MAX_UPLOAD_MB` and the new vite target, not just the api's
-      original twelve
+- [ ] **Move `example.env` to the root** — it is complete for today's layout
+      since #30 (the M0 item); the move adds only the vite api target
+      (decision 2)
 - [ ] **vite api target from the environment (decision 2)** — replace the
       hardcoded `http://localhost:7002` in `ui/vite.config.js`, defaulting to
       it
