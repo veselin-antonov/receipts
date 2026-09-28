@@ -272,6 +272,12 @@ for each side it touches: `ghcr.io/veselin-antonov/receipts-api:pr-<n>` and
 lists the ones it built. They run against the same database and MailHog as the
 native api, so there is no branch to check out and nothing to build.
 
+**Interim:** preview images currently share the dev database, so a pull
+request's bugs can change dev data. Don't run one whose api writes data you
+care about. M1b step 4 replaces this with a preview stack of its own at
+`receipts-test.vasoft.dev` (api 7013, ui 7873), with a separate database
+refreshable from production.
+
 The variables, all optional:
 
 | Variable | Default | What it does |
