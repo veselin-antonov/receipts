@@ -126,10 +126,7 @@ remaining feature work.
 ### Decisions — 2026-09-27
 
 1. **The dev stack moves to the repo root:** `compose.dev.yaml`, `.env` and
-   `example.env` at the root, not under `api/`. Design point: `bootRun` runs
-   with cwd `api/`, and `springboot4-dotenv` reads `.env` from there. That
-   needs solving (configure the dotenv directory, or set `bootRun`'s
-   `workingDir`); not chosen yet.
+   `example.env` at the root, not under `api/`.
 2. **ui development runs on vite** (5173), proxying to the `bootRun` api. The
    ui container is for previews and built images only. vite's api target
    becomes configurable.
@@ -139,22 +136,51 @@ remaining feature work.
      `allowedHosts`.
    - `receipts-test.vasoft.dev` → the preview stack: the ui container plus the
      api container from #30.
-   - `homeapp.vasoft.dev` stays **production**.
    - Each environment's origin goes in its api's `APP_CORS_ALLOWED_ORIGINS`,
      with a matching `APP_HOST_URL`.
-   - **Open:** whether production moves to `receipts.vasoft.dev`, with
-     `homeapp.vasoft.dev` redirecting to it.
-4. **A root `Makefile`** (make, not just), with at least `setup`, `dev`,
-   `test`, `e2e`, `preview PR=<n>` and a stop target.
+4. **A root `Makefile`** (make, not just).
 5. **First monorepo release is 0.1.0.** Run `release.yml` for real, define
    what `latest` means, move `deploy/compose.yaml` from `:dev` to release tags,
-   and move the production stack (`~/docker-apps/homeapp`, served at
-   `homeapp.vasoft.dev`) to 0.1.0.
+   and move the production stack (`~/docker-apps/homeapp`) to 0.1.0.
 6. **One dev guide in `docs/`:** `api/docs/DEVELOPMENT_SETUP.md` and the setup
    parts of `api/README.md` fold into `docs/DEV_SETUP.md`;
    `api/docs/PRODUCTION_SETUP.md` folds into `deploy/README.md`.
-   **Open:** whether `.github/instructions/{api,ui}.instructions.md` stay per
-   layer.
+
+### Decisions — 2026-09-28
+
+7. **Production moves to `receipts.vasoft.dev`**, and `homeapp.vasoft.dev`
+   redirects to it. The user adds both in nginx-proxy-manager.
+8. **Production starts from the dev database.** At the switch, the current dev
+   data (migrated, 717 purchases) is copied in; from then on production is the
+   source of truth. The old `~/docker-apps/homeapp/db` is not used.
+9. **Production ports:** the ui on a host port of its own (e.g. 7870). The api
+   and MongoDB are not published on the host, only reachable inside the stack.
+10. **The dev ui container goes in step 1.** It is not used day to day; being
+    without it until the structure is right is accepted.
+11. **dotenv reads the root `.env`, while `bootRun` still runs from `api/`**,
+    so D10's `file:./certs/*.pem` paths keep working. Dev keys stay in
+    `api/certs/`.
+12. **Every database is separate:** dev, preview and production each have
+    their own. Dev and preview can be refreshed from production on demand: a
+    copy, never shared, never writing to production. Until production exists
+    (step 7), the dev database is the source, so refreshing from production
+    only becomes possible after the switch.
+13. **Preview ports:** api 7013, ui 7873; `receipts-test.vasoft.dev` → 7873.
+14. **`make dev` runs in the foreground:** the api and vite together, output
+    interleaved, and Ctrl-C stops both.
+15. **Targets:** `setup`, `dev`, `down`, `test`, `e2e`, `preview PR=<n>`,
+    `db-restore` and `db-refresh`.
+16. **Production runs a pinned version**, 0.1.0. `latest` is defined but
+    production does not use it.
+17. **`release.yml` is run by the user or by Claude.** Claude runs it only when
+    asked, after the version-bump pull request is merged, and verifies the
+    tag, the release and the images.
+18. **`.github/instructions/{api,ui}.instructions.md` stay per layer**, their
+    setup steps replaced by pointers to `docs/DEV_SETUP.md`.
+19. **M1b comes before the remaining feature work.** Branches that do not
+    touch M1b's files merge whenever they are ready.
+
+No open questions remain.
 
 ### Where things stand
 
@@ -183,12 +209,13 @@ remaining feature work.
 
 ### Checklist
 
-- [ ] **Dev stack at the root (decision 1)** — `compose.dev.yaml`, `.env`,
-      `example.env`; `bootRun` and `dev-setup.sh` read and write the root
-      `.env`. One env file for one product, not the api's
-- [ ] **Resolve the dotenv location** — `springboot4-dotenv` looks in `bootRun`'s
-      cwd, `api/`; D10's `file:./certs/*.pem` paths also resolve against it, so
-      whichever fix is chosen must keep those working
+- [ ] **Dev stack at the root (decisions 1, 10)** — `compose.dev.yaml`,
+      `.env`, `example.env`, holding db and MailHog only; `bootRun` and
+      `dev-setup.sh` read and write the root `.env`. One env file for one
+      product, not the api's
+- [ ] **dotenv reads the root `.env` (decision 11)** — `bootRun` keeps cwd
+      `api/`, so `file:./certs/*.pem` still resolves to `api/certs/`, where
+      dev keys stay
 - [ ] **Complete the root `example.env`** — closes the M0 item: OCR, CORS,
       `UI_PORT`, `MAX_UPLOAD_MB` and the new vite target, not just the api's
       original twelve
@@ -197,46 +224,53 @@ remaining feature work.
       it
 - [ ] **vite behind `receipts-dev.vasoft.dev`** — `server.allowedHosts` and
       HMR over the proxy's WebSocket, or the page loads without hot reload
-- [ ] **Take the ui container out of the default dev stack** — it moves to the
-      preview stack; `make dev` is db, MailHog, `bootRun` and vite
-- [ ] **Preview stack at `receipts-test.vasoft.dev`** — ui and api containers
-      on `pr-<n>` images from #30, on ports that do not collide with dev
+- [ ] **Preview stack at `receipts-test.vasoft.dev` (decision 13)** — ui on
+      7873 and api on 7013, on `pr-<n>` images from #30, with a MongoDB of its
+      own
+- [ ] **Separate databases, refreshed on demand (decision 12)** — dev,
+      preview and production never share one. `make db-refresh` copies
+      production into dev; `make preview` can do the same for the preview
+      database. Read-only against production; until step 7, the dev database
+      is the source
 - [ ] **`APP_HOST_URL` per environment** — dev `https://receipts-dev.vasoft.dev`,
       preview `https://receipts-test.vasoft.dev`, production
-      `https://homeapp.vasoft.dev`, each origin in the same stack's
+      `https://receipts.vasoft.dev`, each origin in the same stack's
       `APP_CORS_ALLOWED_ORIGINS`. Also settles D16 (M2a) for the real setup
-- [ ] **Root `Makefile` (decision 4)** — targets:
+- [ ] **Root `Makefile` (decisions 14, 15)** — targets:
       - `setup` — run `scripts/dev-setup.sh` (prerequisites, keys, `.env`, `npm ci`)
-      - `dev` — start db and MailHog, then `bootRun` and vite together
+      - `dev` — start db and MailHog, then `bootRun` and vite in the
+        foreground, output interleaved; Ctrl-C stops both
       - `down` — stop whatever `dev` or `preview` started
       - `test` — `./gradlew test` and the ui's lint, format and tests
       - `e2e` — `e2e/run.sh`
       - `preview PR=<n>` — pull and run that PR's preview images at
-        `receipts-test.vasoft.dev`
-      - `db-restore` — `scripts/db-restore.sh`, if it earns a target
+        `receipts-test.vasoft.dev`, optionally refreshing its database
+      - `db-restore` — `scripts/db-restore.sh`
+      - `db-refresh` — copy production's database into dev
 - [ ] **`dev-setup.sh` ends with `make dev`** — instead of the four manual
       commands
 - [ ] **One dev guide (decision 6)** — fold `api/docs/DEVELOPMENT_SETUP.md` and
       `api/README.md`'s Quickstart (Windows `TESSDATA_PATH`, `export`s) into
       `docs/DEV_SETUP.md`; `api/docs/PRODUCTION_SETUP.md` into
       `deploy/README.md`; delete what is folded
-- [ ] **Point `.github/instructions` at the guide** — whether the per-layer
-      files stay is open, but their setup text is stale either way:
+- [ ] **Point `.github/instructions` at the guide (decision 18)** — the
+      per-layer files stay, but their setup text is stale:
       `ui.instructions.md` says the proxy goes to `http://localhost:7002` and
       `npm run dev` starts an "HTTPS dev server"; `api.instructions.md` has its
-      own "Run locally" steps
-- [ ] **Release 0.1.0 (decision 5)** — bump `VERSION`, `ui/package.json` and
-      `CHANGELOG.md` in a pull request, then run `release.yml`
+      own "Run locally" steps. Replace those with pointers
+- [ ] **Release 0.1.0 (decisions 5, 17)** — bump `VERSION`, `ui/package.json`
+      and `CHANGELOG.md` in a pull request, then run `release.yml`
 - [ ] **Define the tags** — `latest` is the newest release, `dev` is master,
-      `pr-<n>` a preview; write it in `deploy/README.md`, which already lists
-      them
+      `pr-<n>` a preview; production pins a version instead (decision 16).
+      Write it in `deploy/README.md`, which already lists them
 - [ ] **`deploy/compose.yaml` on release tags** — `receipts-api` and
-      `receipts-ui` pinned to `0.1.0`, not `:dev`
-- [ ] **Production on 0.1.0** — `~/docker-apps/homeapp` runs
-      `deploy/compose.yaml` at 0.1.0 on ports of its own, and
-      `homeapp.vasoft.dev` points at it instead of the dev ui on 7863. Its
-      database must pass `LegacyDataGuard` (see DEV_SETUP's restore section);
-      which data it starts from is settled at the switch
+      `receipts-ui` pinned to `0.1.0`, not `:dev` or `latest`; only the ui
+      published on the host (e.g. 7870), the api and MongoDB internal
+      (decision 9)
+- [ ] **Production on 0.1.0 at `receipts.vasoft.dev` (decisions 7, 8)** —
+      `~/docker-apps/homeapp` runs `deploy/compose.yaml` at 0.1.0 with a copy
+      of the dev database, not the old `~/docker-apps/homeapp/db`;
+      `homeapp.vasoft.dev` redirects to `receipts.vasoft.dev`
 
 Stragglers:
 
@@ -250,9 +284,9 @@ Stragglers:
 - [ ] **Q4**, the `dev.vasoft.homeapp` package rename, stays deferred: it is
       invasive and buys nothing functional
 
-### PR plan
+### PR plan (order pending approval)
 
-Already in flight, in this order:
+Already in flight:
 
 - **#30** — `receipts-api:pr-<n>` preview images, and an optional api service
   in the dev compose. Merge first: the preview stack builds on it. *(user
@@ -261,47 +295,59 @@ Already in flight, in this order:
   `homeapp-dev` to `receipts-dev` and gives `deploy/compose.yaml`
   `name: receipts`. Rebase on #30, push, open, merge. *(user merges)*
 - **#28** (M2a search and D15) — rebase on #30 so it gets an api preview.
+- **#28 and `feat/responses-api`** (which waits on the OCR evaluation) are not
+  blocked by M1b and merge whenever they are ready: neither touches its files.
   *(user merges)*
 
 Then, each one testable on its own:
 
-1. **Dev stack to the root** — `compose.dev.yaml`, root `.env` and
-   `example.env`, the dotenv fix, `dev-setup.sh` writing the root `.env` (and
-   moving an existing `api/.env`), `BACKEND_HOST` dropped. The ui container
-   leaves the default stack. *Test:* on a fresh clone, `dev-setup.sh`,
-   `docker compose -f compose.dev.yaml up -d`, `bootRun` and `./gradlew test`
-   all work with no `api/.env`.
+1. **Dev stack to the root** — `compose.dev.yaml` with db and MailHog only,
+   root `.env` and `example.env`, dotenv reading the root `.env`,
+   `dev-setup.sh` writing it (and moving an existing `api/.env`),
+   `BACKEND_HOST` dropped, the dev ui container removed. *Test:* on a fresh
+   clone, `dev-setup.sh`, `docker compose -f compose.dev.yaml up -d`, `bootRun`
+   and `./gradlew test` all work with no `api/.env`, and the keys load from
+   `api/certs/`.
 2. **vite for ui development** — configurable api target, `allowedHosts`, HMR
    through the proxy, dev `APP_HOST_URL` and CORS origin, the `<title>`.
    *User:* add `receipts-dev.vasoft.dev` → 5173 with WebSockets on.
    *Test:* edit a component at `receipts-dev.vasoft.dev` and see it reload;
    the verification mail links there.
-3. **Root `Makefile`** — `setup`, `dev`, `down`, `test`, `e2e`; `dev-setup.sh`
-   ends with `make dev`; per-run e2e project name. *Test:* `make setup && make
-   dev` on a fresh clone; `make test`; two `make e2e` runs side by side.
-4. **Preview stack** — `make preview PR=<n>` runs the ui and api containers
-   on that PR's images, preview `APP_HOST_URL` and CORS origin.
-   *User:* add `receipts-test.vasoft.dev` → the preview ui.
+3. **Root `Makefile`** — `setup`, `dev` (foreground, Ctrl-C stops both),
+   `down`, `test`, `e2e`, `db-restore`, `db-refresh` (usable once production
+   exists, step 7); `dev-setup.sh` ends with `make dev`; per-run e2e
+   project name. *Test:* `make setup && make dev` on a fresh clone, Ctrl-C
+   leaves no api or vite behind; `make test`; two `make e2e` runs side by side.
+4. **Preview stack** — `make preview PR=<n>` runs the ui (7873) and api (7013)
+   containers on that PR's images with their own MongoDB, refreshable as a
+   copy, and the preview `APP_HOST_URL` and CORS origin.
+   *User:* add `receipts-test.vasoft.dev` → 7873.
    *Test:* `make preview PR=28` serves #28 at `receipts-test.vasoft.dev`
-   while `make dev` keeps running.
+   while `make dev` keeps running, and writes nothing to the dev database.
 5. **One dev guide** — fold the api setup docs into `docs/DEV_SETUP.md` and
-   `deploy/README.md`, written around `make`, and point
-   `.github/instructions` at them. *Test:* following `docs/DEV_SETUP.md`
-   alone gets a fresh clone to a working `make dev`.
-6. **Release 0.1.0** — bump `VERSION`, `ui/package.json` and `CHANGELOG.md`;
-   after merge, run `release.yml`. *Test:* `v0.1.0` tag, GitHub release, and
-   `receipts-api:0.1.0` / `receipts-ui:0.1.0` / `:latest` in GHCR.
-   *(user merges)*
-7. **Deploy on release tags** — `deploy/compose.yaml` pinned to `0.1.0`,
-   production ports clear of dev, tags defined in `deploy/README.md`.
-   *User:* switch `~/docker-apps/homeapp` to it and point
-   `homeapp.vasoft.dev` at the production ui. *Test:* `homeapp.vasoft.dev`
-   serves 0.1.0 with the dev stack stopped.
+   `deploy/README.md`, written around `make`, and point the
+   `.github/instructions` setup steps at them. *Test:* following
+   `docs/DEV_SETUP.md` alone gets a fresh clone to a working `make dev`.
+6. **Release 0.1.0** — bump `VERSION`, `ui/package.json` and `CHANGELOG.md`.
+   *(user merges)* Then the user, or Claude when asked, runs `release.yml`.
+   *Test:* `v0.1.0` tag, GitHub release, and `receipts-api:0.1.0` /
+   `receipts-ui:0.1.0` / `:latest` in GHCR.
+7. **Deploy on release tags** — `deploy/compose.yaml` pinned to `0.1.0`, the
+   ui on its own host port (e.g. 7870), api and MongoDB internal, production
+   `APP_HOST_URL` and CORS `https://receipts.vasoft.dev`, tags defined in
+   `deploy/README.md`. *(user merges)*
+   *User:* copy the dev database into production, switch
+   `~/docker-apps/homeapp` to the new compose, add `receipts.vasoft.dev` → the
+   production ui and redirect `homeapp.vasoft.dev` to it. *Test:*
+   `receipts.vasoft.dev` serves 0.1.0 with 717 purchases while the dev stack
+   is stopped; `homeapp.vasoft.dev` redirects there; `make db-refresh` then
+   copies from production.
 
 **Done when:** a fresh clone runs `make setup && make dev` and develops the api
 and ui together at `receipts-dev.vasoft.dev`; `make preview PR=<n>` serves a
-pull request at `receipts-test.vasoft.dev`; and `homeapp.vasoft.dev` runs
-release 0.1.0 from its own stack, not the dev one.
+pull request at `receipts-test.vasoft.dev` on its own database; and
+`receipts.vasoft.dev` runs release 0.1.0 from its own stack, with
+`homeapp.vasoft.dev` redirecting to it.
 
 ---
 
