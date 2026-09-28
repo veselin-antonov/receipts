@@ -179,6 +179,8 @@ remaining feature work.
     setup steps replaced by pointers to `docs/DEV_SETUP.md`.
 19. **M1b comes before the remaining feature work.** Branches that do not
     touch M1b's files merge whenever they are ready.
+20. **The PR plan below is approved** as drafted: seven PRs in that order,
+    the Makefile and the preview stack as separate PRs.
 
 No open questions remain.
 
@@ -284,7 +286,7 @@ Stragglers:
 - [ ] **Q4**, the `dev.vasoft.homeapp` package rename, stays deferred: it is
       invasive and buys nothing functional
 
-### PR plan (order pending approval)
+### PR plan
 
 Already in flight:
 
