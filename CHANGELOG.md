@@ -137,6 +137,10 @@ Releases up to 0.0.6 were separate; their notes are in
 
 #### Fixed
 
+- Login errors (wrong password, rate limit, server refusal) were never shown:
+  a login attempt set the app-wide auth status to pending, so `PublicRoute`
+  swapped the page for its loader and the form, with its error, was remounted
+  empty. The form now keeps its own submitting state
 - A failed rescan left the previous receipt's rows on screen, submittable as
   if they belonged to the new one; scanning now clears them first
 - A review price typed with a comma (`2,49`) became `NaN`, sent as `null`, and

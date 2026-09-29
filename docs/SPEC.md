@@ -829,8 +829,8 @@ carries only `priceEur` and `discountAmountEur`, unrounded, and an ISO date.
 - **Versioning** from the root `VERSION` file, shared by api and ui;
   `CHANGELOG.md` at the root in Keep a Changelog format.
 - **Tests** live beside the code they cover. The API has 20 test classes / 73
-  tests, one of them against a real MongoDB, and the UI has 8 test files / 32
-  tests (2026-09-26). `e2e/` drives both images end to end with Playwright.
+  tests, one of them against a real MongoDB, and the UI has 9 test files / 36
+  tests (2026-09-29). `e2e/` drives both images end to end with Playwright.
   That is the floor, not the ceiling. `ci.yml` runs whichever of them a pull
   request needs and reports once, as `ci-summary`.
 

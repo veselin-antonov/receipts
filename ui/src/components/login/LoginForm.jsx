@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 
-import { AUTH_STATUS, useAuth } from '@/components/auth/AuthContext';
+import { useAuth } from '@/components/auth/AuthContext';
 import FormInput from '@/components/forms/form-input';
 import PasswordInput from '@/components/forms/password-input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -36,14 +36,18 @@ const isAccountNotVerified = async (response) => {
 const LoginForm = () => {
   console.log('Rendering LoginForm component...');
   const [loginError, setLoginError] = useState();
-  const { setAuthStatus, isAuthInProgress, saveAuthExpiration } = useAuth();
+  // A login attempt is local to this form. Setting the app-wide auth status to
+  // PENDING would make PublicRoute swap the page for its loader, unmounting
+  // this form and losing the error it is about to show.
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { saveAuthExpiration } = useAuth();
 
   const navigate = useNavigate();
 
   // Authenticate via the API
   const login = useCallback(
     async (email, password) => {
-      setAuthStatus(AUTH_STATUS.PENDING); // Set status to PENDING
+      setIsSubmitting(true);
       setLoginError(null); // Clear any previous errors
 
       fetch(API_URL + '/auth/token', {
@@ -92,10 +96,10 @@ const LoginForm = () => {
         .catch((error) => {
           console.error('Login error:', error);
           setLoginError(error.message);
-          setAuthStatus(AUTH_STATUS.UNAUTHENTICATED); // Set error status
+          setIsSubmitting(false);
         });
     },
-    [setAuthStatus, saveAuthExpiration, navigate]
+    [saveAuthExpiration, navigate]
   );
 
   const form = useForm({
@@ -142,8 +146,8 @@ const LoginForm = () => {
           forgotPassword: true,
         }}
       />
-      <Button disabled={isAuthInProgress()} type="submit" className="text-lg">
-        {isAuthInProgress() ? <Loader2 className="animate-spin" /> : 'Влизане'}
+      <Button disabled={isSubmitting} type="submit" className="text-lg">
+        {isSubmitting ? <Loader2 className="animate-spin" /> : 'Влизане'}
       </Button>
     </form>
   );
