@@ -250,16 +250,6 @@ hot restart. An api image can run next to it as `receipts-api`, behind the
 compose profile `api`, for testing a pull request (below); a plain `up -d`
 does not start it.
 
-The compose project is `receipts-dev` (containers `receipts-db-dev`,
-`receipts-ui-dev`, `mailhog`). A stack started before the rename runs as
-`homeapp-dev` and has to be taken down under that name once; the data in
-`api/.mongo-data` is a bind mount and is kept:
-
-```bash
-docker compose -p homeapp-dev -f api/docker-compose.dev.yml down
-docker compose -f api/docker-compose.dev.yml up -d
-```
-
 - Compose interpolates from `api/.env`, which it reads because the file sits
   next to it. Nothing is passed to a container with `env_file`: each service
   lists the variables it gets, so the OpenAI key only enters the optional
