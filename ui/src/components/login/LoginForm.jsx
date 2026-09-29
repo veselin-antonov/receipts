@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 
-import { AUTH_STATUS, useAuth } from '@/components/auth/AuthContext';
+import { useAuth } from '@/components/auth/AuthContext';
 import FormInput from '@/components/forms/form-input';
 import PasswordInput from '@/components/forms/password-input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -17,17 +17,37 @@ const formSchema = z.object({
   password: z.string().min(1, 'Паролата е задължителна'),
 });
 
+// The API's ProblemDetail code for a correct login to an unverified account.
+const ACCOUNT_NOT_VERIFIED = 'ACCOUNT_NOT_VERIFIED';
+
+// Only the error code says the account is unverified; a bare 403 does not (D15).
+const isAccountNotVerified = async (response) => {
+  if (response.status !== 403) {
+    return false;
+  }
+  try {
+    const body = JSON.parse(await response.text());
+    return body?.error === ACCOUNT_NOT_VERIFIED;
+  } catch {
+    return false;
+  }
+};
+
 const LoginForm = () => {
   console.log('Rendering LoginForm component...');
   const [loginError, setLoginError] = useState();
-  const { setAuthStatus, isAuthInProgress, saveAuthExpiration } = useAuth();
+  // A login attempt is local to this form. Setting the app-wide auth status to
+  // PENDING would make PublicRoute swap the page for its loader, unmounting
+  // this form and losing the error it is about to show.
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { saveAuthExpiration } = useAuth();
 
   const navigate = useNavigate();
 
   // Authenticate via the API
   const login = useCallback(
     async (email, password) => {
-      setAuthStatus(AUTH_STATUS.PENDING); // Set status to PENDING
+      setIsSubmitting(true);
       setLoginError(null); // Clear any previous errors
 
       fetch(API_URL + '/auth/token', {
@@ -38,13 +58,18 @@ const LoginForm = () => {
           Authorization: 'Basic ' + btoa(email + ':' + password),
         },
       })
-        .then((response) => {
+        .then(async (response) => {
           if (response.ok) {
             return response.text();
-          } else if (response.status === 403) {
+          } else if (await isAccountNotVerified(response)) {
             console.log('Navigating to /not-verified');
             navigate('/not-verified');
             return Promise.reject(new Error('Account not verified!'));
+          } else if (response.status === 403) {
+            // Not the account: a CORS rejection, for one, is also a 403 (D15)
+            throw new Error(
+              'Сървърът отказа достъп (403). Моля опитайте по-късно.'
+            );
           } else if (response.status === 401) {
             throw new Error(
               'Неправилни имейл и/или парола. Моля опитайте отново.'
@@ -71,10 +96,10 @@ const LoginForm = () => {
         .catch((error) => {
           console.error('Login error:', error);
           setLoginError(error.message);
-          setAuthStatus(AUTH_STATUS.UNAUTHENTICATED); // Set error status
+          setIsSubmitting(false);
         });
     },
-    [setAuthStatus, saveAuthExpiration, navigate]
+    [saveAuthExpiration, navigate]
   );
 
   const form = useForm({
@@ -121,8 +146,8 @@ const LoginForm = () => {
           forgotPassword: true,
         }}
       />
-      <Button disabled={isAuthInProgress()} type="submit" className="text-lg">
-        {isAuthInProgress() ? <Loader2 className="animate-spin" /> : 'Влизане'}
+      <Button disabled={isSubmitting} type="submit" className="text-lg">
+        {isSubmitting ? <Loader2 className="animate-spin" /> : 'Влизане'}
       </Button>
     </form>
   );

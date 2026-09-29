@@ -422,10 +422,8 @@ These are not polish; they came out of the first real run.
       EUR whichever column the model read. Needs a `currency` field in
       `ParsedReceipt` and the prompt; that is a scanning change, so it is
       measured by the harness (ADR-0007). Batch it with the M0a OCR runs
-- [ ] **Search matches nothing** — `CustomRepository.findBySearchQuery`
-      filters on `productDetails.name` / `storeDetails.name`, but the field is
-      `canonicalName` since the rename. Searching `billa` returns 0 pages
-      against 717 rows. Found 2026-09-23; predates the currency work
+- [x] **Search matches nothing** — search matches product and store
+      `canonicalName` as literal, case-insensitive text
 - [x] **`POST /api/purchases` ignores IDs** — fixed 2026-09-23: it now shares
       the id-first resolution of `registerPurchases`. The UI's manual form had
       the matching bug — it sent `product` / `store`, which the API never read,
@@ -460,10 +458,8 @@ These are not polish; they came out of the first real run.
       `"карфиол на брой"`
 - [ ] Record confirmed matches as aliases, so each correction improves the next
       scan ([SPEC §8.4](SPEC.md#84-f4--catalog-and-normalization))
-- [ ] **Stop inferring "unverified" from a bare 403 (D15)** — return a
-      distinguishable error code and have the UI key off that. The current
-      behaviour reported a healthy account as unverified and sent the user into
-      a dead-end resend flow
+- [x] **Stop inferring "unverified" from a bare 403 (D15)** — the login 403
+      carries `ACCOUNT_NOT_VERIFIED`; the UI shows a generic error otherwise
 - [ ] Make CORS workable off-localhost (D16) — the dev default cannot work for
       a headless server browsed from a laptop, which is the real setup
 - [ ] Clean the store catalog — it holds `Тест`, `Тест 2`, `кастрия еоод`,

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.group;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.limit;
@@ -54,10 +55,12 @@ public class CustomRepository {
 		operations.add(Aggregation.unwind("productDetails", true));
 		operations.add(Aggregation.unwind("storeDetails", true));
 
-		// Match the search query
+		// Match the search query as literal text, case-insensitively, against
+		// the names the UI shows. The query is user input, not a pattern.
+		String literal = Pattern.quote(searchQuery);
 		Criteria criteria = new Criteria().orOperator(
-				Criteria.where("productDetails.name").regex(searchQuery, "i"),
-				Criteria.where("storeDetails.name").regex(searchQuery, "i"));
+				Criteria.where("productDetails.canonicalName").regex(literal, "i"),
+				Criteria.where("storeDetails.canonicalName").regex(literal, "i"));
 		operations.add(Aggregation.match(criteria));
 
 		List<AggregationOperation> totalOperations = new ArrayList<>(

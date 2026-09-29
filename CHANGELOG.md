@@ -81,6 +81,10 @@ Releases up to 0.0.6 were separate; their notes are in
   switches to the MongoDB driver's java.time codecs, so a purchase date is
   always midnight UTC of its day. The JVM's zone now affects only log
   timestamps; `docker-compose.yml` sets `TZ` (default `Europe/Sofia`) for that
+- **Breaking:** `POST /api/auth/token` for an unverified account answers 403
+  with a `ProblemDetail` carrying `error: ACCOUNT_NOT_VERIFIED`, instead of the
+  token lifetime as a bare number, so clients can tell it from other 403s
+  such as a CORS rejection (D15). It still sets the limited cookie
 
 #### Fixed
 - **Security:** the JWT signing key (`certs/private.pem`) and any `*.env` in
@@ -102,6 +106,10 @@ Releases up to 0.0.6 were separate; their notes are in
   with empty names
 - Legacy BGN prices were served as euros, ~2x overstated, after the JDK's
   bg-BG locale switched to EUR (D11)
+- Purchase search matched nothing: it filtered on the product's and store's
+  `name`, renamed to `canonicalName`. It now matches either name as literal,
+  case-insensitive text, so regex syntax in the query (`(`, `.*`) neither
+  errors nor matches everything
 
 #### Removed
 - `Formatter`; formatting belongs to the UI (D2)
@@ -129,11 +137,20 @@ Releases up to 0.0.6 were separate; their notes are in
 
 #### Fixed
 
+- Login errors (wrong password, rate limit, server refusal) were never shown:
+  a login attempt set the app-wide auth status to pending, so `PublicRoute`
+  swapped the page for its loader and the form, with its error, was remounted
+  empty. The form now keeps its own submitting state
 - A failed rescan left the previous receipt's rows on screen, submittable as
   if they belonged to the new one; scanning now clears them first
 - A review price typed with a comma (`2,49`) became `NaN`, sent as `null`, and
   the API would store 0. `parseDecimal` in `format.js` accepts either
   separator, and an unreadable amount blocks the submit with an error
+- Login treated every 403 as "account not verified" and sent the user to the
+  resend-verification page, even when the 403 was a CORS rejection of a
+  healthy account. It now goes there only on the API's `ACCOUNT_NOT_VERIFIED`
+  code and shows a generic error for any other 403 (D15; requires the matching
+  API change)
 - README and copilot instructions: test counts, and the API proxy is plain
   HTTP (the API has had no TLS since 0.0.6)
 - The manual purchase form sent `product` / `store`, which the API does not

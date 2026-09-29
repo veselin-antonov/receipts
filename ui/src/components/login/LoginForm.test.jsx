@@ -69,15 +69,8 @@ describe('LoginForm', () => {
     });
   });
 
-  it('navigates inactive users to the not-verified page when the API returns 403', async () => {
+  const submitLogin = async () => {
     const user = userEvent.setup();
-    globalThis.fetch = vi.fn(() =>
-      Promise.resolve({
-        ok: false,
-        status: 403,
-        text: () => Promise.resolve('3600000'),
-      })
-    );
 
     renderLogin();
 
@@ -87,7 +80,66 @@ describe('LoginForm', () => {
     await user.type(screen.getByLabelText('Имейл'), 'vesko@example.com');
     await user.type(screen.getByLabelText('Парола'), 'correct-password');
     await user.click(submit);
+  };
+
+  it('navigates to the not-verified page when the API says ACCOUNT_NOT_VERIFIED', async () => {
+    globalThis.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: false,
+        status: 403,
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({
+              type: 'about:blank',
+              title: 'Account Not Verified',
+              status: 403,
+              error: 'ACCOUNT_NOT_VERIFIED',
+            })
+          ),
+      })
+    );
+
+    await submitLogin();
 
     await screen.findByText(/профилът не е потвърден/i);
+  });
+
+  it('shows a generic error for a 403 without the unverified code', async () => {
+    globalThis.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: false,
+        status: 403,
+        // What Spring's CORS filter sends for a disallowed origin
+        text: () => Promise.resolve('Invalid CORS request'),
+      })
+    );
+
+    await submitLogin();
+
+    await screen.findByText(/сървърът отказа достъп/i);
+    expect(
+      screen.queryByText(/профилът не е потвърден/i)
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /влизане/i })).toBeEnabled();
+  });
+
+  it('shows a generic error for a 403 with a different problem code', async () => {
+    globalThis.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: false,
+        status: 403,
+        text: () =>
+          Promise.resolve(
+            JSON.stringify({ status: 403, error: 'SOMETHING_ELSE' })
+          ),
+      })
+    );
+
+    await submitLogin();
+
+    await screen.findByText(/сървърът отказа достъп/i);
+    expect(
+      screen.queryByText(/профилът не е потвърден/i)
+    ).not.toBeInTheDocument();
   });
 });

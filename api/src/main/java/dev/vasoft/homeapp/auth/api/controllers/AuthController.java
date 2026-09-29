@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.server.Cookie.SameSite;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -46,7 +45,7 @@ public class AuthController {
     }
 
     @PostMapping("/token")
-    public ResponseEntity<Long> generateToken(Authentication authentication,
+    public ResponseEntity<?> generateToken(Authentication authentication,
         HttpServletResponse response) {
         LOG.debug("Token requested for user: '{}'", authentication.getName());
 
@@ -58,12 +57,14 @@ public class AuthController {
 
         response.addHeader(HttpHeaders.SET_COOKIE, jwtCookie.toString());
 
+        // The limited cookie is still set: it is what lets an unverified user
+        // ask for a new verification e-mail.
         String tokenType = token.getClaim(TokenService.CLAIM_TOKEN_TYPE);
-        HttpStatusCode httpStatus =
-            TokenService.TOKEN_TYPE_LIMITED.equals(tokenType) ? HttpStatus.FORBIDDEN
-                : HttpStatus.OK;
+        if (TokenService.TOKEN_TYPE_LIMITED.equals(tokenType)) {
+            return AuthControllerAdvice.accountNotVerified();
+        }
 
-        return ResponseEntity.status(httpStatus).body(jwtCookie.getMaxAge().toMillis());
+        return ResponseEntity.ok(jwtCookie.getMaxAge().toMillis());
     }
 
     @GetMapping("/status")
