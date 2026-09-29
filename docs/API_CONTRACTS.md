@@ -278,8 +278,8 @@ Money and dates:
   string in a request is rejected with `400`. Display formats are the UI's job
 - a stored purchase with no currency is a server error, never a guess
 
-Known issues:
-- `searchQuery` currently matches nothing: it filters on a renamed field
+`searchQuery` matches a product's or a store's canonical name, ignoring case.
+It is plain text: regex characters such as `(` or `.*` match themselves.
 
 Product and store resolution, here and on `POST /api/receipts/submit`: a
 submitted `productId` / `storeId` wins; the name is the fallback.
