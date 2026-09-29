@@ -54,12 +54,12 @@ public class ReceiptScanService {
     /**
      * Routes photographed receipts to the vision model instead of through OCR.
      *
-     * <p>Images have always gone OCR text to LLM while PDFs went straight to
-     * vision, so for a photo the model never sees the pixels and Tesseract's
-     * output is the ceiling on everything downstream. Single-digit misreads in
-     * dates are unrecoverable after that point. This flag exists to measure
-     * whether the vision path beats OCR on real photos; it is off by default
-     * until the numbers say otherwise.
+     * <p>Images go OCR text to LLM while PDFs go straight to vision, so for a
+     * photo the model never sees the pixels and Tesseract's output is the
+     * ceiling on everything downstream. This flag re-tests that choice. It is
+     * off by default because vision was measured worse on real photos: it reads
+     * prices about as well but fabricates product names (ADR-0004). Keep it so
+     * a future model can be re-measured with a config change.
      */
     private final boolean visionForImages;
 
