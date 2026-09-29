@@ -29,9 +29,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Service for extracting text from receipt images using Tesseract OCR.
- * Handles EXIF orientation correction and optional preprocessing
- * (upscaling, sharpening, adaptive binarization) for camera photos.
+ * Extracts text from receipt images with Tesseract OCR.
+ *
+ * <p>Every image takes the same path: EXIF orientation correction, a crop to
+ * the receipt, then preprocessing (upscale, grayscale, sharpen, global Otsu
+ * binarization) before Tesseract runs.
  */
 @Service
 public class OcrService {
@@ -80,10 +82,9 @@ public class OcrService {
     }
 
     /**
-     * Extracts text from a receipt image using Tesseract OCR.
-     * Screenshots (PNG) are fed directly to Tesseract since they already have
-     * clean, sharp text. Photos (JPEG, etc.) go through EXIF orientation
-     * correction and preprocessing first.
+     * Extracts text from a receipt image using Tesseract OCR. The image is
+     * rotated per its EXIF orientation, cropped to the receipt and
+     * preprocessed, whatever its format.
      *
      * @param file The uploaded receipt image file
      * @return Extracted text content from the receipt
@@ -104,22 +105,17 @@ public class OcrService {
 
             image = applyExifOrientation(image, exifOrientation);
 
-            // One path for every image. There is deliberately no photo-vs-screenshot
-            // branch: the previous one keyed off the PNG extension, so a photo
-            // exported as PNG skipped the preprocessing it needed while a screenshot
-            // saved as JPEG got preprocessing that could destroy it (D19).
+            // One path for every image; do not add a photo-vs-screenshot branch.
+            // No cheap signal separates the two: the file extension says nothing
+            // about how an image was made (D19), colour counts overlap completely
+            // on the fixture set (screen captures 345-472 distinct colours,
+            // photographs 194-392, because a receipt photo is itself a low-colour
+            // scene), and camera EXIF is stripped by messaging apps.
             //
-            // Replacing that test was tried and abandoned. Colour count does not
-            // separate the two on this data - measured across the fixture set,
-            // screen captures land at 345-472 distinct colours and photographs at
-            // 194-392, overlapping completely, because a receipt photo is itself a
-            // low-colour scene. Camera EXIF works but is stripped by messaging apps.
-            //
-            // The branch turned out to be unnecessary. Measured on a real app
-            // screenshot, this pipeline returns 13/15 tokens - identical to feeding
-            // it the raw image - because cropping is a no-op when the document
-            // already fills the frame, and thresholding clean rendered text is close
-            // to identity. Removing the classification removes the bug class.
+            // Nor is a branch needed. Measured on a real app screenshot, this
+            // pipeline returns 13/15 tokens, identical to feeding it the raw image,
+            // because cropping is a no-op when the document already fills the frame
+            // and thresholding clean rendered text is close to identity. See ADR-0004.
             BufferedImage cropped = cropToReceipt(image);
             BufferedImage ocrInput = preprocessImage(cropped);
             saveDebugImage(ocrInput, file.getOriginalFilename());
@@ -232,23 +228,22 @@ public class OcrService {
     }
 
     /**
-     * Heuristic: PNGs are almost always screenshots or digital exports,
-     * while JPEGs/WebP are camera photos. Screenshots have clean text that
-     * doesn't benefit from preprocessing — in fact, sharpening and binarization
-     * can degrade their already pixel-perfect edges.
-     */
-    /**
      * Crops to the receipt so that thresholding sees paper and ink rather than
      * paper and furniture.
      *
-     * <p>Finds the largest bright region — the paper against whatever it is lying
-     * on — by scanning rows and columns for a run of pixels above a high
-     * percentile. Deliberately simple: no edge detection, no perspective
+     * <p>Samples the luminance histogram and takes the 92nd percentile as the
+     * paper level; anything brighter than that level minus
+     * {@link #PAPER_TOLERANCE}, and never below {@link #MIN_PAPER_LUMINANCE},
+     * counts as paper. The crop is the bounding box of every row and column in
+     * which more than {@link #MIN_ROW_COVERAGE} of the samples are paper, plus
+     * a small margin. Deliberately simple: no edge detection, no perspective
      * correction. The receipt is the brightest thing in a receipt photo, which
      * is enough.
      *
-     * <p>Returns the original image when it cannot find a plausible receipt, so
-     * an unusual photo degrades to the previous behaviour rather than failing.
+     * <p>Returns the whole frame when no region is found, or when the region
+     * covers more than {@link #MAX_USEFUL_CROP} or less than
+     * {@link #MIN_PLAUSIBLE_CROP} of it, so an unusual image is OCRed uncropped
+     * rather than failing.
      */
     private BufferedImage cropToReceipt(BufferedImage image) {
         int w = image.getWidth();
@@ -396,7 +391,8 @@ public class OcrService {
 
     /**
      * Preprocesses a receipt image to improve OCR accuracy.
-     * Pipeline: upscale → grayscale → sharpen → Otsu binarization.
+     * Pipeline: upscale → grayscale → sharpen → global Otsu binarization,
+     * producing a 1-bit image.
      */
     private BufferedImage preprocessImage(BufferedImage original) {
         BufferedImage image = upscaleIfNeeded(original);
@@ -447,9 +443,11 @@ public class OcrService {
     }
 
     /**
-     * Binarizes using Otsu's method — automatically picks the optimal threshold
-     * by minimizing intra-class variance. Much better than a fixed threshold
-     * for preserving the curves that distinguish digits like 0, 6 and 8.
+     * Binarizes using Otsu's method: one threshold for the whole image, chosen
+     * automatically by minimizing intra-class variance. Better than a fixed
+     * threshold for preserving the curves that distinguish digits like 0, 6
+     * and 8, but global, so it cannot serve a receipt whose halves are lit
+     * differently (shadow, curl).
      */
     private BufferedImage otsuBinarize(BufferedImage grayscale) {
         int width = grayscale.getWidth();

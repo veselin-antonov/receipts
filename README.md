@@ -28,7 +28,7 @@ The whole Receipts product in one repository (see
 |---|---|---|
 | 1 | [docs/SPEC.md](docs/SPEC.md) | What we are building and why. **The spec we follow.** |
 | 2 | [docs/DEV_SETUP.md](docs/DEV_SETUP.md) | How to get it running locally, and what is automated. |
-| 3 | [docs/SCANNING_PATHS.md](docs/SCANNING_PATHS.md) | The three routes an uploaded receipt can take, and why they differ. |
+| 3 | [docs/SCANNING_PATHS.md](docs/SCANNING_PATHS.md) | How an uploaded receipt is routed, OCRed, parsed and matched, and why PDFs and images fail differently. |
 | 4 | [docs/ROADMAP.md](docs/ROADMAP.md) | The order we build it in. |
 | 5 | [docs/adr/](docs/adr/) | Decisions, with the reasoning that produced them. |
 | 6 | [docs/ARCHITECTURE_AND_FLOWS.md](docs/ARCHITECTURE_AND_FLOWS.md) | The API's components and request flows. |

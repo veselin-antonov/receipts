@@ -1,9 +1,10 @@
-# Scanning: the three paths
+# Scanning: how an upload becomes a review payload
 
-> Written because this keeps getting rediscovered. An uploaded file can take
-> one of **three** routes, chosen by two separate branches, and they behave
-> differently enough that "the scan works" is never a meaningful statement on
-> its own — it is only ever true of one path.
+`POST /api/receipts/scan` takes one file and returns a `ResScanResult` for the
+user to review. Nothing is saved; `/submit` writes. The file takes one of two
+paths, chosen by its content type alone: a PDF goes to the LLM as a document,
+and an image goes through OCR and then to the LLM as text. The two fail
+differently, so "the scan works" is only ever true of one of them.
 
 ## The routing
 
@@ -11,97 +12,195 @@
 POST /api/receipts/scan
         │
         ▼
-  validateFile()          ≤10 MB; JPEG, JPG, PNG, GIF, WebP, PDF
-        │
+  validateFile()         not empty; content type present and one of
+        │                JPEG, JPG, PNG, GIF, WebP, PDF; ≤ MAX_UPLOAD_MB (25)
         ▼
-  isImage(file)?          ← branch 1: contentType in IMAGE_CONTENT_TYPES
+  isImage(file) && !vision-for-images ?
         │
-   ┌────┴─────────────────────────────┐
-   │ no                               │ yes
-   ▼                                  ▼
-┌─────────────┐              isScreenshot(file)?   ← branch 2: contentType
-│  PATH A     │                       │               == "image/png"
-│  PDF / LLM  │            ┌──────────┴──────────┐
-│  document   │            │ yes                 │ no
-└─────────────┘            ▼                     ▼
-                    ┌─────────────┐      ┌──────────────┐
-                    │  PATH B     │      │  PATH C      │
-                    │  OCR, raw   │      │  OCR, pre-   │
-                    │  no preproc │      │  processed   │
-                    └─────────────┘      └──────────────┘
-        │                   │                     │
-        └───────────────────┴─────────────────────┘
-                            ▼
-              MatcherService.matchStore(...)
-              MatcherService.matchProductsToPurchases(...)
-                            ▼
-                      ResScanResult
+   ┌────┴──────────────────────────────┐
+   │ no (PDF, or flag on)              │ yes (every image)
+   ▼                                   ▼
+┌──────────────────────┐    ┌──────────────────────────────────┐
+│ LlmReceiptParser     │    │ OcrService.extractText           │
+│   .parseReceipt      │    │   EXIF orientation               │
+│ file as media,       │    │   cropToReceipt                  │
+│ document prompt      │    │   upscale, grayscale, sharpen,   │
+│                      │    │   global Otsu → 1-bit            │
+│                      │    │   Tesseract                      │
+│                      │    │ LlmReceiptParser                 │
+│                      │    │   .parseReceiptText, text prompt │
+└──────────────────────┘    └──────────────────────────────────┘
+        │                                   │
+        └─────────────────┬─────────────────┘
+                          ▼
+            rejectIfNothingParsed    no items → 422
+                          ▼
+            MatcherService.matchStore(storeName)
+            MatcherService.matchProductsToPurchases(items)
+                          ▼
+                    ResScanResult
 ```
 
-Both branches key off **`contentType` alone**. Neither looks at the image.
+`ReceiptScanService` owns the routing. `isImage` checks the lower-cased
+content type against `IMAGE_CONTENT_TYPES` (`image/jpeg`, `image/jpg`,
+`image/png`, `image/gif`, `image/webp`), so after `validateFile` the only thing
+that is "not an image" is `application/pdf`. Nothing looks at the pixels or the
+file extension to choose a path.
+
+Every image takes the same path, whether it is a camera photo or a screenshot.
+[ADR-0004](adr/0004-ocr-plus-llm-parsing.md) records why there is no
+screenshot branch.
 
 ---
 
-## Path A — PDF, straight to the LLM
+## PDFs: straight to the LLM
 
 ```text
 file → LlmReceiptParser.parseReceipt(file) → ParsedReceipt
 ```
 
-No OCR, no preprocessing. The file goes to the model's document/vision path
-with its own prompt, separate from the OCR-text prompt.
+No OCR and no preprocessing. The file is attached to the prompt as media with
+its content type (`application/pdf`), under the document prompt described
+below. Rationale in [ADR-0004](adr/0004-ocr-plus-llm-parsing.md): a PDF is
+usually clean extractable text, and OCR would add noise for nothing.
 
-Rationale in [ADR-0004](adr/0004-ocr-plus-llm-parsing.md): PDFs are already
-clean extractable text, and OCR would add noise for nothing.
-
-**Reached by:** anything whose content type is not in `IMAGE_CONTENT_TYPES`.
-After `validateFile` that means PDF, but note the code's condition is "not an
-image", not "is a PDF".
-
-**Status: never executed.** Not once, in any session. Entirely unverified.
+In the 2026-09-23 harness baseline, the four text PDFs in the fixture set
+returned 200 with every item's price correct, and the two scanned-image PDFs
+returned 422.
 
 ---
 
-## Path B — PNG, OCR with no preprocessing
+## Images: OCR, then the LLM
 
 ```text
-file → EXIF orientation → Tesseract (raw) → LlmReceiptParser.parseReceiptText
-```
-
-`isScreenshot()` returns true for any `image/png`, and the image goes to
-Tesseract untouched.
-
-**Reached by:** any PNG. The intent is screen captures, which have crisp
-rendered text that sharpening and binarization would only damage.
-
-**Status: this is the path the synthetic test actually took.** The test image
-was written as `receipt.png`, so the "end-to-end scan verified" result came
-from here — the preprocessing code never ran. Worth remembering when reading
-any earlier claim that scanning works.
-
-**Note:** `saveDebugImage` is only called on Path C, so a Path B failure leaves
-no debug artefact.
-
----
-
-## Path C — other images, OCR with preprocessing
-
-```text
-file → EXIF orientation → preprocessImage() → Tesseract → parseReceiptText
+file → EXIF orientation → cropToReceipt → preprocessImage → Tesseract
+     → LlmReceiptParser.parseReceiptText(ocrText) → ParsedReceipt
 
 preprocessImage:  upscale → grayscale → sharpen → otsuBinarize
 ```
 
-**Reached by:** JPEG, JPG, GIF, WebP. In practice: every phone photo, which is
-the primary way receipts actually arrive.
+All of this is `OcrService.extractText`.
 
-**Status: broken on real photos.** See D17. The first real receipt through this
-path returned zero items. The pipeline ends in **global Otsu binarization**,
-which is unsound for photos with a background (see below).
+### EXIF orientation
 
-**Also note:** the `OcrService` class comment claims the pipeline uses
-"adaptive binarization". It does not — `preprocessImage` calls `otsuBinarize`,
-which is global. The comment has been wrong long enough to mislead.
+The EXIF `Orientation` tag is read with metadata-extractor and all eight values
+are applied (rotations and mirrors), so a portrait phone photo reaches
+Tesseract upright. A missing tag, or any error reading it, means orientation 1:
+use the image as decoded.
+
+### Crop to the receipt
+
+`cropToReceipt` removes the table the receipt is lying on, so that
+thresholding sees paper and ink rather than paper and furniture:
+
+1. Sample the image's luminance on a grid (step `min(w, h) / 400`).
+2. The **paper level** is the 92nd percentile of that histogram. A sample is
+   paper if it is brighter than `max(140, paperLevel − 45)`.
+3. Keep every row and every column in which more than 6% of the samples are
+   paper. The crop is their bounding box plus a margin of `max(8, min(w, h) / 100)`
+   pixels.
+4. If no such rows or columns exist, or the crop would cover more than 95% or
+   less than 4% of the frame, use the whole frame instead.
+
+No edge detection, no perspective correction or deskew. On a screenshot the
+receipt already fills the frame, so the crop is a no-op.
+
+### Preprocessing
+
+`preprocessImage` runs on the cropped image:
+
+| Step | What it does |
+|---|---|
+| upscale | if the image is shorter than 2000 px, scale it up (bicubic) to 2000 px high |
+| grayscale | convert to 8-bit gray |
+| sharpen | 3×3 kernel, centre 5, edges −1 |
+| `otsuBinarize` | one global Otsu threshold over the whole image; output is **1-bit** |
+
+The threshold is computed once per image from the full histogram of the
+sharpened grayscale and logged at DEBUG as `Otsu threshold: <n>`. Tesseract
+receives the 1-bit image.
+
+### Tesseract
+
+Configured once in `OcrConfig`:
+
+| Setting | Value |
+|---|---|
+| engine mode | OEM 1, LSTM only |
+| page segmentation | PSM 6, a single uniform block of text |
+| `user_defined_dpi` | 300 |
+| language | `app.ocr.language`, from `OCR_LANGUAGE`, default `eng+bul` |
+| tessdata | `app.ocr.data-path`, from `TESSDATA_PATH`, default `/usr/share/tessdata` |
+
+The OCR text is logged at TRACE only, since it is the full text of a real
+receipt.
+
+### Debug images
+
+When `app.ocr.debug-output-path` (`OCR_DEBUG_OUTPUT_PATH`) is set, the image
+handed to Tesseract (cropped, preprocessed, 1-bit) is saved there as
+`<name>_<yyyyMMdd_HHmmss>_preprocessed.png` for every image scan. The name is
+reduced to a safe last path segment first. Unset, nothing is written.
+
+---
+
+## The vision flag
+
+`receipts.scanning.vision-for-images`, default `false`. When `true`, images skip
+OCR and go through `parseReceipt` like a PDF, as media under the document
+prompt. It exists to re-measure the OCR-versus-vision choice for a future model
+with a config change; vision was measured worse on real photos (see
+[below](#measured-vision-vs-ocr-for-photographed-receipts-2026-09-23) and
+[ADR-0004](adr/0004-ocr-plus-llm-parsing.md)), so it stays off.
+
+---
+
+## The two prompts
+
+`LlmReceiptParser` holds two prompts, and both ask for the same structured
+output: `ParsedReceipt`, whose schema Spring AI generates from the record
+(every field marked required).
+
+| | `RECEIPT_VISION_PROMPT` | `RECEIPT_TEXT_PARSING_PROMPT` |
+|---|---|---|
+| used by | `parseReceipt(file)`: PDFs, and images with the flag on | `parseReceiptText(ocrText)`: images |
+| input | the file, attached as media | the OCR text, substituted into `{ocrText}` |
+| framing | "analyze this receipt image" | "OCR-extracted text … may contain minor OCR errors, use context to correct" |
+
+The body is otherwise the same in both: return the shop rather than the owning
+company (with Bulgarian examples), the receipt date as `dd/MM/yyyy`, the item
+fields (`productName`, `price` as the listed price **before** discount,
+`quantity`, `quantityUnit`, `discountAmount`), the discount patterns to look
+for, and what not to count as an item. The document prompt has one discount
+pattern the text prompt lacks: a crossed-out original price.
+
+A change to parsing behaviour usually means editing both. Any exception from
+the model call becomes a `ReceiptParsingException`.
+
+---
+
+## Building the result
+
+1. **Nothing parsed fails the scan.** If `ParsedReceipt` is null or has no
+   items, `rejectIfNothingParsed` throws `ReceiptParsingException`, which
+   `ReceiptScanControllerAdvice` maps to **422** with `RECEIPT_PARSING_ERROR`.
+   The same mapping covers unreadable images, OCR errors and model errors.
+2. **Store.** `matchStore` normalizes the parsed store name (Unicode NFD with
+   combining marks removed, lower case, anything not a letter or digit to a
+   space, whitespace collapsed) and looks for a store whose
+   `normalizedCanonicalName` is exactly equal. Store aliases and fuzzy matching
+   are not consulted. The result carries the match, or none, plus the raw name.
+3. **Products.** For each item, `matchProductsToPurchases` scores **every**
+   product in the catalog against the normalized item name: 1.0 for an exact
+   canonical-name match, 0.99 for an exact alias match, otherwise the best
+   Levenshtein similarity (`1 − distance / longer length`) over the canonical
+   name and aliases. It keeps up to five suggestions scoring at least 0.45,
+   best first, ties by name.
+4. **Response.** `ResScanResult(storeSuggestion, rawStoreName, purchaseDate,
+   purchases)`, where each purchase carries the parsed name, its product
+   suggestions, and the parsed price, quantity, unit and discount unchanged.
+
+NFD stripping also removes the breve from `й`, so it compares equal to `и`.
 
 ---
 
@@ -117,7 +216,7 @@ for dark ink, one for light paper.
 
 A receipt photographed on a table breaks that assumption, because the image is
 not ink-and-paper. It is three things: ink, paper, and **table**. Observed on
-the real receipt:
+the real receipt, on the pipeline before `cropToReceipt` existed:
 
 - the chosen threshold was **139**, which separated *receipt from wood*, not
   *ink from paper*
@@ -127,57 +226,25 @@ the real receipt:
   characters** from a receipt of roughly twenty lines, with **none** of the real
   text surviving
 
-Being *global* is the second problem. One threshold cannot serve a receipt with
-a shadow falling across it, or the curl most receipts have — the lit half and
-the shadowed half need different cut-offs.
+`cropToReceipt` now removes most of the table before Otsu runs. It still
+applies whenever the crop falls back to the whole frame, and a receipt that is
+not the brightest thing in the photo will not be found.
+
+Being *global* is the problem cropping does not solve. One threshold cannot
+serve a receipt with a shadow falling across it, or the curl most receipts
+have — the lit half and the shadowed half need different cut-offs.
 
 **The alternative is local (adaptive) thresholding** — Sauvola or Niblack are
 the standard choices for document images. These compute a threshold per small
 neighbourhood from its own local mean and variance, so a shadow simply shifts
 the local threshold with it.
 
-**But the stronger move is to binarize less, not better.** Tesseract 4 and 5
-binarize internally, per region. Handing it a pre-binarized 1-bit image throws
-away information it would otherwise have used. Passing clean **grayscale** and
-letting Tesseract decide is often better than any hand-rolled binarization, and
-it is worth measuring before investing in Sauvola.
-
-Cropping to the receipt first matters more than either choice. While 80% of the
-frame is furniture, no thresholding strategy can save it.
-
----
-
-## Telling a screenshot from a photo
-
-`isScreenshot()` uses the file extension, which carries no information about
-how an image was produced (D19). Real signals, most to least reliable:
-
-| Signal | Why it works | Caveat |
-|---|---|---|
-| **Distinct colour count** | Rendered text uses a handful of colours; photos have tens of thousands | Very strong, and cheap to compute |
-| **Perfectly uniform regions** | Screenshots contain runs of byte-identical pixels; camera sensors essentially never produce them | Strong |
-| **EXIF camera tags** | `Make`, `Model`, `ExposureTime`, `ISO`, `FNumber` mean a camera | **Stripped by messaging apps**, so absence proves nothing |
-| **Sensor noise** | Photos carry high-frequency noise in flat areas; screenshots are noiseless | Reliable, slightly more work |
-| **Edge profile** | Rendered glyph edges are crisp; photographed ones are blurred by optics | Reliable |
-| **Dimensions match a known screen size** | 1179×2556 and friends | Weak alone, fine as a tie-breaker |
-
-EXIF is nearly free here, since `OcrService` already reads EXIF for
-orientation. Colour count plus uniform-region detection is the strongest cheap
-pair.
-
-### The better answer: stop needing the branch
-
-The classification only exists because the preprocessing is **destructive**. A
-pipeline that is safe on both kinds of input needs no classification at all:
-
-- **crop to the document** — on a screenshot the document is the whole frame, so
-  cropping is close to a no-op
-- **adaptive thresholding, or no thresholding** — on already-clean rendered text
-  this is near-identity, rather than the damage sharpening plus global Otsu does
-
-Fix the preprocessing and Path B and Path C converge. That removes a branch, a
-misclassification bug, and a whole category of "it works on my file" — which is
-worth more than making the detection cleverer.
+**But the stronger move may be to binarize less, not better.** Tesseract 4 and
+5 binarize internally, per region. Handing it a pre-binarized 1-bit image
+throws away information it would otherwise have used. Passing clean
+**grayscale** and letting Tesseract decide is often better than any hand-rolled
+binarization, and it is worth measuring before investing in Sauvola. Both are
+open items in ROADMAP M0a.
 
 ---
 
@@ -240,12 +307,12 @@ upstream is a perfectly good upstream — a `502` proves the body got through.
 
 It checks four things: that `client_max_body_size` is present at all, that
 every template variable is in the envsubst whitelist, that one megabyte under
-the limit passes, and that one over is rejected. Verified against both
-regressions by reintroducing them deliberately.
+the limit passes, and that one over is rejected. Each check was confirmed to
+fail by reintroducing its fault.
 
-This is the test that would have caught the 1 MB default, which no amount of
-config-sharing could have flagged — the value was never written down anywhere
-to be shared.
+It is the only guard against nginx's 1 MB default: sharing `MAX_UPLOAD_MB`
+cannot catch a missing directive, because a default is never written down
+anywhere to be shared.
 
 ### Accepted content types
 
@@ -271,33 +338,28 @@ Breach returns `429` with `RATE_LIMIT_EXCEEDED`.
 
 ### Timeouts
 
-A scan runs OCR and an LLM call. Measured **34–78 s** on real photos.
+A scan runs OCR and an LLM call. Measured **34–78 s** on real photos in the
+2026-09-18 baseline below.
 
 | Layer | Setting | Value |
 |---|---|---|
 | nginx → API | `proxy_read_timeout`, `proxy_send_timeout` | **180s** |
 | nginx → API | `proxy_connect_timeout` | 30s |
 
-### Two defaults that were silently wrong
+### Why both nginx values are set explicitly
 
-Both were found by testing the deployed container rather than the dev proxy,
-and neither was visible in development.
+Removing either directive silently restores an nginx default that breaks
+scanning, and neither shows up in development:
 
-**`client_max_body_size` was unset, so nginx applied its default of 1 MB.**
-Verified against the running container: a 2 MB upload returned `413`, a 0.5 MB
-upload passed through. Every one of the 48 photo fixtures is 2.3–4.0 MB, so
-none of them could have reached the API. This was latent rather than live —
-the deployed UI image predates the scan panel, so there was no upload path to
-exercise it — but it would have fired on the first deploy of the merged UI, and
-presented as a bug in newly shipped UI code rather than in nginx configuration.
+- **`client_max_body_size` defaults to 1 MB.** Checked against the running
+  container: a 2 MB upload returns `413`, a 0.5 MB upload passes. Every photo
+  fixture is 2.3–4.0 MB.
+- **`proxy_read_timeout` defaults to 60 s**, against scans that measure
+  34–78 s. Slower scans would return `504`.
 
-**`proxy_read_timeout` was unset, so nginx applied its default of 60 s** against
-scans that measure 34–78 s. Slower scans would have returned `504`.
-
-The general lesson, which applies beyond these two: **the dev proxy and the
-production proxy have different defaults**, and testing through Vite exercises
-neither of nginx's. Upload limits and timeouts have to be verified against the
-container.
+**The dev proxy and the production proxy have different defaults**, and testing
+through Vite exercises neither of nginx's. Upload limits and timeouts have to be
+verified against the container.
 
 ### Why 25 MB
 
@@ -308,11 +370,10 @@ container.
 | Scrolling app screenshot | 2–3 MB |
 | Photo wrapped in a PDF | up to 14 MB |
 
-The old 10 MB limit rejected ordinary receipts, not abusive ones: a lossless
-PNG export of a 12 MP photo exceeds it, and some share sheets produce PNG by
-default. This was hit in practice while building fixtures — the full-resolution
-`probe_photo-as.png` came out at 11.8 MB and had to be downscaled to get under
-the limit.
+A 10 MB limit rejects ordinary receipts, not abusive ones: a lossless PNG
+export of a 12 MP photo exceeds it, and some share sheets produce PNG by
+default. The full-resolution export behind the `probe_photo-as.png` fixture
+came out at 11.8 MB.
 
 Abuse is bounded by the rate limit (10 scans/hour/user), not by file size.
 
@@ -320,7 +381,9 @@ Abuse is bounded by the rate limit (10 scans/hour/user), not by file size.
 
 Four photographs of **one** Kaufland receipt — 7 items, per-line discounts,
 mixed piece and weight quantities, dual BGN/EUR totals — differing only in
-surface and angle. All Path C. This is what M0a must improve on.
+surface and angle. All four took the preprocessed OCR route (none was a PNG), on
+the pipeline before `cropToReceipt` existed, when images were still split by a
+PNG test. This is what M0a must improve on.
 
 | | Store extracted | Date | Items (of 7) | Time |
 |---|---|---|---|---|
@@ -390,18 +453,20 @@ receipt from that shop matches directly.
 
 ## Testing implications
 
-The paths fail differently, which is diagnostically useful:
+The two paths fail differently, which is diagnostically useful:
 
-| Symptom | Likely path and cause |
+| Symptom | Likely cause |
 |---|---|
-| PDFs work, images fail | OCR, Tesseract runtime, or tessdata |
-| Images work, PDFs fail | LLM client, API key, or the document prompt |
-| PNG works, JPEG fails | Preprocessing (D17) — the PNG skipped it |
-| Everything returns empty | Check whether the parse actually failed; a total failure currently returns **HTTP 200** with an empty list and a 1970 epoch date |
+| PDFs work, images fail | OCR: the Tesseract runtime, tessdata, or `OCR_LANGUAGE` |
+| Images work, PDFs fail | the LLM client, API key, or the document prompt |
+| Text PDFs work, scanned PDFs return 422 | the document path has no OCR; seen in the 2026-09-23 baseline |
+| A photo returns 422, "No purchases could be read" | nothing usable came out of OCR or the model; set `OCR_DEBUG_OUTPUT_PATH` and look at what Tesseract was given |
+| Plausible rows with wrong or swapped numbers | image quality (shadow, angle); see the 2026-09-18 baseline — this is the dangerous case |
 
-A fixture set needs all three paths represented, plus the deliberately
-mismatched cases — a photo exported as PNG, and a screenshot saved as JPEG —
-because those are what expose D19. See `receipt-fixtures/README.md`.
+A fixture set needs PDFs (text and scanned) as well as images, and images in
+more than one format, including a photo exported as PNG and a screenshot saved
+as JPEG: the pipeline must not depend on the format. The fixtures live outside
+the repository, next to the checkout; see `receipt-fixtures/README.md` there.
 
 ## Measured: vision vs OCR for photographed receipts (2026-09-23)
 
