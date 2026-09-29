@@ -36,7 +36,7 @@ None of this is documented as a test prerequisite, and CI never runs tests
 |---|---|
 | Prerequisite audit | Checks java 25, node, docker, openssl, tesseract and its `eng`/`bul` language data; reports what is missing instead of guessing |
 | `gradlew` | Sets the executable bit, and warns that the fix needs committing |
-| JWT keys | Generates a PKCS#8 RSA keypair into the gitignored `api/certs/`, outside the resources tree so it never reaches the jar (D10). Moves keys found in the old `src/main/resources/certs/` there |
+| JWT keys | Generates a PKCS#8 RSA keypair into the gitignored `api/certs/`, outside the resources tree so it never reaches the jar |
 | Backend `.env` | Writes all 12 undefaulted variables, plus Linux overrides for the OCR paths that `application-dev.yaml` defaults to Windows locations |
 | UI dependencies | `npm ci` |
 | UI dev certs | Only with `--https`. Skipped by default: browsers treat `http://localhost` as a trustworthy origin, so the backend's `Secure` cookie works over plain http, and a self-signed cert just adds a warning to click through |
@@ -115,19 +115,11 @@ So the JVM's zone decides only **log timestamps**. Run it in local time:
 - natively, `./gradlew bootRun --args='--spring.profiles.active=dev'` follows
   the host clock. The `dev` profile is required: without it the JWT keys
   resolve to the empty `JWT_PUBLIC_KEY` default and startup fails
-- in a container, set `TZ` on the API service. `docker-compose.yml` does,
-  defaulting to `Europe/Sofia`; the image on its own logs in UTC
+- in a container, set `TZ` on the api service; the image on its own logs in
+  UTC
 
 Spring Boot's log format includes the offset (`…+03:00`), so local-time logs
 still line up unambiguously with UTC data.
-
-History, because it explains the migration: the Jan-2026 backup stored each
-date as midnight Europe/Sofia expressed in UTC (21:00Z/22:00Z), since the old
-app mapped dates through the JVM's zone. `migrate-backups.py` re-anchors them
-to midnight UTC. Before `MongoConfig`, correctness depended on running the JVM
-in UTC; a Sofia-time JVM stored 2026-09-23 as `2026-09-22T21:00Z`. `TZ` in
-`.env` never helped with that, because `spring-dotenv` turns `.env` into Spring
-properties, not process environment.
 
 ---
 
@@ -145,7 +137,7 @@ user-scoped purchases.
 | `users` (1) | `_class` rewritten. Already on the new package — this collection was re-saved after the rename, the others were not. |
 | `products` (211) | `name` → `canonicalName`, plus a computed `normalizedCanonicalName`, empty alias arrays, `_class` rewritten |
 | `stores` (14) | Same as products, `iconID` preserved |
-| `purchases` (717) | **`userId` backfilled** from the user document, `discount` boolean → `discountAmount`, **`currency: BGN`** written explicitly, dates re-anchored, `_class` rewritten |
+| `purchases` (717) | **`userId` backfilled** from the user document, `discount` boolean → `discountAmount`, **`currency: BGN`** written explicitly, dates re-anchored from midnight Europe/Sofia to midnight UTC, `_class` rewritten |
 
 The currency is stored rather than inferred ([SPEC §9.5](SPEC.md#95-currency-handling)).
 A database restored before this change is fixed up anyway: the API's
@@ -207,42 +199,20 @@ E2E_KEEP=1 e2e/run.sh                                          # leave it up to 
 - On failure the Playwright report, trace and every container's log are in
   `e2e/test-results/`; CI uploads them as the `e2e-report` artifact.
 
-## Known environment defects
-
-Found while building this setup. Tracked in
-[SPEC §7](SPEC.md#7-known-defects-that-block-the-product) and
-[ROADMAP M0](ROADMAP.md#m0--recover-the-stranded-work).
-
-### D10 — Secrets are packaged into the jar
-
-> **Fixed 2026-09-26.** The keys are out of the resources tree, the build
-> excludes them, and a check refuses any jar that contains one.
-
-`processResources` copied everything under `src/main/resources` into the build
-output, and from there into the jar. That included the JWT signing key,
-`certs/private.pem`, because the `dev` profile read it from the classpath, and
-until 2026-09-25 `dev.env` with the Mongo, SMTP and OpenAI credentials. Both
-were gitignored, so git was clean, but every locally built jar carried them,
-and so did any image built from one (`./gradlew buildImage`, `e2e/run.sh`).
-CI was not affected: it builds from a fresh checkout where neither file
-exists.
-
-Now:
+## JWT keys
 
 - Dev keys live in `api/certs/` (gitignored). `application-dev.yaml` reads
   `file:./certs/private.pem` and `file:./certs/public.pem`, relative to the
   working directory, which is `api/` under `bootRun`. `JWT_PRIVATE_KEY` and
   `JWT_PUBLIC_KEY` override them, with a `file:` path or PEM content.
-- `processResources` excludes `*.pem`, `*.key`, `*.p12`, `*.jks` and `*.env`,
-  so a stale copy in `src/main/resources` is dropped rather than shipped.
-  `scripts/dev-setup.sh` moves keys from the old location to the new one.
-- `verifyNoSecretsInJar` fails the build if the boot jar or the plain jar
-  contains any of those. It runs after every `bootJar`, as part of `check`
-  (so `./gradlew build` and CI run it), and before `buildImage`.
-- `example.env` is documentation, not configuration, and moved from the
-  resources to `api/example.env`.
+- Keys never reach the jar: `processResources` excludes `*.pem`, `*.key`,
+  `*.p12`, `*.jks` and `*.env`, and `verifyNoSecretsInJar` fails the build if
+  the boot jar or the plain jar contains any of those. It runs after every
+  `bootJar`, as part of `check` (so `./gradlew build` and CI run it), and
+  before `buildImage`.
+- `api/example.env` documents every variable; it is not read by anything.
 
-### The dev stack: `api/docker-compose.dev.yml`
+## The dev stack: `api/docker-compose.dev.yml`
 
 MongoDB, MailHog and the ui image. The api normally runs natively with
 `./gradlew bootRun --args=--spring.profiles.active=dev`, so it keeps devtools
@@ -253,18 +223,15 @@ does not start it.
 - Compose interpolates from `api/.env`, which it reads because the file sits
   next to it. Nothing is passed to a container with `env_file`: each service
   lists the variables it gets, so the OpenAI key only enters the optional
-  `receipts-api` container, which scans with it, and there is no compose config
-  in the Java resources tree any more.
+  `receipts-api` container, which scans with it.
 - The ui container's nginx proxies `/api/` to `host.docker.internal:7002`, the
-  natively running api. Until 2026-09-25 it pointed at `localhost:7002`, which
-  inside the container is the container itself, so every `/api` call through
-  <http://localhost:7863> was a 502.
+  natively running api. `localhost` would be the container itself.
 - MongoDB is pinned to a major (`mongo:8.2`). `latest` can move a major on a
   pull, and mongod refuses data files more than one feature-compatibility
   version behind.
 - Data lives in `api/.mongo-data` (gitignored, owned by the container's uid).
 
-#### Testing a pull request on its preview images
+### Testing a pull request on its preview images
 
 Every pull request from a branch of this repository publishes a preview image
 for each side it touches: `ghcr.io/veselin-antonov/receipts-api:pr-<n>` and

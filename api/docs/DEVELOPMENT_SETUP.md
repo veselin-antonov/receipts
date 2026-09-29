@@ -113,7 +113,7 @@ docker compose -f docker-compose.dev.yml up -d
 
 The compose file interpolates from `.env` next to it (the same file the api
 reads). To click through a ui pull request's preview image, set `UI_TAG=pr-<n>`;
-see [DEV_SETUP.md](../../docs/DEV_SETUP.md#testing-a-ui-pull-request-on-its-preview-image).
+see [DEV_SETUP.md](../../docs/DEV_SETUP.md#testing-a-pull-request-on-its-preview-images).
 
 ### Mail testing
 

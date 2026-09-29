@@ -260,27 +260,9 @@ backfill decision.
 
 ### D2 — Prices cross the wire as formatted strings *(critical)*
 
-> **Fixed 2026-09-23**, together with D11. `ResPurchase` carries numeric
-> `priceEur` / `discountAmountEur`, `Formatter` is deleted, and every date on
-> the wire is ISO-8601 in both directions under one global Jackson setting.
-
-`ResPurchase.price` is a `String`, produced by:
-
-```java
-NumberFormat.getCurrencyInstance(bgLocale).format(price)
-```
-
-So the API emits `"3,29 лв."` rather than `3.29`. Dates get the same treatment:
-`formatDate` emits `"15.06.26 г."`, while `ReqPurchase` *parses* `dd/MM/yyyy` —
-the wire format is not even self-consistent.
-
-**Why this blocks the lookup loop:** you cannot compute an average, find a
-minimum, sort by price, or compare two prices from locale-formatted display
-strings. The offline cache would be caching text, not data. Server-side display
-formatting also hard-codes one locale and one currency into the API.
-
-**Rule going forward:** the API emits data, the UI formats it. Money is a
-number plus a currency code. Dates are ISO-8601. No exceptions.
+**Fixed 2026-09-23**, with D11. Purchases carry numeric `priceEur` /
+`discountAmountEur` and every date is ISO-8601 on the wire
+([§9.1](#91-the-wire-format-carries-data-not-presentation)).
 
 ### D3 — Statistics are never computed
 
@@ -312,46 +294,13 @@ UC-1 depends entirely on this working.
 
 ### D10 — Secrets are packaged into the jar
 
-> **Fixed 2026-09-26.** Dev keys moved to `api/certs/` and are read with
-> `file:`; `processResources` excludes keys and env files, and
-> `verifyNoSecretsInJar` fails the build on a jar that contains one.
-
-`processResources` copies `src/main/resources/certs/private.pem` (the JWT
-signing key) and `dev.env` (Mongo, SMTP, and OpenAI credentials) into the build
-output, and therefore into the jar and any image built from it. Gitignored, so
-git is clean — but `./gradlew publishImage` from a developer machine would push
-them to GHCR. Details and fix in
-[DEV_SETUP.md](DEV_SETUP.md#d10--secrets-are-packaged-into-the-jar).
+**Fixed 2026-09-26.** Keys and env files cannot reach the jar; see [DEV_SETUP,
+JWT keys](DEV_SETUP.md#jwt-keys).
 
 ### D11 — Every historical price now displays as euros *(critical)*
 
-> **Fixed 2026-09-23.** Currency is stored on every purchase and the API serves
-> numeric EUR only; see [§9.5](#95-currency-handling).
-
-`Formatter.formatPrice` calls `NumberFormat.getCurrencyInstance(bg-BG)`. The
-JDK's CLDR data now reports Bulgaria's currency as **EUR**, so a purchase
-recorded as 12.65 лв is served to the UI as `"12,65 €"`.
-
-Verified on Java 25:
-
-```text
-currency: EUR (Euro)
-12.65 formats as: 12,65 €
-```
-
-No code changed. The database stores a bare `12.65` with no currency attached,
-and the meaning of that number shifted when the platform's locale data was
-updated. At the old peg (1.95583 лв to €1) the app is now overstating three
-years of prices by roughly a factor of two.
-
-This answers **Q1**: the currency transition is real and is already corrupting
-what users see. It is also the strongest possible argument for D2 — formatting
-in the backend, with no currency stored beside the amount, means your data
-silently changes meaning when a dependency updates.
-
-Fix: see [§9.5](#95-currency-handling). The dataset is permanently
-mixed — legacy rows are BGN, new rows are EUR — so currency has to become part
-of the model rather than an assumption.
+**Fixed 2026-09-23.** Currency is stored on every purchase and the API serves
+numeric EUR only ([§9.5](#95-currency-handling)).
 
 ### D12 — The product matcher is word-order sensitive
 
@@ -429,33 +378,9 @@ empty receipt.
 
 ### D19 — "Screenshot" is decided by file extension
 
-```java
-private boolean isScreenshot(MultipartFile file) {
-    return "image/png".equalsIgnoreCase(file.getContentType());
-}
-```
-
-PNG means screenshot, and screenshots skip preprocessing entirely. Container
-format has no reliable relationship to how an image was produced, so both
-directions misfire:
-
-- a **camera photo exported as PNG** skips the preprocessing it needs and goes
-  raw to Tesseract
-- a **screenshot saved as JPEG** receives the full photo pipeline, including
-  the binarization that destroys images under D17
-
-This also explains why the first synthetic test appeared to succeed: the test
-image was written as a PNG, so it never entered the preprocessing pipeline at
-all. The verification exercised the OCR and LLM path but not the preprocessing
-code, while reporting that the scan flow worked end to end.
-
-Detection should key off image characteristics — colour histogram, noise
-profile, EXIF presence (a camera photo carries EXIF, a screen capture does
-not) — rather than the container. EXIF alone is a far better signal than the
-extension and is already being read for orientation.
-
-Secondary: `saveDebugImage` is only called on the non-screenshot branch, so PNG
-failures leave no debug artefact and are correspondingly harder to diagnose.
+**Fixed September 2026.** There is one preprocessing path for every image; the
+screenshot branch was removed with the crop change
+([ADR-0004](adr/0004-ocr-plus-llm-parsing.md)).
 
 ### D18 — Store resolution auto-creates instead of asking
 
@@ -836,7 +761,7 @@ carries only `priceEur` and `discountAmountEur`, unrounded, and an ISO date.
 Decisions deliberately deferred. Each needs an answer before the milestone that
 depends on it.
 
-- **Q1 — Currency.** ~~Open.~~ **Answered.** The changeover happened; the
+- **Q1 — Currency.** **Answered.** The changeover happened; the
   dataset is permanently mixed. Design in [§9.5](#95-currency-handling).
   The rate **1 EUR = 1.95583 BGN** was confirmed on 2026-09-23 and is
   implemented as `Currency.BGN_PER_EUR`.
@@ -851,12 +776,6 @@ depends on it.
 - **Q5 — Receipt image retention.** Currently images are parsed and dropped.
   Keeping them would allow re-parsing with a better model later, at a storage
   and privacy cost.
-- **Q6 — Snapshot dependencies.** `build.gradle` resolves from
-  `repo.spring.io/milestone`, `repo.spring.io/snapshot`, and the Central Portal
-  snapshot repository. Snapshot artifacts can be republished or withdrawn, so a
-  build that works today may not work in six months — which is roughly how long
-  this project was dormant. Pin to release versions before relying on
-  reproducible builds. **Mostly answered:** the extra repositories were removed
-  in September 2026 (ADR-0006) and everything resolves from Maven Central. One
-  deliberate exception remains: Spring AI 2.1.0-M1, for the Responses API, with
-  an exit condition in [ADR-0008](adr/0008-spring-ai-2.1-milestone.md).
+- **Q6 — Snapshot dependencies.** **Answered.** Everything resolves from Maven
+  Central, with one deliberate exception: Spring AI 2.1.0-M1, for the Responses
+  API, with an exit condition in [ADR-0008](adr/0008-spring-ai-2.1-milestone.md).

@@ -32,16 +32,10 @@ below; items that were Home App concerns stay in Obsidian.
       `processResources` excludes key and env files, `verifyNoSecretsInJar`
       fails `build` on a jar containing one, and `example.env` moved to
       `api/example.env`
-- [x] ~~Pin `TZ=UTC`~~ — **superseded 2026-09-23: storage is UTC by
-      construction.** `MongoConfig` uses the MongoDB driver's codecs, so a
-      purchase date is midnight UTC however the JVM is started (verified with
-      a Europe/Sofia JVM, which previously stored 2026-09-23 as
-      `2026-09-22T21:00Z`). The JVM's zone now affects log timestamps only, so
-      the server runs in local time: `docker-compose.yml` sets
-      `TZ=${TZ:-Europe/Sofia}`, and `dev-setup.sh` no longer writes `TZ=UTC`
-- [ ] Add `TZ: Europe/Sofia` to the unversioned deployment compose
-      (`~/docker-apps/homeapp/compose.yaml`) for local-time logs; optional,
-      since without it the container simply logs in UTC
+- [x] Dates do not depend on the JVM's zone — storage is UTC by construction
+      (`MongoConfig` uses the MongoDB driver's codecs, verified with a
+      Europe/Sofia JVM). The zone affects log timestamps only; see DEV_SETUP's
+      "Timezones"
 - [x] Tidy `docker-compose.dev.yml` — network mismatch, wrong `depends_on`,
       and move `dev.env` out of the Java resources tree. Done 2026-09-25: it
       interpolates from `api/.env`, `dev.env` is gone, the ui reaches the
@@ -282,6 +276,10 @@ Stragglers:
 - [ ] `e2e/compose.yaml` hard-codes `name: receipts-e2e`, so two e2e runs on
       one host tear each other down (seen testing D10). Name the project per
       run
+- [ ] `api/docker-compose.yml` is the old api repository's deployment file
+      (`receipts-api:latest`, api and db only), duplicating
+      `deploy/compose.yaml`. Delete it, and set `TZ=${TZ:-Europe/Sofia}` on the
+      api in `deploy/compose.yaml`, which sets none, for local-time logs
 - [ ] `api/.env` still has `BACKEND_HOST=localhost:7002`, which nothing reads:
       the dev compose sets the ui container's `BACKEND_HOST` itself, and
       `dev-setup.sh` does not write it. Drop it when `.env` moves to the root
@@ -439,10 +437,8 @@ These are not polish; they came out of the first real run.
 - [ ] Record the raw parsed string as an alias on the chosen store, and the
       raw product wording as a product alias — `Product.aliases` exists and
       nothing writes to it
-- [ ] **Fix screenshot detection (D19)** — it keys off the PNG extension, so
-      photos exported as PNG skip preprocessing they need and screenshots saved
-      as JPEG get preprocessing that destroys them. Use EXIF presence, which is
-      already read for orientation
+- [x] **Screenshot detection (D19)** — resolved by removing the branch: every
+      image takes one preprocessing path (see M0a's crop item, ADR-0004)
 - [ ] **Add aliases to `Store` (D18)** — `Product` has them, `Store` does not.
       Aliases are the only thing that can connect a legal entity such as
       `ЛАГАРДЕР ТРАВЕЛ РИТЕЙЛ ЕООД` to the brand `Relay`, since no string
