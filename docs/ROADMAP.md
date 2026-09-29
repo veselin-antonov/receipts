@@ -387,7 +387,7 @@ correct prices, 53 HTTP 200) and `2026-09-22-pre-m0a-213/` (before M0a).
 - [x] **Fail loudly (D17)** — a scan yielding no items now throws and maps to
       422 instead of returning HTTP 200 with an empty list and a 1970 date
 - [ ] Add a sanity check on OCR output volume and mean word confidence
-- [x] Build a fixture set of real receipts — **64 fixtures**, 10 stores, all
+- [x] Build a fixture set of real receipts — **64 fixtures**, 10 stores,
       photos, PNG exports and PDFs, in `receipt-fixtures/` with `manifest.json`
 - [x] **Build the scoring harness** — `scripts/scan-harness.py`, scoring L0/L1/L2
       against `ground-truth.json` with a measured ±2 noise floor (ADR-0007)
