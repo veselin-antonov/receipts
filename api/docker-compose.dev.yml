@@ -13,7 +13,7 @@
 #
 #   UI_TAG=pr-10 docker compose -f api/docker-compose.dev.yml up -d receipts-ui
 #   docker compose -f api/docker-compose.dev.yml up -d receipts-ui   # back to dev
-name: homeapp-dev
+name: receipts-dev
 
 services:
   receipts-db:
@@ -49,13 +49,12 @@ services:
 
   receipts-ui:
     image: ghcr.io/veselin-antonov/receipts-ui:${UI_TAG:-dev}
-    container_name: homeapp-ui-dev
+    container_name: receipts-ui-dev
     restart: unless-stopped
     ports:
       - ${UI_PORT:-7863}:80
     # nginx proxies /api/ to the api on the host. `localhost` would be this
-    # container itself, which is why the dev ui used to answer every /api call
-    # with 502.
+    # container itself.
     extra_hosts:
       - host.docker.internal:host-gateway
     environment:

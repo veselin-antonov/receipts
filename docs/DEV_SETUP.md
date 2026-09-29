@@ -282,7 +282,7 @@ The variables, all optional:
 
 | Variable | Default | What it does |
 |---|---|---|
-| `UI_TAG` | `dev` | ui image tag for `receipts-ui` (`homeapp-ui-dev`) |
+| `UI_TAG` | `dev` | ui image tag for `receipts-ui` (`receipts-ui-dev`) |
 | `API_TAG` | `dev` | api image tag for `receipts-api` (`receipts-api-dev`) |
 | `API_CONTAINER_PORT` | `7003` | host port of the api container, next to the native api on `SERVER_PORT` (7002) |
 | `UI_BACKEND` | `host.docker.internal:${SERVER_PORT}` | where the ui's nginx sends `/api/`; `host.docker.internal:7003` is the api container |
@@ -295,7 +295,7 @@ MongoDB and MailHog on the compose network, and reads the dev JWT keys from
 
 `--pull always` matters: a preview tag is overwritten on every push to the pull
 request. `--no-deps` keeps compose away from the database and MailHog
-containers: of the running stack, only `homeapp-ui-dev` is recreated. Run these from the repository root, and write the variables on the
+containers: of the running stack, only `receipts-ui-dev` is recreated. Run these from the repository root, and write the variables on the
 command line rather than exporting them, so the switch back really switches
 back.
 
