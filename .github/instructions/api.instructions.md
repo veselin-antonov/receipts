@@ -303,8 +303,8 @@ The receipt scanning module (`receipts/scanning/`) uses a dual-path architecture
 
 ### Image Path (JPEG, PNG, WebP, GIF)
 1. **EXIF orientation** — Reads EXIF tag via metadata-extractor, applies rotation/flip (fixes sideways phone photos)
-2. **Screenshot detection** — PNGs skip preprocessing (already pixel-perfect digital text)
-3. **Photo preprocessing** — Grayscale conversion, optional upscaling/sharpening/Otsu binarization for camera photos
+2. **Crop to the receipt** — bounding box of the paper, falling back to the whole frame when detection is not credible
+3. **Preprocessing** — upscaling, grayscale, sharpening and a global Otsu threshold, the same for every image (see `docs/SCANNING_PATHS.md`)
 4. **Tesseract OCR** — Extracts text (LSTM engine, PSM 6, 300 DPI hint, `eng+bul` languages)
 5. **LLM text parsing** — OCR text sent to GPT via text prompt → structured `ParsedReceipt`
 

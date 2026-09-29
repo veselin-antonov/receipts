@@ -27,14 +27,13 @@ The whole Receipts product in one repository (see
 | # | Document | What it answers |
 |---|---|---|
 | 1 | [docs/SPEC.md](docs/SPEC.md) | What we are building and why. **The spec we follow.** |
-| 2 | [docs/STATE.md](docs/STATE.md) | What actually exists today, and what is broken. |
-| 3 | [docs/DEV_SETUP.md](docs/DEV_SETUP.md) | How to get it running locally, and what is automated. |
-| 4 | [docs/SCANNING_PATHS.md](docs/SCANNING_PATHS.md) | The three routes an uploaded receipt can take, and why they differ. |
-| 5 | [docs/ROADMAP.md](docs/ROADMAP.md) | The order we build it in. |
-| 6 | [docs/adr/](docs/adr/) | Decisions, with the reasoning that produced them. |
-| 7 | [docs/ARCHITECTURE_AND_FLOWS.md](docs/ARCHITECTURE_AND_FLOWS.md) | The API's components and request flows. |
-| 8 | [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md) | Request and response shapes, endpoint by endpoint. |
-| 9 | [docs/RECEIPT_SCANNING.md](docs/RECEIPT_SCANNING.md) | The scanning feature: OCR, LLM parsing, matching, submit. |
+| 2 | [docs/DEV_SETUP.md](docs/DEV_SETUP.md) | How to get it running locally, and what is automated. |
+| 3 | [docs/SCANNING_PATHS.md](docs/SCANNING_PATHS.md) | The three routes an uploaded receipt can take, and why they differ. |
+| 4 | [docs/ROADMAP.md](docs/ROADMAP.md) | The order we build it in. |
+| 5 | [docs/adr/](docs/adr/) | Decisions, with the reasoning that produced them. |
+| 6 | [docs/ARCHITECTURE_AND_FLOWS.md](docs/ARCHITECTURE_AND_FLOWS.md) | The API's components and request flows. |
+| 7 | [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md) | Request and response shapes, endpoint by endpoint. |
+| 8 | [docs/RECEIPT_SCANNING.md](docs/RECEIPT_SCANNING.md) | The scanning feature: OCR, LLM parsing, matching, submit. |
 
 ## Documentation ownership
 
@@ -42,6 +41,15 @@ One rule, to stop docs scattering again:
 
 > **If a document changes because code changed, it lives in this repo.
 > If it changes because an idea changed, it lives in Obsidian.**
+
+And one for what goes in them:
+
+> **Docs describe how things are now.** History belongs in `CHANGELOG.md`, the
+> ADRs and git: no "Fixed on …" banners over stale text, no "until …, it used
+> to …" asides, no one-time migration steps. Keep a sentence about the past only
+> if it stops someone undoing a choice, and then say it as the reason, not the
+> story. A fixed defect in SPEC §7 shrinks to one line; dated measurements stay,
+> because the date is part of the result.
 
 | Kind | Home |
 |---|---|
