@@ -513,28 +513,9 @@ Two consequences:
 
 ### D15 — The UI reads "account not verified" out of a bare 403
 
-> **Fixed 2026-09-26.** For an unverified account `POST /api/auth/token` now
-> returns a `ProblemDetail` with `error: ACCOUNT_NOT_VERIFIED` (still 403, still
-> setting the limited cookie the resend flow needs). `LoginForm` routes to
-> `/not-verified` only on that code; any other 403 gets a generic error.
-
-`LoginForm.jsx` maps **any** 403 from `POST /api/auth/token` to
-`"Account not verified!"` and navigates to `/not-verified`.
-
-403 is not specific to an unverified account. Observed in practice: a CORS
-rejection (browsing from a LAN address that was not in
-`APP_CORS_ALLOWED_ORIGINS`) also returns 403, and the UI confidently reported a
-verified, active account as unverified, then pushed the user into a
-resend-verification flow that failed for the same underlying reason.
-
-A wrong diagnosis is worse than a generic one here — it sends someone to fix
-something that was never broken.
-
-The backend already signals intent properly: `TokenService` sets
-`token_type: limited` for genuinely inactive users, which is what drives the
-403 in `AuthController`. The UI should key off a distinguishable error code in
-the response body rather than inferring meaning from a status code that several
-unrelated conditions share.
+**Fixed 2026-09-26.** An unverified login returns `ACCOUNT_NOT_VERIFIED`; any
+other 403 keeps the user on the login page with a generic error
+([API_CONTRACTS](API_CONTRACTS.md#post-apiauthtoken)).
 
 ### D16 — CORS origins are a hand-maintained list that breaks off-localhost use
 
@@ -688,9 +669,10 @@ Implemented and working: registration, emailed verification token (24 h), login
 issuing an RSA-signed JWT in an HttpOnly / Secure / SameSite=Strict cookie,
 active vs inactive token scopes, Bucket4j rate limits per IP and per user.
 
-Auth behaviour worth remembering: `POST /api/auth/token` returning **403** means
-the credentials were *correct* but the account is unverified — not that login
-failed.
+Auth behaviour worth remembering: `POST /api/auth/token` answers an unverified
+account with 403 and `error: ACCOUNT_NOT_VERIFIED` — the credentials were
+*correct*. A 403 without that code, such as a CORS rejection, says nothing about
+the account.
 
 Deferred: password reset, refresh tokens and logout, account lockout, RBAC, MFA.
 None of these block the two loops. See [ADR-0003](adr/0003-cookie-jwt-auth.md).

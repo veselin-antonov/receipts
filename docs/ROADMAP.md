@@ -422,12 +422,8 @@ These are not polish; they came out of the first real run.
       EUR whichever column the model read. Needs a `currency` field in
       `ParsedReceipt` and the prompt; that is a scanning change, so it is
       measured by the harness (ADR-0007). Batch it with the M0a OCR runs
-- [x] **Search matches nothing** — `CustomRepository.findBySearchQuery`
-      filtered on `productDetails.name` / `storeDetails.name`, but the field is
-      `canonicalName` since the rename. Searching `billa` returned 0 pages
-      against 717 rows. Found 2026-09-23; fixed 2026-09-26, and the query is
-      now matched as literal text. `MongoIntegrationTest` covers store, product
-      and regex-syntax searches against a real MongoDB
+- [x] **Search matches nothing** — search matches product and store
+      `canonicalName` as literal, case-insensitive text
 - [x] **`POST /api/purchases` ignores IDs** — fixed 2026-09-23: it now shares
       the id-first resolution of `registerPurchases`. The UI's manual form had
       the matching bug — it sent `product` / `store`, which the API never read,
@@ -462,12 +458,8 @@ These are not polish; they came out of the first real run.
       `"карфиол на брой"`
 - [ ] Record confirmed matches as aliases, so each correction improves the next
       scan ([SPEC §8.4](SPEC.md#84-f4--catalog-and-normalization))
-- [x] **Stop inferring "unverified" from a bare 403 (D15)** — return a
-      distinguishable error code and have the UI key off that. The old
-      behaviour reported a healthy account as unverified and sent the user into
-      a dead-end resend flow. Fixed 2026-09-26: the login 403 for an unverified
-      account is a `ProblemDetail` with `error: ACCOUNT_NOT_VERIFIED`, and the
-      UI shows a generic error for any other 403
+- [x] **Stop inferring "unverified" from a bare 403 (D15)** — the login 403
+      carries `ACCOUNT_NOT_VERIFIED`; the UI shows a generic error otherwise
 - [ ] Make CORS workable off-localhost (D16) — the dev default cannot work for
       a headless server browsed from a laptop, which is the real setup
 - [ ] Clean the store catalog — it holds `Тест`, `Тест 2`, `кастрия еоод`,
