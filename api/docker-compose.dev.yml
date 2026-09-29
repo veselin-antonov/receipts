@@ -54,8 +54,7 @@ services:
     ports:
       - ${UI_PORT:-7863}:80
     # nginx proxies /api/ to the api on the host. `localhost` would be this
-    # container itself, which is why the dev ui used to answer every /api call
-    # with 502.
+    # container itself.
     extra_hosts:
       - host.docker.internal:host-gateway
     environment:
