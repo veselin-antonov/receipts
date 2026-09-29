@@ -388,7 +388,7 @@ correct prices, 53 HTTP 200) and `2026-09-22-pre-m0a-213/` (before M0a).
       422 instead of returning HTTP 200 with an empty list and a 1970 date
 - [ ] Add a sanity check on OCR output volume and mean word confidence
 - [x] Build a fixture set of real receipts — **64 fixtures**, 10 stores, all
-      three paths, in `receipt-fixtures/` with `manifest.json`
+      photos, PNG exports and PDFs, in `receipt-fixtures/` with `manifest.json`
 - [x] **Build the scoring harness** — `scripts/scan-harness.py`, scoring L0/L1/L2
       against `ground-truth.json` with a measured ±2 noise floor (ADR-0007)
 - [x] Transcribe ground truth from the readable shots, validated by the
