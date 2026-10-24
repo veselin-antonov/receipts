@@ -518,7 +518,7 @@ after it. Fixes D1 and D2 from [SPEC §7](SPEC.md#7-known-defects-that-block-the
 - [ ] The manual form's discount checkbox has no API counterpart — the API
       records a discount *amount*. Replace the checkbox with an amount field,
       or drop it
-- [ ] Drop the unused `statistics` collection, entity, and repository **(D3)**
+- [x] Drop the unused `statistics` collection, entity, and repository **(D3)**
 - [ ] Decide **Q2**: what to do about quantity for the 717 existing purchases
 - [x] Decide **Q1**: currency — answered in [SPEC §9.5](SPEC.md#95-currency-handling)
       and implemented; rate 1.95583 confirmed 2026-09-23

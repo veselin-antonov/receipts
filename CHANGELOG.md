@@ -118,6 +118,9 @@ Releases up to 0.0.6 were separate; their notes are in
 
 #### Removed
 - `Formatter`; formatting belongs to the UI (D2)
+- The unused `Statistics` entity, `StatisticsRepository`, `ResStatistics` and
+  `ResProductDetails`, and `Product.statistics`; statistics are computed on
+  demand (D3)
 - `ResParsedPurchase` and `PurchaseMapper.toResParsedPurchases`, unused
 
 ### UI

@@ -71,24 +71,4 @@ public class ProductService {
 //
 //        return new ResProductDetails(resStatistics, resPurchases);
 //    }
-
-//    private Statistics updateStatistics(Product relatedProduct) {
-//        List<Purchase> purchases = purchasesRepository.findAllByProductId(relatedProduct.getId());
-//
-//        double averagePrice = purchases.stream().mapToDouble(Purchase::getPrice).average().orElse(0);
-//
-//        double lowestPrice = purchases.stream().mapToDouble(Purchase::getPrice).min().orElse(0);
-//
-//        int averageMonthlyCount = (int) Math.round(purchases.stream().filter(p -> p.getDate().isAfter(p.getDate().minus(Period.ofYears(1).withDays(1)))).collect(Collectors.groupingBy(purchase -> purchase.getDate().getMonth())).values().stream().mapToInt(List::size).average().orElse(0));
-//
-//        Store mostFrequentStore = customRepository.mostFrequentStore(relatedProduct.getId(), LocalDate.now().minusYears(1).withDayOfMonth(1));
-//
-//        Statistics statistics = new Statistics(averagePrice, lowestPrice, averageMonthlyCount, mostFrequentStore);
-//
-//        relatedProduct.setStatistics(statisticsRepository.save(statistics));
-//
-//        productRepository.save(relatedProduct);
-//
-//        return statistics;
-//    }
 }

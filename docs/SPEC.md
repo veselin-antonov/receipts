@@ -55,7 +55,7 @@ The dataset is *tiny*. This is a design asset, not a limitation:
   makes the offline cache in [ADR-0005](adr/0005-pwa-offline-lookup.md) trivial.
 - Price statistics can be computed on demand from raw purchases. There is no
   need for a maintained statistics cache, and we will not build one
-  ([§7.3](#73-statistics-are-computed-not-stored)).
+  ([§9.3](#93-statistics-are-computed-not-stored)).
 
 Multi-user isolation still matters and is already implemented — every purchase
 is scoped to a `userId` — but multi-user *features* (sharing, households,
@@ -219,11 +219,6 @@ any write path.
 
 `email`, `password` (PBKDF2), `isActive`.
 
-### `statistics`
-
-Exists as a collection, an entity, and a repository. **Nothing has ever written
-to it.** It is deleted under [§7.3](#73-statistics-are-computed-not-stored).
-
 ---
 
 ## 7. Known defects that block the product
@@ -266,17 +261,15 @@ backfill decision.
 
 ### D3 — Statistics are never computed
 
-The `Statistics` entity, `StatisticsRepository`, and `ResStatistics` DTO all
-exist. A grep across the whole main source tree finds only their own
-definitions — no service reads or writes them. The code that *would* have
-computed them is commented out inside `ProductService`.
+Fixed: the unused `statistics` collection, entity, repository and DTOs are
+gone; statistics are computed on demand ([§9.3](#93-statistics-are-computed-not-stored)).
 
 ### D4 — The product details endpoint is commented out
 
 `ProductController.getDetailsById` and `ProductService.getDetailsById` are both
 commented out behind `// TODO - Reimplement product details page`. The dead code
-references `Purchase.getIsDiscounted()` and `Store.getName()` — methods that no
-longer exist — so it worked before the domain refactor and was orphaned by it.
+references `Purchase.getIsDiscounted()`, `Store.getName()`,
+`ResProductDetails` and `ResStatistics` — none of which exist any more — so it worked before the domain refactor and was orphaned by it.
 
 Its stat labels were hard-coded Bulgarian strings (`"Средна Цена"`,
 `"Най-ниска Цена"`, `"Обичаен Магазин"`), which is the same
@@ -640,7 +633,7 @@ current user through `AuthenticatedUserService` first.
 
 ### 9.3 Statistics are computed, not stored
 
-Dropping the `statistics` collection. With 717 purchases, a MongoDB aggregation
+There is no `statistics` collection. With 717 purchases, a MongoDB aggregation
 computes every statistic in this spec faster than a cache could be invalidated
 correctly. A stale-cache bug that quietly reports a wrong "lowest price" would
 undermine the one thing the product is for.
