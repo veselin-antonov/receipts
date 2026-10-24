@@ -263,6 +263,20 @@ No open questions remain.
         `receipts-test.vasoft.dev`, optionally refreshing its database
       - `db-restore` — `scripts/db-restore.sh`
       - `db-refresh` — copy production's database into dev
+- [ ] **Grow `e2e/` into a Playwright suite, run by `make e2e`** — today it
+      is one serial smoke (`e2e/tests/smoke.spec.js`). Add specs for:
+      - search — purchases found by product name, including `canonicalName`
+        (#28), and an empty result
+      - login errors — wrong password, unknown account, and an unverified
+        account told apart from other 403s (#28)
+      - scan review and editing — change a row's name, price and quantity,
+        delete a row, then save, and read the edits back
+      - PDF scan — the smoke already scans `e2e/fixtures/receipt.pdf` through
+        the OpenAI stub; give it a spec of its own that also checks the stub
+        was sent the PDF as a document, which needs the stub to record what
+        it receives
+      Each spec registers its own user, so specs run in parallel. Its own pull
+      request after the Makefile (PR 3); not part of M1b's done-when
 - [ ] **`dev-setup.sh` ends with `make dev`** — instead of the four manual
       commands
 - [ ] **One dev guide (decision 6)** — fold `api/docs/DEVELOPMENT_SETUP.md` and
