@@ -40,6 +40,5 @@ out/
 # Dev JWT keys, outside the resources tree so they never reach the jar (D10)
 /certs/
 *.env
-!/example.env
 /ocr-debug/
 /.mongo-data/

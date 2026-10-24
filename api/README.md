@@ -48,7 +48,7 @@ export OPENAI_API_KEY='<your-openai-api-key>'
 export TESSDATA_PATH='C:/Program Files/Tesseract-OCR/tessdata'
 export OCR_LANGUAGE='eng+bul'
 export OCR_DEBUG_OUTPUT_PATH='./ocr-debug'
-export APP_CORS_ALLOWED_ORIGINS='https://localhost:5173,http://localhost:5173,http://localhost:7863'
+export APP_CORS_ALLOWED_ORIGINS='http://localhost:7800'
 ```
 
 Run the backend in dev profile:

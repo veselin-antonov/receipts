@@ -123,12 +123,13 @@ remaining feature work.
 
 1. **The dev stack moves to the repo root:** `compose.dev.yaml`, `.env` and
    `example.env` at the root, not under `api/`.
-2. **ui development runs on vite** (5173), proxying to the `bootRun` api. The
+2. **ui development runs on vite** (7800), proxying to the `bootRun` api
+   (7802). The
    ui container is for previews and built images only. vite's api target
    becomes configurable.
 3. **Hosts**, added by the user in nginx-proxy-manager, outside the repo:
-   - `receipts-dev.vasoft.dev` → vite on 5173, which proxies to `bootRun` on
-     7002. Needs WebSocket support for hot reload, and the host in vite's
+   - `receipts-dev.vasoft.dev` → vite on 7800, which proxies to `bootRun` on
+     7802. Needs WebSocket support for hot reload, and the host in vite's
      `allowedHosts`.
    - `receipts-test.vasoft.dev` → the preview stack: the ui container plus the
      api container from #30.
@@ -149,8 +150,8 @@ remaining feature work.
 8. **Production starts from the dev database.** At the switch, the current dev
    data (migrated, 717 purchases) is copied in; from then on production is the
    source of truth. The old `~/docker-apps/homeapp/db` is not used.
-9. **Production ports:** the ui on a host port of its own (e.g. 7870). The api
-   and MongoDB are not published on the host, only reachable inside the stack.
+9. **Production ports:** the ui on 7820 (decision 21). The api and MongoDB are
+   not published on the host, only reachable inside the stack.
 10. **The dev ui container goes in step 1.** It is not used day to day; being
     without it until the structure is right is accepted.
 11. **dotenv reads the root `.env`, while `bootRun` still runs from `api/`**,
@@ -161,7 +162,8 @@ remaining feature work.
     copy, never shared, never writing to production. Until production exists
     (step 7), the dev database is the source, so refreshing from production
     only becomes possible after the switch.
-13. **Preview ports:** api 7013, ui 7873; `receipts-test.vasoft.dev` → 7873.
+13. **Preview ports:** ui 7810, api 7812 (decision 21);
+    `receipts-test.vasoft.dev` → 7810.
 14. **`make dev` runs in the foreground:** the api and vite together, output
     interleaved, and Ctrl-C stops both.
 15. **Targets:** `setup`, `dev`, `down`, `test`, `e2e`, `preview PR=<n>`,
@@ -178,23 +180,34 @@ remaining feature work.
 20. **The PR plan below is approved** as drafted: seven PRs in that order,
     the Makefile and the preview stack as separate PRs.
 
+### Decisions — 2026-10-24
+
+21. **One port block per environment**, ui on the block's first port, api two
+    above it, tools five above:
+
+    | Environment | ui | api | other |
+    |---|---|---|---|
+    | dev | 7800 (vite) | 7802 (`bootRun`) | MailHog web 7805, SMTP 1025; MongoDB 27017 on `127.0.0.1` only |
+    | preview (`receipts-test`) | 7810 | 7812 | — |
+    | production (`receipts`) | 7820 | internal | MongoDB internal |
+    | e2e | 7830 | internal | MailHog web 7835 |
+
+    nginx-proxy-manager points `receipts-dev`, `receipts-test` and `receipts`
+    at 7800, 7810 and 7820. Each host moves when the pull request that
+    introduces its port is merged.
+
 No open questions remain.
 
 ### Where things stand
 
-- `api/docker-compose.dev.yml` (`name: homeapp-dev`) runs `receipts-db`,
-  `mailhog` and `receipts-ui`, and interpolates from `api/.env` — so the api's
-  directory owns the ui's dev settings (`UI_PORT`, `UI_TAG`).
-- `ui/vite.config.js` proxies `/api` to a hardcoded
-  `target: 'http://localhost:7002'`. `dev-setup.sh` writes
-  `APP_HOST_URL=http://localhost:5173`, so verification mails link to vite,
-  while day-to-day use goes through the ui container on 7863.
-- `homeapp.vasoft.dev` is served by the **dev** stack today. The production
-  `~/docker-apps/homeapp/.env` uses `UI_PORT=7863`, `SERVER_PORT=7002` and
-  `MONGODB_PORT=27017`, the same ports as the dev stack, and no production
-  container exists (only `homeapp-ui-dev`, `receipts-db-dev` and `mailhog` are
-  up). The dev `api/.env` lists `https://homeapp.vasoft.dev` in
-  `APP_CORS_ALLOWED_ORIGINS` for the same reason.
+- The dev stack is at the root: `compose.dev.yaml` (db and MailHog) and one
+  `.env`, which `bootRun` reads too. vite serves the ui on 7800 and proxies to
+  the api on a hardcoded `http://localhost:7802`; there is no dev ui
+  container. vite has no `allowedHosts`, so it cannot yet be served through a
+  proxy host.
+- `homeapp.vasoft.dev` and `receipts.vasoft.dev` are served by the **dev**
+  stack. No production container exists, and the dev `.env` lists both in
+  `APP_CORS_ALLOWED_ORIGINS` for that reason.
 - `release.yml` (`workflow_dispatch` only) has never run: no runs, no tags, no
   GitHub releases. `VERSION` and `ui/package.json` are `0.0.6`.
   `deploy/compose.yaml` and the production compose run `receipts-api:dev` and
@@ -207,23 +220,22 @@ No open questions remain.
 
 ### Checklist
 
-- [ ] **Dev stack at the root (decisions 1, 10)** — `compose.dev.yaml`,
+- [x] **Dev stack at the root (decisions 1, 10)** — `compose.dev.yaml`,
       `.env`, `example.env`, holding db and MailHog only; `bootRun` and
       `dev-setup.sh` read and write the root `.env`. One env file for one
       product, not the api's
-- [ ] **dotenv reads the root `.env` (decision 11)** — `bootRun` keeps cwd
+- [x] **dotenv reads the root `.env` (decision 11)** — `bootRun` keeps cwd
       `api/`, so `file:./certs/*.pem` still resolves to `api/certs/`, where
       dev keys stay
-- [ ] **Move `example.env` to the root** — it is complete for today's layout
-      since #30 (the M0 item); the move adds only the vite api target
-      (decision 2)
+- [x] **Move `example.env` to the root** — the vite api target is added
+      with the next item
 - [ ] **vite api target from the environment (decision 2)** — replace the
-      hardcoded `http://localhost:7002` in `ui/vite.config.js`, defaulting to
-      it
+      hardcoded `http://localhost:7802` in `ui/vite.config.js`, defaulting to
+      it, and list it in `example.env`
 - [ ] **vite behind `receipts-dev.vasoft.dev`** — `server.allowedHosts` and
       HMR over the proxy's WebSocket, or the page loads without hot reload
 - [ ] **Preview stack at `receipts-test.vasoft.dev` (decision 13)** — ui on
-      7873 and api on 7013, on `pr-<n>` images from #30, with a MongoDB of its
+      7810 and api on 7812, on `pr-<n>` images from #30, with a MongoDB of its
       own
 - [ ] **Separate databases, refreshed on demand (decision 12)** — dev,
       preview and production never share one. `make db-refresh` copies
@@ -245,6 +257,20 @@ No open questions remain.
         `receipts-test.vasoft.dev`, optionally refreshing its database
       - `db-restore` — `scripts/db-restore.sh`
       - `db-refresh` — copy production's database into dev
+- [ ] **Grow `e2e/` into a Playwright suite, run by `make e2e`** — today it
+      is one serial smoke (`e2e/tests/smoke.spec.js`). Add specs for:
+      - search — purchases found by product name, including `canonicalName`
+        (#28), and an empty result
+      - login errors — wrong password, unknown account, and an unverified
+        account told apart from other 403s (#28)
+      - scan review and editing — change a row's name, price and quantity,
+        delete a row, then save, and read the edits back
+      - PDF scan — the smoke already scans `e2e/fixtures/receipt.pdf` through
+        the OpenAI stub; give it a spec of its own that also checks the stub
+        was sent the PDF as a document, which needs the stub to record what
+        it receives
+      Each spec registers its own user, so specs run in parallel. Its own pull
+      request after the Makefile (PR 3); not part of M1b's done-when
 - [ ] **`dev-setup.sh` ends with `make dev`** — instead of the four manual
       commands
 - [ ] **One dev guide (decision 6)** — fold `api/docs/DEVELOPMENT_SETUP.md` and
@@ -263,7 +289,7 @@ No open questions remain.
       Write it in `deploy/README.md`, which already lists them
 - [ ] **`deploy/compose.yaml` on release tags** — `receipts-api` and
       `receipts-ui` pinned to `0.1.0`, not `:dev` or `latest`; only the ui
-      published on the host (e.g. 7870), the api and MongoDB internal
+      published on the host (7820), the api and MongoDB internal
       (decision 9)
 - [ ] **Production on 0.1.0 at `receipts.vasoft.dev` (decisions 7, 8)** —
       `~/docker-apps/homeapp` runs `deploy/compose.yaml` at 0.1.0 with a copy
@@ -280,9 +306,8 @@ Stragglers:
       (`receipts-api:latest`, api and db only), duplicating
       `deploy/compose.yaml`. Delete it, and set `TZ=${TZ:-Europe/Sofia}` on the
       api in `deploy/compose.yaml`, which sets none, for local-time logs
-- [ ] `api/.env` still has `BACKEND_HOST=localhost:7002`, which nothing reads:
-      the dev compose sets the ui container's `BACKEND_HOST` itself, and
-      `dev-setup.sh` does not write it. Drop it when `.env` moves to the root
+- [x] `api/.env`'s unread `BACKEND_HOST` — `dev-setup.sh` drops it, with
+      `UI_PORT`, when it moves the file to the root
 - [ ] **Q4**, the `dev.vasoft.homeapp` package rename, stays deferred: it is
       invasive and buys nothing functional
 
@@ -306,13 +331,15 @@ Then, each one testable on its own:
 1. **Dev stack to the root** — `compose.dev.yaml` with db and MailHog only,
    root `.env` and `example.env`, dotenv reading the root `.env`,
    `dev-setup.sh` writing it (and moving an existing `api/.env`),
-   `BACKEND_HOST` dropped, the dev ui container removed. *Test:* on a fresh
+   `BACKEND_HOST` dropped, the dev ui container removed, the dev ports of
+   decision 21 (vite 7800, api 7802, MailHog 7805, MongoDB on `127.0.0.1`)
+   and e2e's (7830, 7835), and D3 alongside. *Test:* on a fresh
    clone, `dev-setup.sh`, `docker compose -f compose.dev.yaml up -d`, `bootRun`
    and `./gradlew test` all work with no `api/.env`, and the keys load from
    `api/certs/`.
 2. **vite for ui development** — configurable api target, `allowedHosts`, HMR
    through the proxy, dev `APP_HOST_URL` and CORS origin, the `<title>`.
-   *User:* add `receipts-dev.vasoft.dev` → 5173 with WebSockets on.
+   *User:* add `receipts-dev.vasoft.dev` → 7800 with WebSockets on.
    *Test:* edit a component at `receipts-dev.vasoft.dev` and see it reload;
    the verification mail links there.
 3. **Root `Makefile`** — `setup`, `dev` (foreground, Ctrl-C stops both),
@@ -320,10 +347,10 @@ Then, each one testable on its own:
    exists, step 7); `dev-setup.sh` ends with `make dev`; per-run e2e
    project name. *Test:* `make setup && make dev` on a fresh clone, Ctrl-C
    leaves no api or vite behind; `make test`; two `make e2e` runs side by side.
-4. **Preview stack** — `make preview PR=<n>` runs the ui (7873) and api (7013)
+4. **Preview stack** — `make preview PR=<n>` runs the ui (7810) and api (7812)
    containers on that PR's images with their own MongoDB, refreshable as a
    copy, and the preview `APP_HOST_URL` and CORS origin.
-   *User:* add `receipts-test.vasoft.dev` → 7873.
+   *User:* add `receipts-test.vasoft.dev` → 7810.
    *Test:* `make preview PR=28` serves #28 at `receipts-test.vasoft.dev`
    while `make dev` keeps running, and writes nothing to the dev database.
 5. **One dev guide** — fold the api setup docs into `docs/DEV_SETUP.md` and
@@ -335,7 +362,7 @@ Then, each one testable on its own:
    *Test:* `v0.1.0` tag, GitHub release, and `receipts-api:0.1.0` /
    `receipts-ui:0.1.0` / `:latest` in GHCR.
 7. **Deploy on release tags** — `deploy/compose.yaml` pinned to `0.1.0`, the
-   ui on its own host port (e.g. 7870), api and MongoDB internal, production
+   ui on 7820, api and MongoDB internal, production
    `APP_HOST_URL` and CORS `https://receipts.vasoft.dev`, tags defined in
    `deploy/README.md`. *(user merges)*
    *User:* copy the dev database into production, switch
@@ -484,7 +511,7 @@ after it. Fixes D1 and D2 from [SPEC §7](SPEC.md#7-known-defects-that-block-the
 - [ ] The manual form's discount checkbox has no API counterpart — the API
       records a discount *amount*. Replace the checkbox with an amount field,
       or drop it
-- [ ] Drop the unused `statistics` collection, entity, and repository **(D3)**
+- [x] Drop the unused `statistics` collection, entity, and repository **(D3)**
 - [ ] Decide **Q2**: what to do about quantity for the 717 existing purchases
 - [x] Decide **Q1**: currency — answered in [SPEC §9.5](SPEC.md#95-currency-handling)
       and implemented; rate 1.95583 confirmed 2026-09-23

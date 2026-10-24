@@ -45,6 +45,16 @@ Releases up to 0.0.6 were separate; their notes are in
   `receipts-api` service (profile `api`, `API_TAG`, port 7003), and
   `UI_BACKEND` points the ui at it, so a pull request touching both sides can
   be tried with two tags (docs/DEV_SETUP.md, "Testing a pull request")
+- **The dev stack moved to the root** (M1b): `compose.dev.yaml` runs MongoDB
+  and MailHog only, and one root `.env` serves compose and `bootRun` (via
+  `springdotenv.directory`); `example.env` moved there too. The dev ui and api
+  containers are gone: the ui is developed on vite, and a ui preview image runs
+  with `docker run`. `scripts/dev-setup.sh` moves an existing `api/.env`,
+  rewriting a relative `MONGODB_DATAPATH`, dropping `UI_PORT` and
+  `BACKEND_HOST`, and switching the old default ports
+- **Ports follow one block per environment** (ROADMAP M1b decision 21): dev
+  vite 7800, api 7802, MailHog web 7805, MongoDB bound to `127.0.0.1`; e2e ui
+  7830 and MailHog 7835
 
 ### API
 
@@ -118,6 +128,9 @@ Releases up to 0.0.6 were separate; their notes are in
 
 #### Removed
 - `Formatter`; formatting belongs to the UI (D2)
+- The unused `Statistics` entity, `StatisticsRepository`, `ResStatistics` and
+  `ResProductDetails`, and `Product.statistics`; statistics are computed on
+  demand (D3)
 - `ResParsedPurchase` and `PurchaseMapper.toResParsedPurchases`, unused
 
 ### UI

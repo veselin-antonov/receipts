@@ -37,14 +37,14 @@ None of this is documented as a test prerequisite, and CI never runs tests
 | Prerequisite audit | Checks java 25, node, docker, openssl, tesseract and its `eng`/`bul` language data; reports what is missing instead of guessing |
 | `gradlew` | Sets the executable bit, and warns that the fix needs committing |
 | JWT keys | Generates a PKCS#8 RSA keypair into the gitignored `api/certs/`, outside the resources tree so it never reaches the jar |
-| Backend `.env` | Writes all 12 undefaulted variables, plus Linux overrides for the OCR paths that `application-dev.yaml` defaults to Windows locations |
+| `.env` | Writes the root `.env` with all 12 undefaulted variables, plus Linux overrides for the OCR paths that `application-dev.yaml` defaults to Windows locations. An `api/.env` from an older checkout is moved there, its old default ports switched to 7800/7802 |
 | UI dependencies | `npm ci` |
 | UI dev certs | Only with `--https`. Skipped by default: browsers treat `http://localhost` as a trustworthy origin, so the backend's `Secure` cookie works over plain http, and a self-signed cert just adds a warning to click through |
 
 Database restore is a second script:
 
 ```bash
-docker compose -f api/docker-compose.dev.yml up -d   # mongo, mailhog, ui on :7863
+docker compose -f compose.dev.yaml up -d   # mongo, mailhog
 scripts/db-restore.sh
 ```
 
@@ -87,7 +87,7 @@ value of running the backend natively.
 ### 2. Provide an OpenAI API key
 
 ```bash
-# in api/.env
+# in .env, at the repository root
 OPENAI_API_KEY=sk-...
 ```
 
@@ -96,7 +96,7 @@ Receipt parsing fails without it. Nothing else does.
 ### 3. Create a verified user, or restore the backup
 
 The backup contains one already-verified account. If you would rather register
-fresh, MailHog catches the verification mail at <http://localhost:8025>.
+fresh, MailHog catches the verification mail at <http://localhost:7805>.
 
 ---
 
@@ -185,7 +185,8 @@ touches the api, the ui or `e2e/`.
 
 ```bash
 cd e2e && npm ci && npx playwright install chromium && cd ..   # once
-E2E_UI_PORT=18780 E2E_MAILHOG_PORT=18725 e2e/run.sh           # next to the dev stack
+e2e/run.sh                                                     # ui on 7830, MailHog on 7835
+E2E_UI_PORT=18780 E2E_MAILHOG_PORT=18725 e2e/run.sh           # other ports
 E2E_KEEP=1 e2e/run.sh                                          # leave it up to poke at
 ```
 
@@ -210,94 +211,65 @@ E2E_KEEP=1 e2e/run.sh                                          # leave it up to 
   the boot jar or the plain jar contains any of those. It runs after every
   `bootJar`, as part of `check` (so `./gradlew build` and CI run it), and
   before `buildImage`.
-- `api/example.env` documents every variable; it is not read by anything.
+- The root `example.env` documents every variable; it is not read by anything.
 
-## The dev stack: `api/docker-compose.dev.yml`
+## The dev stack: `compose.dev.yaml`
 
-MongoDB, MailHog and the ui image. The api normally runs natively with
-`./gradlew bootRun --args=--spring.profiles.active=dev`, so it keeps devtools
-hot restart. An api image can run next to it as `receipts-api`, behind the
-compose profile `api`, for testing a pull request (below); a plain `up -d`
-does not start it.
+MongoDB and MailHog in containers; the api and the ui run natively, so the api
+keeps devtools hot restart and the ui vite's hot reload. From the repository
+root:
 
-- Compose interpolates from `api/.env`, which it reads because the file sits
-  next to it. Nothing is passed to a container with `env_file`: each service
-  lists the variables it gets, so the OpenAI key only enters the optional
-  `receipts-api` container, which scans with it.
-- The ui container's nginx proxies `/api/` to `host.docker.internal:7002`, the
-  natively running api. `localhost` would be the container itself.
+```bash
+docker compose -f compose.dev.yaml up -d
+(cd api && ./gradlew bootRun --args='--spring.profiles.active=dev')
+(cd ui && npm run dev)
+```
+
+| Service | Port | Notes |
+|---|---|---|
+| ui (vite) | 7800 | proxies `/api` to the api |
+| api (`bootRun`) | 7802 | `SERVER_PORT` |
+| MailHog | 7805 (web), 1025 (SMTP) | |
+| MongoDB | 27017 | bound to `127.0.0.1` only |
+
+These are the dev block of the port scheme in
+[ROADMAP M1b decision 21](ROADMAP.md#decisions--2026-10-24); previews,
+production and e2e each have a block of their own.
+
+- **One `.env`, at the root.** Compose interpolates from it because it sits
+  next to `compose.dev.yaml`, and `bootRun` reads it through spring-dotenv:
+  `api/build.gradle` sets `springdotenv.directory` to the root, while the
+  working directory stays `api/`, so the dev profile's `file:./certs/*.pem`
+  still means `api/certs/`. `example.env` beside it lists every variable.
+  Tests run the `test` profile and read no `.env`.
 - MongoDB is pinned to a major (`mongo:8.2`). `latest` can move a major on a
   pull, and mongod refuses data files more than one feature-compatibility
   version behind.
-- Data lives in `api/.mongo-data` (gitignored, owned by the container's uid).
+- Data lives in `MONGODB_DATAPATH`, relative to the root: `.mongo-data` on a
+  fresh setup, `api/.mongo-data` for a `.env` that `dev-setup.sh` moved from
+  `api/` (both gitignored, owned by the container's uid).
 
 ### Testing a pull request on its preview images
 
 Every pull request from a branch of this repository publishes a preview image
 for each side it touches: `ghcr.io/veselin-antonov/receipts-api:pr-<n>` and
 `ghcr.io/veselin-antonov/receipts-ui:pr-<n>`. A bot comment on the pull request
-lists the ones it built. They run against the same database and MailHog as the
-native api, so there is no branch to check out and nothing to build.
+lists the ones it built. Write the tag on the command line; `--pull always`
+matters, because a preview tag is overwritten on every push.
 
-**Interim:** preview images currently share the dev database, so a pull
-request's bugs can change dev data. Don't run one whose api writes data you
-care about. M1b step 4 replaces this with a preview stack of its own at
-`receipts-test.vasoft.dev` (api 7013, ui 7873), with a separate database
-refreshable from production.
-
-The variables, all optional:
-
-| Variable | Default | What it does |
-|---|---|---|
-| `UI_TAG` | `dev` | ui image tag for `receipts-ui` (`receipts-ui-dev`) |
-| `API_TAG` | `dev` | api image tag for `receipts-api` (`receipts-api-dev`) |
-| `API_CONTAINER_PORT` | `7003` | host port of the api container, next to the native api on `SERVER_PORT` (7002) |
-| `UI_BACKEND` | `host.docker.internal:${SERVER_PORT}` | where the ui's nginx sends `/api/`; `host.docker.internal:7003` is the api container |
-
-The api container gets its settings from `api/.env` by interpolation, reaches
-MongoDB and MailHog on the compose network, and reads the dev JWT keys from
-`api/certs`, mounted read-only (the image has none, D10). Its CORS origins are
-`APP_CORS_ALLOWED_ORIGINS` from `api/.env`, so the origin the browser is on
-(e.g. `https://homeapp.vasoft.dev`) must be in it, as for the native api.
-
-`--pull always` matters: a preview tag is overwritten on every push to the pull
-request. `--no-deps` keeps compose away from the database and MailHog
-containers: of the running stack, only `receipts-ui-dev` is recreated. Run these from the repository root, and write the variables on the
-command line rather than exporting them, so the switch back really switches
-back.
-
-A **ui-only** pull request, against the native api:
+A **ui** preview runs against the native api, on the preview ui port:
 
 ```bash
-UI_TAG=pr-10 docker compose -f api/docker-compose.dev.yml up -d --pull always receipts-ui
-# click through http://localhost:7863
+docker run --rm --pull always -p 7810:80 \
+  --add-host host.docker.internal:host-gateway \
+  -e BACKEND_HOST=host.docker.internal:7802 \
+  ghcr.io/veselin-antonov/receipts-ui:pr-10
+# click through http://localhost:7810, with http://localhost:7810 in
+# APP_CORS_ALLOWED_ORIGINS
 ```
 
-An **api-only** pull request: the api container, and master's ui pointed at it:
-
-```bash
-API_TAG=pr-30 docker compose -f api/docker-compose.dev.yml --profile api up -d --pull always --no-deps receipts-api
-UI_BACKEND=host.docker.internal:7003 docker compose -f api/docker-compose.dev.yml up -d --pull always receipts-ui
-# click through http://localhost:7863; the api alone answers on http://localhost:7003
-```
-
-A pull request touching **both**:
-
-```bash
-API_TAG=pr-28 docker compose -f api/docker-compose.dev.yml --profile api up -d --pull always --no-deps receipts-api
-UI_TAG=pr-28 UI_BACKEND=host.docker.internal:7003 docker compose -f api/docker-compose.dev.yml up -d --pull always receipts-ui
-```
-
-**Back to the native api and master's `:dev`**:
-
-```bash
-docker compose -f api/docker-compose.dev.yml --profile api rm -sf receipts-api
-docker compose -f api/docker-compose.dev.yml up -d --pull always receipts-ui
-```
-
-`docker logs -f receipts-api-dev` follows the api container. The native api
-on 7002 keeps running throughout; stop it only if the two should not both
-write to the database. The pull request's api must be able to read the dev
-database as master left it: a migration it runs stays after switching back.
-
-`api/example.env` lists every variable the api and this compose file read.
+An **api** preview has no recipe on the dev stack: the dev MongoDB listens on
+`127.0.0.1` only, and a preview must not write to the dev database anyway. e2e
+covers it on the pull request; `make preview`
+([ROADMAP M1b](ROADMAP.md#m1b--monorepo-development-workflow), step 4) is
+where a preview stack with a database of its own comes in.

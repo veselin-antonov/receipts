@@ -28,6 +28,9 @@ export default defineConfig({
     setupFiles: './src/setupTests.js',
   },
   server: {
+    // The dev port block (ROADMAP M1b decision 21): vite 7800, the api 7802
+    port: 7800,
+    strictPort: true,
     https:
       fs.existsSync('./localhost.key') && fs.existsSync('./localhost.crt')
         ? {
@@ -37,7 +40,7 @@ export default defineConfig({
         : undefined,
     proxy: {
       '/api': {
-        target: 'http://localhost:7002',
+        target: 'http://localhost:7802',
         changeOrigin: true,
         secure: false,
       },

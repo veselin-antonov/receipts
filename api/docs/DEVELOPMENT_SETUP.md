@@ -66,10 +66,10 @@ export OPENAI_API_KEY='<your-openai-api-key>'
 export TESSDATA_PATH='C:/Program Files/Tesseract-OCR/tessdata'
 export OCR_LANGUAGE='eng+bul'
 export OCR_DEBUG_OUTPUT_PATH='./ocr-debug'
-export APP_CORS_ALLOWED_ORIGINS='https://localhost:5173,http://localhost:5173,http://localhost:7863'
+export APP_CORS_ALLOWED_ORIGINS='http://localhost:7800'
 ```
 
-You will also need the MongoDB and SMTP variables used by `application.yaml`, unless they are being supplied through your local shell, IDE run configuration, or a local env file consumed by your environment.
+You will also need the MongoDB and SMTP variables used by `application.yaml`. `bootRun` reads them from the repository root's `.env` (written by `scripts/dev-setup.sh`, documented in the root `example.env`); a shell export or IDE run configuration overrides it. An IDE run outside Gradle reads that file only with `-Dspringdotenv.directory=..`.
 
 Important variables from the base config:
 
@@ -93,33 +93,26 @@ OPENAI_API_KEY
 
 ### MongoDB
 
-You can run MongoDB any way you like, but the repo includes `docker-compose.dev.yml` for local supporting services.
-
-Current compose file includes:
-- `receipts-db` - MongoDB with auth
+You can run MongoDB any way you like, but the repository root has
+`compose.dev.yaml` for the local supporting services:
+- `receipts-db` - MongoDB with auth, on `127.0.0.1:27017`
 - `mailhog` - SMTP sink and email UI
-- `receipts-ui` - UI container image on :7863, proxying `/api` to the api on the host
 
-Note: the compose file does not start the backend container itself. A common local workflow is:
-- run MongoDB and MailHog through Docker Compose
-- run the backend with Gradle on the host machine
-- run the UI locally or via the UI dev container
-
-Start supporting services:
+The backend runs with Gradle on the host (7802) and the UI on vite (7800).
+From the repository root:
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d
+docker compose -f compose.dev.yaml up -d
 ```
 
-The compose file interpolates from `.env` next to it (the same file the api
-reads). To click through a ui pull request's preview image, set `UI_TAG=pr-<n>`;
-see [DEV_SETUP.md](../../docs/DEV_SETUP.md#testing-a-pull-request-on-its-preview-images).
+The compose file interpolates from the root `.env` next to it, the same file
+`bootRun` reads.
 
 ### Mail testing
 
 MailHog ports from the dev compose file:
 - SMTP: `1025`
-- Web UI: `8025`
+- Web UI: `7805`
 
 This is useful for register/verify/resend-verification flows.
 

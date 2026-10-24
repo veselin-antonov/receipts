@@ -3,8 +3,8 @@
 # with MongoDB, MailHog and the OpenAI stub, run Playwright, tear it all down.
 # CI runs exactly this (.github/workflows/e2e.yml).
 #
-#   e2e/run.sh                                   # ports 8080 and 8025
-#   E2E_UI_PORT=18780 E2E_MAILHOG_PORT=18725 e2e/run.sh   # next to the dev stack
+#   e2e/run.sh                                   # ports 7830 and 7835
+#   E2E_UI_PORT=18780 E2E_MAILHOG_PORT=18725 e2e/run.sh   # other ports
 #   E2E_KEEP=1 e2e/run.sh                        # leave the stack up afterwards
 #
 # Needs Docker, Java 25 and Node 22. First run: (cd e2e && npm ci &&
@@ -15,8 +15,8 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(dirname "$here")"
 
 export VERSION="$(tr -d '[:space:]' < "$root/VERSION")"
-export E2E_UI_PORT="${E2E_UI_PORT:-8080}"
-export E2E_MAILHOG_PORT="${E2E_MAILHOG_PORT:-8025}"
+export E2E_UI_PORT="${E2E_UI_PORT:-7830}"
+export E2E_MAILHOG_PORT="${E2E_MAILHOG_PORT:-7835}"
 
 dc() { docker compose -f "$here/compose.yaml" "$@"; }
 

@@ -155,7 +155,7 @@ def score_against_expected(result: dict, exp: dict) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--api", default="http://localhost:7002")
+    ap.add_argument("--api", default="http://localhost:7802")
     ap.add_argument("--user", default="dev-test@example.com")
     ap.add_argument("--password", default="DevTest123!")
     ap.add_argument("--fixtures", type=Path, default=FIXTURES)
