@@ -200,19 +200,14 @@ No open questions remain.
 
 ### Where things stand
 
-- `api/docker-compose.dev.yml` (`name: homeapp-dev`) runs `receipts-db`,
-  `mailhog` and `receipts-ui`, and interpolates from `api/.env` — so the api's
-  directory owns the ui's dev settings (`UI_PORT`, `UI_TAG`).
-- `ui/vite.config.js` proxies `/api` to a hardcoded
-  `target: 'http://localhost:7002'`. `dev-setup.sh` writes
-  `APP_HOST_URL=http://localhost:5173`, so verification mails link to vite,
-  while day-to-day use goes through the ui container on 7863.
-- `homeapp.vasoft.dev` is served by the **dev** stack today. The production
-  `~/docker-apps/homeapp/.env` uses `UI_PORT=7863`, `SERVER_PORT=7002` and
-  `MONGODB_PORT=27017`, the same ports as the dev stack, and no production
-  container exists (only `homeapp-ui-dev`, `receipts-db-dev` and `mailhog` are
-  up). The dev `api/.env` lists `https://homeapp.vasoft.dev` in
-  `APP_CORS_ALLOWED_ORIGINS` for the same reason.
+- The dev stack is at the root: `compose.dev.yaml` (db and MailHog) and one
+  `.env`, which `bootRun` reads too. vite serves the ui on 7800 and proxies to
+  the api on a hardcoded `http://localhost:7802`; there is no dev ui
+  container. vite has no `allowedHosts`, so it cannot yet be served through a
+  proxy host.
+- `homeapp.vasoft.dev` and `receipts.vasoft.dev` are served by the **dev**
+  stack. No production container exists, and the dev `.env` lists both in
+  `APP_CORS_ALLOWED_ORIGINS` for that reason.
 - `release.yml` (`workflow_dispatch` only) has never run: no runs, no tags, no
   GitHub releases. `VERSION` and `ui/package.json` are `0.0.6`.
   `deploy/compose.yaml` and the production compose run `receipts-api:dev` and
@@ -225,19 +220,18 @@ No open questions remain.
 
 ### Checklist
 
-- [ ] **Dev stack at the root (decisions 1, 10)** — `compose.dev.yaml`,
+- [x] **Dev stack at the root (decisions 1, 10)** — `compose.dev.yaml`,
       `.env`, `example.env`, holding db and MailHog only; `bootRun` and
       `dev-setup.sh` read and write the root `.env`. One env file for one
       product, not the api's
-- [ ] **dotenv reads the root `.env` (decision 11)** — `bootRun` keeps cwd
+- [x] **dotenv reads the root `.env` (decision 11)** — `bootRun` keeps cwd
       `api/`, so `file:./certs/*.pem` still resolves to `api/certs/`, where
       dev keys stay
-- [ ] **Move `example.env` to the root** — it is complete for today's layout
-      since #30 (the M0 item); the move adds only the vite api target
-      (decision 2)
+- [x] **Move `example.env` to the root** — the vite api target is added
+      with the next item
 - [ ] **vite api target from the environment (decision 2)** — replace the
-      hardcoded `http://localhost:7002` in `ui/vite.config.js`, defaulting to
-      it
+      hardcoded `http://localhost:7802` in `ui/vite.config.js`, defaulting to
+      it, and list it in `example.env`
 - [ ] **vite behind `receipts-dev.vasoft.dev`** — `server.allowedHosts` and
       HMR over the proxy's WebSocket, or the page loads without hot reload
 - [ ] **Preview stack at `receipts-test.vasoft.dev` (decision 13)** — ui on
@@ -312,9 +306,8 @@ Stragglers:
       (`receipts-api:latest`, api and db only), duplicating
       `deploy/compose.yaml`. Delete it, and set `TZ=${TZ:-Europe/Sofia}` on the
       api in `deploy/compose.yaml`, which sets none, for local-time logs
-- [ ] `api/.env` still has `BACKEND_HOST=localhost:7002`, which nothing reads:
-      the dev compose sets the ui container's `BACKEND_HOST` itself, and
-      `dev-setup.sh` does not write it. Drop it when `.env` moves to the root
+- [x] `api/.env`'s unread `BACKEND_HOST` — `dev-setup.sh` drops it, with
+      `UI_PORT`, when it moves the file to the root
 - [ ] **Q4**, the `dev.vasoft.homeapp` package rename, stays deferred: it is
       invasive and buys nothing functional
 
@@ -339,8 +332,8 @@ Then, each one testable on its own:
    root `.env` and `example.env`, dotenv reading the root `.env`,
    `dev-setup.sh` writing it (and moving an existing `api/.env`),
    `BACKEND_HOST` dropped, the dev ui container removed, the dev ports of
-   decision 21 (vite 7800, api 7802, MailHog 7805, MongoDB on `127.0.0.1`),
-   and D3 alongside. *Test:* on a fresh
+   decision 21 (vite 7800, api 7802, MailHog 7805, MongoDB on `127.0.0.1`)
+   and e2e's (7830, 7835), and D3 alongside. *Test:* on a fresh
    clone, `dev-setup.sh`, `docker compose -f compose.dev.yaml up -d`, `bootRun`
    and `./gradlew test` all work with no `api/.env`, and the keys load from
    `api/certs/`.
@@ -352,7 +345,7 @@ Then, each one testable on its own:
 3. **Root `Makefile`** — `setup`, `dev` (foreground, Ctrl-C stops both),
    `down`, `test`, `e2e`, `db-restore`, `db-refresh` (usable once production
    exists, step 7); `dev-setup.sh` ends with `make dev`; per-run e2e
-   project name, and e2e defaulting to 7830 / 7835 (decision 21). *Test:* `make setup && make dev` on a fresh clone, Ctrl-C
+   project name. *Test:* `make setup && make dev` on a fresh clone, Ctrl-C
    leaves no api or vite behind; `make test`; two `make e2e` runs side by side.
 4. **Preview stack** — `make preview PR=<n>` runs the ui (7810) and api (7812)
    containers on that PR's images with their own MongoDB, refreshable as a

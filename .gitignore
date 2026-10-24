@@ -7,3 +7,5 @@ build/
 __pycache__/
 *.pyc
 .harness/
+# Dev MongoDB data (compose.dev.yaml)
+/.mongo-data/

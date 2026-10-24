@@ -13,7 +13,7 @@ export default defineConfig({
     ? [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]]
     : 'list',
   use: {
-    baseURL: `http://localhost:${process.env.E2E_UI_PORT ?? 8080}`,
+    baseURL: `http://localhost:${process.env.E2E_UI_PORT ?? 7830}`,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

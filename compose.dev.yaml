@@ -1,0 +1,43 @@
+# Supporting services for local development: MongoDB and MailHog. The api runs
+# natively (`./gradlew bootRun`, dev profile) on SERVER_PORT (7802), and the ui
+# on vite (7800), which proxies /api to it.
+#
+# Variables are interpolated from the .env beside this file, which compose
+# reads automatically; bootRun reads the same file. scripts/dev-setup.sh
+# writes it.
+#
+#   docker compose -f compose.dev.yaml up -d
+name: receipts-dev
+
+services:
+  receipts-db:
+    # Pinned to a major. `latest` would move to the next major on a pull, and
+    # mongod refuses data files more than one featureCompatibilityVersion old.
+    image: mongo:8.2
+    container_name: receipts-db-dev
+    restart: unless-stopped
+    ports:
+      # Only this host's own clients: the native api and db-restore.sh
+      - 127.0.0.1:${MONGODB_PORT:-27017}:27017
+    volumes:
+      - ${MONGODB_DATAPATH:-./.mongo-data}:/data/db
+    command: ['--auth']
+    # Only read when the data directory is empty; creates the root user that
+    # --auth then requires (D14). Same credentials the api uses from .env.
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER:-receipts}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASS:-localdev}
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand("ping").ok']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    restart: unless-stopped
+    ports:
+      - '1025:1025' # SMTP
+      - '7805:8025' # web UI

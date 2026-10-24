@@ -11,12 +11,11 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-API="$root/api"
 
 SRC="${SRC:-$HOME/docker-apps/homeapp/db/db-backup}"
 OUT="${OUT:-$root/.migrated}"
-[[ -f "$API/.env" ]] || { echo "no $API/.env - run scripts/dev-setup.sh first" >&2; exit 1; }
-set -a; . "$API/.env"; set +a
+[[ -f "$root/.env" ]] || { echo "no $root/.env - run scripts/dev-setup.sh first" >&2; exit 1; }
+set -a; . "$root/.env"; set +a
 
 : "${MONGODB_HOST:?}" "${MONGODB_PORT:?}" "${MONGODB_DATABASE:?}"
 : "${MONGODB_USER:?}" "${MONGODB_PASS:?}" "${MONGODB_AUTH_DB:?}"
@@ -34,7 +33,7 @@ if [[ -z "$MONGO_CONTAINER" ]] && ! command -v mongoimport >/dev/null 2>&1; then
   MONGO_CONTAINER="$(docker ps --filter ancestor=mongo --format '{{.Names}}' | head -1)"
   [[ -n "$MONGO_CONTAINER" ]] || {
     echo "no running mongo container found, and mongoimport is not on PATH." >&2
-    echo "start one with: docker compose -f $API/docker-compose.dev.yml up -d" >&2
+    echo "start one with: docker compose -f $root/compose.dev.yaml up -d" >&2
     echo "or set MONGO_CONTAINER=<name>" >&2
     exit 1
   }

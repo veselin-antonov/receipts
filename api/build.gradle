@@ -97,6 +97,14 @@ test {
     failOnNoDiscoveredTests = false
 }
 
+// The dev environment is the repository root's .env, one file for the product.
+// bootRun keeps api/ as its working directory, so the dev profile's
+// file:./certs/*.pem still resolves to api/certs. Tests run the `test` profile
+// and read no .env.
+tasks.named('bootRun') {
+    systemProperty 'springdotenv.directory', rootDir.parentFile.absolutePath
+}
+
 // Secrets never go into the jar (D10). Dev keys live in api/certs, outside the
 // resources tree; this also drops stale copies left in src/main/resources by
 // an older checkout, instead of shipping them.

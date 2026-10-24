@@ -5,9 +5,9 @@
 #   (cd api && ./gradlew bootJar)          # the api image copies the jar
 #   e2e/run.sh                              # keys, build, up, test, down
 #
-# Ports: the ui on E2E_UI_PORT (8080), MailHog's web API on E2E_MAILHOG_PORT
-# (8025), which the test reads the verification mail from. Override them to run
-# next to the dev stack, which already has 8025.
+# Ports: the ui on E2E_UI_PORT (7830), MailHog's web API on E2E_MAILHOG_PORT
+# (7835), which the test reads the verification mail from. They are e2e's own
+# block (ROADMAP M1b decision 21), so a run fits next to the dev stack.
 name: receipts-e2e
 
 services:
@@ -26,7 +26,7 @@ services:
   mailhog:
     image: mailhog/mailhog:v1.0.1
     ports:
-      - '${E2E_MAILHOG_PORT:-8025}:8025'
+      - '${E2E_MAILHOG_PORT:-7835}:8025'
 
   openai-stub:
     image: python:3.13-alpine
@@ -60,7 +60,7 @@ services:
       # plain SMTP, as in the dev profile. Everything else stays production.
       SPRING_MAIL_PROTOCOL: smtp
       # Where the verification mail's link points: the ui, as the browser sees it
-      APP_HOST_URL: http://localhost:${E2E_UI_PORT:-8080}
+      APP_HOST_URL: http://localhost:${E2E_UI_PORT:-7830}
       JWT_PRIVATE_KEY: file:/certs/private.pem
       JWT_PUBLIC_KEY: file:/certs/public.pem
       OPENAI_API_KEY: sk-e2e-stub
@@ -91,7 +91,7 @@ services:
     environment:
       BACKEND_HOST: api:7002
     ports:
-      - '${E2E_UI_PORT:-8080}:80'
+      - '${E2E_UI_PORT:-7830}:80'
     depends_on:
       api:
         condition: service_healthy

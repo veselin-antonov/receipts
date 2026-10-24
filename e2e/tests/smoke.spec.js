@@ -9,7 +9,7 @@ import { expect, test } from '@playwright/test';
 // routes the api no longer served; Jackson 3 would have rejected the manual
 // form's payload; Mongo credentials were silently dropped by Boot 4.
 
-const MAILHOG = `http://localhost:${process.env.E2E_MAILHOG_PORT ?? 8025}`;
+const MAILHOG = `http://localhost:${process.env.E2E_MAILHOG_PORT ?? 7835}`;
 const email = `e2e-${Date.now()}@example.test`;
 const password = 'E2e-Smoke-2026!';
 

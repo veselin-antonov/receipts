@@ -19,6 +19,7 @@ warn() { printf '  \033[33m!\033[0m %s\n' "$*"; }
 
 echo "api: $API"
 echo "ui:  $UI"
+echo "env: $root/.env"
 
 # --- 1. prerequisites ------------------------------------------------------ #
 echo
@@ -95,13 +96,37 @@ else
   ok "generated RSA keypair (PKCS#8, gitignored)"
 fi
 
-# --- 4. backend .env (defect D9) ------------------------------------------- #
-# application.yaml has 12 placeholders with no defaults, and spring-dotenv
-# reads this file. Without it even `gradlew test` fails, because
-# server.port=${SERVER_PORT} will not parse as an Integer.
+# --- 4. .env (defect D9) --------------------------------------------------- #
+# One file at the root for the product: compose.dev.yaml interpolates from it,
+# and bootRun's spring-dotenv reads it (api/build.gradle points it here).
+# application.yaml has 12 placeholders with no defaults; without them bootRun
+# fails, because server.port=${SERVER_PORT} will not parse as an Integer.
 echo
-echo "4. Backend environment"
-env_file="$API/.env"
+echo "4. Environment"
+env_file="$root/.env"
+
+# An older checkout kept it in api/. Move it, and bring what changed with the
+# move along: compose now resolves relative paths from the root, nothing reads
+# UI_PORT or BACKEND_HOST any more, and the old default ports become the dev
+# block (vite 7800, api 7802). Values you chose yourself are kept.
+if [[ -f "$API/.env" && ! -f "$env_file" ]]; then
+  mv "$API/.env" "$env_file"
+  sed -i -E \
+    -e 's|^MONGODB_DATAPATH=\./|MONGODB_DATAPATH=./api/|' \
+    -e '/^(UI_PORT|BACKEND_HOST)=/d' \
+    -e 's|^SERVER_PORT=7002$|SERVER_PORT=7802|' \
+    -e 's|^APP_HOST_URL=http://localhost:5173$|APP_HOST_URL=http://localhost:7800|' \
+    "$env_file"
+  if grep -qE '^APP_CORS_ALLOWED_ORIGINS=' "$env_file" \
+     && ! grep -qE '^APP_CORS_ALLOWED_ORIGINS=(.*,)?http://localhost:7800(,|$)' "$env_file"; then
+    sed -i -E 's|^(APP_CORS_ALLOWED_ORIGINS=.+)$|\1,http://localhost:7800|' "$env_file"
+  fi
+  ok "moved api/.env to the root"
+elif [[ -f "$API/.env" ]]; then
+  warn "both api/.env and .env exist; only the root one is read"
+  MANUAL+=("merge anything you need from $API/.env into $env_file, then delete $API/.env")
+fi
+
 set_default() {
   local key="$1" val="$2"
   if grep -qE "^${key}=.+" "$env_file" 2>/dev/null; then
@@ -127,14 +152,13 @@ set_default SMTP_HOST         localhost
 set_default SMTP_PORT         1025
 set_default SMTP_USER         dev
 set_default SMTP_PASS         dev
-set_default SERVER_PORT       7002
-set_default APP_HOST_URL      http://localhost:5173
-set_default UI_PORT           7863
+set_default SERVER_PORT       7802
+set_default APP_HOST_URL      http://localhost:7800
 # Linux overrides for defaults that application-dev.yaml points at Windows paths
 set_default TESSDATA_PATH     "$TESSDATA"
 set_default OCR_LANGUAGE      "eng+bul"
 set_default OCR_DEBUG_OUTPUT_PATH ./ocr-debug
-set_default APP_CORS_ALLOWED_ORIGINS "http://localhost:5173,https://localhost:5173,http://localhost:7863"
+set_default APP_CORS_ALLOWED_ORIGINS "http://localhost:7800"
 # Single source for the upload ceiling: the API's multipart config and the UI's
 # nginx client_max_body_size both derive from this one number.
 set_default MAX_UPLOAD_MB 25
@@ -166,7 +190,7 @@ elif [[ "${1:-}" == "--https" ]]; then
     -keyout "$UI/localhost.key" -out "$UI/localhost.crt" \
     -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" 2>/dev/null
   ok "generated UI dev certs (gitignored)"
-  MANUAL+=("trust https://localhost:5173 in your browser once")
+  MANUAL+=("trust https://localhost:7800 in your browser once, and add it to APP_CORS_ALLOWED_ORIGINS")
 else
   skip "no UI dev certs; vite serves http (fine - localhost is a secure context)"
 fi
@@ -183,8 +207,8 @@ fi
 cat <<'NEXT'
 
 Then:
-  docker compose -f <api>/docker-compose.dev.yml up -d   # mongo, mailhog, ui on :7863
-  scripts/db-restore.sh                                  # import the backups
-  cd <api> && ./gradlew bootRun --args='--spring.profiles.active=dev'
-  cd <ui>  && npm run dev
+  docker compose -f compose.dev.yaml up -d   # mongo, mailhog (web on :7805)
+  scripts/db-restore.sh                      # import the backups
+  cd api && ./gradlew bootRun --args='--spring.profiles.active=dev'   # :7802
+  cd ui  && npm run dev                      # http://localhost:7800
 NEXT

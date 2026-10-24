@@ -71,8 +71,8 @@ jobs:
     if: needs.changes.outputs.ui == 'true'
     uses: ./.github/workflows/ui-checks.yml
 
-  # :pr-<n> images to click through against the dev stack (docs/DEV_SETUP.md,
-  # "Testing a pull request"). A fork's pull request gets a read-only token and
+  # :pr-<n> images to click through (docs/DEV_SETUP.md, "Testing a pull
+  # request"). A fork's pull request gets a read-only token and
   # cannot push packages, so only this repository's branches get them. Each one
   # runs only after its component's checks passed, so only when that component
   # changed.
@@ -140,7 +140,6 @@ jobs:
             ].filter(([, ok]) => ok).map(([component]) => component);
 
             const pulls = built.map((c) => `docker pull ghcr.io/${owner}/receipts-${c}:${tag}`);
-            const envs = built.map((c) => `${c.toUpperCase()}_TAG=${tag}`).join(' ');
 
             const body = [
               marker,
@@ -150,7 +149,7 @@ jobs:
               ...pulls,
               '```',
               '',
-              `📦 **Tag:** \`${tag}\` - run it on the dev stack with \`${envs}\`, see docs/DEV_SETUP.md, "Testing a pull request".`,
+              `📦 **Tag:** \`${tag}\` - see docs/DEV_SETUP.md, "Testing a pull request".`,
             ].join('\n');
 
             const comments = await github.paginate(github.rest.issues.listComments, {

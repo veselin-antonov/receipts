@@ -21,7 +21,7 @@ jwt:
 # and set TESSDATA_PATH to point to the tessdata directory
 app:
   cors:
-    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:https://localhost:5173,http://localhost:5173,http://localhost:7863}
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:7800}
   ocr:
     data-path: ${TESSDATA_PATH:C:/Program Files/Tesseract-OCR/tessdata}
     language: ${OCR_LANGUAGE:eng+bul}
