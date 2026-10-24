@@ -249,6 +249,25 @@ production and e2e each have a block of their own.
   fresh setup, `api/.mongo-data` for a `.env` that `dev-setup.sh` moved from
   `api/` (both gitignored, owned by the container's uid).
 
+### Behind a proxy host
+
+`receipts-dev.vasoft.dev` serves vite through nginx-proxy-manager, with
+WebSockets on for hot reload; the HMR client connects back to the page's own
+host and port, so vite needs no HMR settings. Three values in the root `.env`
+make a proxy host work:
+
+```bash
+UI_ALLOWED_HOSTS=receipts-dev.vasoft.dev        # vite answers 403 to any other host
+APP_HOST_URL=https://receipts-dev.vasoft.dev    # where verification mails link
+APP_CORS_ALLOWED_ORIGINS=http://localhost:7800,https://receipts-dev.vasoft.dev
+```
+
+`UI_ALLOWED_HOSTS` takes a comma-separated list and defaults to
+`receipts-dev.vasoft.dev`; `localhost` is always allowed. vite proxies `/api`
+to `UI_API_TARGET`, by default `http://localhost:${SERVER_PORT}`. The browser's
+`Origin` passes through that proxy unchanged, so the api checks it against
+`APP_CORS_ALLOWED_ORIGINS` as if the browser called it directly.
+
 ### Testing a pull request on its preview images
 
 Every pull request from a branch of this repository publishes a preview image

@@ -55,6 +55,10 @@ Releases up to 0.0.6 were separate; their notes are in
 - **Ports follow one block per environment** (ROADMAP M1b decision 21): dev
   vite 7800, api 7802, MailHog web 7805, MongoDB bound to `127.0.0.1`; e2e ui
   7830 and MailHog 7835
+- vite reads the root `.env`: `UI_API_TARGET` (default
+  `http://localhost:SERVER_PORT`) and `UI_ALLOWED_HOSTS` (default
+  `receipts-dev.vasoft.dev`), so it can be served through a proxy host with hot
+  reload
 
 ### API
 
@@ -142,6 +146,7 @@ Releases up to 0.0.6 were separate; their notes are in
 
 #### Changed
 
+- The page title is `Receipts`, not `Home App`
 - The purchases table renders `priceEur` / `discountAmountEur` and ISO dates
   from the API's new wire format (requires the matching API change)
 - Price inputs in the manual form and the scan review are labelled `(€)`

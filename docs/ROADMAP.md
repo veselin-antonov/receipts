@@ -201,10 +201,9 @@ No open questions remain.
 ### Where things stand
 
 - The dev stack is at the root: `compose.dev.yaml` (db and MailHog) and one
-  `.env`, which `bootRun` reads too. vite serves the ui on 7800 and proxies to
-  the api on a hardcoded `http://localhost:7802`; there is no dev ui
-  container. vite has no `allowedHosts`, so it cannot yet be served through a
-  proxy host.
+  `.env`, which `bootRun` and vite read too. vite serves the ui on 7800,
+  proxies to the api on 7802, and allows `receipts-dev.vasoft.dev`; there is
+  no dev ui container.
 - `homeapp.vasoft.dev` and `receipts.vasoft.dev` are served by the **dev**
   stack. No production container exists, and the dev `.env` lists both in
   `APP_CORS_ALLOWED_ORIGINS` for that reason.
@@ -229,11 +228,11 @@ No open questions remain.
       dev keys stay
 - [x] **Move `example.env` to the root** — the vite api target is added
       with the next item
-- [ ] **vite api target from the environment (decision 2)** — replace the
+- [x] **vite api target from the environment (decision 2)** — replace the
       hardcoded `http://localhost:7802` in `ui/vite.config.js`, defaulting to
       it, and list it in `example.env`
-- [ ] **vite behind `receipts-dev.vasoft.dev`** — `server.allowedHosts` and
-      HMR over the proxy's WebSocket, or the page loads without hot reload
+- [x] **vite behind `receipts-dev.vasoft.dev`** — `server.allowedHosts` from
+      `UI_ALLOWED_HOSTS`; HMR needs only WebSockets on the proxy host
 - [ ] **Preview stack at `receipts-test.vasoft.dev` (decision 13)** — ui on
       7810 and api on 7812, on `pr-<n>` images from #30, with a MongoDB of its
       own
@@ -298,7 +297,7 @@ No open questions remain.
 
 Stragglers:
 
-- [ ] The ui's `<title>` is still `Home App` (`ui/index.html`)
+- [x] The ui's `<title>` is `Receipts`
 - [ ] `e2e/compose.yaml` hard-codes `name: receipts-e2e`, so two e2e runs on
       one host tear each other down (seen testing D10). Name the project per
       run
