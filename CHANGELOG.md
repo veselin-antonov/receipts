@@ -59,6 +59,11 @@ Releases up to 0.0.6 were separate; their notes are in
   `http://localhost:SERVER_PORT`) and `UI_ALLOWED_HOSTS` (default
   `receipts-dev.vasoft.dev`), so it can be served through a proxy host with hot
   reload
+- A root `Makefile`: `setup`, `dev` (db and MailHog, then the api and vite in
+  the foreground; Ctrl-C stops both), `down`, `test`, `e2e` and `db-restore`.
+  `dev-setup.sh` ends by pointing at `make dev`
+- Each e2e run is a compose project of its own, with per-run keys and results,
+  so two runs on one host no longer tear each other down
 
 ### API
 

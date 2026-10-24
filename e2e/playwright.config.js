@@ -9,6 +9,8 @@ export default defineConfig({
   // One retry at most: registration is rate limited to 3 per hour per address.
   retries: process.env.CI ? 1 : 0,
   timeout: 60_000,
+  // Per run (e2e/run.sh), so a second run does not clear the first one's
+  outputDir: `test-results/${process.env.E2E_RUN ?? 'local'}`,
   reporter: process.env.CI
     ? [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]]
     : 'list',
