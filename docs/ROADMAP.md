@@ -123,12 +123,13 @@ remaining feature work.
 
 1. **The dev stack moves to the repo root:** `compose.dev.yaml`, `.env` and
    `example.env` at the root, not under `api/`.
-2. **ui development runs on vite** (5173), proxying to the `bootRun` api. The
+2. **ui development runs on vite** (7800), proxying to the `bootRun` api
+   (7802). The
    ui container is for previews and built images only. vite's api target
    becomes configurable.
 3. **Hosts**, added by the user in nginx-proxy-manager, outside the repo:
-   - `receipts-dev.vasoft.dev` → vite on 5173, which proxies to `bootRun` on
-     7002. Needs WebSocket support for hot reload, and the host in vite's
+   - `receipts-dev.vasoft.dev` → vite on 7800, which proxies to `bootRun` on
+     7802. Needs WebSocket support for hot reload, and the host in vite's
      `allowedHosts`.
    - `receipts-test.vasoft.dev` → the preview stack: the ui container plus the
      api container from #30.
@@ -149,8 +150,8 @@ remaining feature work.
 8. **Production starts from the dev database.** At the switch, the current dev
    data (migrated, 717 purchases) is copied in; from then on production is the
    source of truth. The old `~/docker-apps/homeapp/db` is not used.
-9. **Production ports:** the ui on a host port of its own (e.g. 7870). The api
-   and MongoDB are not published on the host, only reachable inside the stack.
+9. **Production ports:** the ui on 7820 (decision 21). The api and MongoDB are
+   not published on the host, only reachable inside the stack.
 10. **The dev ui container goes in step 1.** It is not used day to day; being
     without it until the structure is right is accepted.
 11. **dotenv reads the root `.env`, while `bootRun` still runs from `api/`**,
@@ -161,7 +162,8 @@ remaining feature work.
     copy, never shared, never writing to production. Until production exists
     (step 7), the dev database is the source, so refreshing from production
     only becomes possible after the switch.
-13. **Preview ports:** api 7013, ui 7873; `receipts-test.vasoft.dev` → 7873.
+13. **Preview ports:** ui 7810, api 7812 (decision 21);
+    `receipts-test.vasoft.dev` → 7810.
 14. **`make dev` runs in the foreground:** the api and vite together, output
     interleaved, and Ctrl-C stops both.
 15. **Targets:** `setup`, `dev`, `down`, `test`, `e2e`, `preview PR=<n>`,
@@ -177,6 +179,22 @@ remaining feature work.
     touch M1b's files merge whenever they are ready.
 20. **The PR plan below is approved** as drafted: seven PRs in that order,
     the Makefile and the preview stack as separate PRs.
+
+### Decisions — 2026-10-24
+
+21. **One port block per environment**, ui on the block's first port, api two
+    above it, tools five above:
+
+    | Environment | ui | api | other |
+    |---|---|---|---|
+    | dev | 7800 (vite) | 7802 (`bootRun`) | MailHog web 7805, SMTP 1025; MongoDB 27017 on `127.0.0.1` only |
+    | preview (`receipts-test`) | 7810 | 7812 | — |
+    | production (`receipts`) | 7820 | internal | MongoDB internal |
+    | e2e | 7830 | internal | MailHog web 7835 |
+
+    nginx-proxy-manager points `receipts-dev`, `receipts-test` and `receipts`
+    at 7800, 7810 and 7820. Each host moves when the pull request that
+    introduces its port is merged.
 
 No open questions remain.
 
@@ -223,7 +241,7 @@ No open questions remain.
 - [ ] **vite behind `receipts-dev.vasoft.dev`** — `server.allowedHosts` and
       HMR over the proxy's WebSocket, or the page loads without hot reload
 - [ ] **Preview stack at `receipts-test.vasoft.dev` (decision 13)** — ui on
-      7873 and api on 7013, on `pr-<n>` images from #30, with a MongoDB of its
+      7810 and api on 7812, on `pr-<n>` images from #30, with a MongoDB of its
       own
 - [ ] **Separate databases, refreshed on demand (decision 12)** — dev,
       preview and production never share one. `make db-refresh` copies
@@ -263,7 +281,7 @@ No open questions remain.
       Write it in `deploy/README.md`, which already lists them
 - [ ] **`deploy/compose.yaml` on release tags** — `receipts-api` and
       `receipts-ui` pinned to `0.1.0`, not `:dev` or `latest`; only the ui
-      published on the host (e.g. 7870), the api and MongoDB internal
+      published on the host (7820), the api and MongoDB internal
       (decision 9)
 - [ ] **Production on 0.1.0 at `receipts.vasoft.dev` (decisions 7, 8)** —
       `~/docker-apps/homeapp` runs `deploy/compose.yaml` at 0.1.0 with a copy
@@ -306,24 +324,26 @@ Then, each one testable on its own:
 1. **Dev stack to the root** — `compose.dev.yaml` with db and MailHog only,
    root `.env` and `example.env`, dotenv reading the root `.env`,
    `dev-setup.sh` writing it (and moving an existing `api/.env`),
-   `BACKEND_HOST` dropped, the dev ui container removed. *Test:* on a fresh
+   `BACKEND_HOST` dropped, the dev ui container removed, the dev ports of
+   decision 21 (vite 7800, api 7802, MailHog 7805, MongoDB on `127.0.0.1`),
+   and D3 alongside. *Test:* on a fresh
    clone, `dev-setup.sh`, `docker compose -f compose.dev.yaml up -d`, `bootRun`
    and `./gradlew test` all work with no `api/.env`, and the keys load from
    `api/certs/`.
 2. **vite for ui development** — configurable api target, `allowedHosts`, HMR
    through the proxy, dev `APP_HOST_URL` and CORS origin, the `<title>`.
-   *User:* add `receipts-dev.vasoft.dev` → 5173 with WebSockets on.
+   *User:* add `receipts-dev.vasoft.dev` → 7800 with WebSockets on.
    *Test:* edit a component at `receipts-dev.vasoft.dev` and see it reload;
    the verification mail links there.
 3. **Root `Makefile`** — `setup`, `dev` (foreground, Ctrl-C stops both),
    `down`, `test`, `e2e`, `db-restore`, `db-refresh` (usable once production
    exists, step 7); `dev-setup.sh` ends with `make dev`; per-run e2e
-   project name. *Test:* `make setup && make dev` on a fresh clone, Ctrl-C
+   project name, and e2e defaulting to 7830 / 7835 (decision 21). *Test:* `make setup && make dev` on a fresh clone, Ctrl-C
    leaves no api or vite behind; `make test`; two `make e2e` runs side by side.
-4. **Preview stack** — `make preview PR=<n>` runs the ui (7873) and api (7013)
+4. **Preview stack** — `make preview PR=<n>` runs the ui (7810) and api (7812)
    containers on that PR's images with their own MongoDB, refreshable as a
    copy, and the preview `APP_HOST_URL` and CORS origin.
-   *User:* add `receipts-test.vasoft.dev` → 7873.
+   *User:* add `receipts-test.vasoft.dev` → 7810.
    *Test:* `make preview PR=28` serves #28 at `receipts-test.vasoft.dev`
    while `make dev` keeps running, and writes nothing to the dev database.
 5. **One dev guide** — fold the api setup docs into `docs/DEV_SETUP.md` and
@@ -335,7 +355,7 @@ Then, each one testable on its own:
    *Test:* `v0.1.0` tag, GitHub release, and `receipts-api:0.1.0` /
    `receipts-ui:0.1.0` / `:latest` in GHCR.
 7. **Deploy on release tags** — `deploy/compose.yaml` pinned to `0.1.0`, the
-   ui on its own host port (e.g. 7870), api and MongoDB internal, production
+   ui on 7820, api and MongoDB internal, production
    `APP_HOST_URL` and CORS `https://receipts.vasoft.dev`, tags defined in
    `deploy/README.md`. *(user merges)*
    *User:* copy the dev database into production, switch
