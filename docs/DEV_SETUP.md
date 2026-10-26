@@ -2,13 +2,24 @@
 
 > What is automated, what you must do by hand, and why.
 
-Run this first:
+Run this first, then develop with `make dev`:
 
 ```bash
-scripts/dev-setup.sh          # add --https to also make vite dev certs
+make setup                    # scripts/dev-setup.sh; add --https by running it directly
+make dev                      # db and MailHog, then the api and vite; Ctrl-C stops both
 ```
 
-It is idempotent. It never overwrites a value you have already set, and the
+| Target | What it does |
+|---|---|
+| `setup` | `scripts/dev-setup.sh`: prerequisites, keys, the root `.env`, `npm ci` |
+| `dev` | `scripts/dev.sh`: starts MongoDB and MailHog, then `bootRun` (7802) and vite (7800) in the foreground, output interleaved and prefixed `[api]` / `[ui]`. Ctrl-C, or either one exiting, stops both; the containers keep running |
+| `down` | stops the dev containers; the data stays |
+| `test` | the api's `./gradlew test`, then the ui's lint, format check and tests |
+| `e2e` | `e2e/run.sh` ([below](#end-to-end-smoke)) |
+| `db-restore` | `scripts/db-restore.sh` ([Restoring the backups](#restoring-the-backups)) |
+| `db-refresh` | not yet: it will copy production's database into dev, and there is no production stack yet |
+
+`dev-setup.sh` is idempotent. It never overwrites a value you have already set, and the
 only tracked file it touches is `gradlew`'s executable bit.
 
 ---
@@ -44,8 +55,7 @@ None of this is documented as a test prerequisite, and CI never runs tests
 Database restore is a second script:
 
 ```bash
-docker compose -f compose.dev.yaml up -d   # mongo, mailhog
-scripts/db-restore.sh
+make db-restore   # with `make dev` running, or after `docker compose -f compose.dev.yaml up -d`
 ```
 
 It migrates the Jan-2026 backups onto the current schema and imports them. See
@@ -190,15 +200,21 @@ E2E_UI_PORT=18780 E2E_MAILHOG_PORT=18725 e2e/run.sh           # other ports
 E2E_KEEP=1 e2e/run.sh                                          # leave it up to poke at
 ```
 
+Each run is a compose project of its own, `receipts-e2e-<run>` (`E2E_RUN`,
+by default a timestamp and the shell's pid), with its keys in `e2e/certs/<run>`
+and its results in `e2e/test-results/<run>`. Two runs side by side therefore
+do not tear each other down; the second needs other ports.
+
 - The stub answers every scan with the same two-item receipt, so a run is
   free, deterministic and needs no key. That is also why it runs for
   Dependabot pull requests, which cannot read repository secrets. It says
   nothing about parsing quality; that is the harness's job (ADR-0007).
-- A fresh JWT key pair is generated per run into the gitignored `e2e/certs/`.
+- A fresh JWT key pair is generated per run into the gitignored
+  `e2e/certs/<run>/`, and deleted with the stack.
 - The api runs its default (production) profile. Only the mail protocol is
   switched to plain SMTP, because MailHog does not speak SMTPS.
 - On failure the Playwright report, trace and every container's log are in
-  `e2e/test-results/`; CI uploads them as the `e2e-report` artifact.
+  `e2e/test-results/<run>/`; CI uploads them as the `e2e-report` artifact.
 
 ## JWT keys
 
@@ -216,8 +232,8 @@ E2E_KEEP=1 e2e/run.sh                                          # leave it up to 
 ## The dev stack: `compose.dev.yaml`
 
 MongoDB and MailHog in containers; the api and the ui run natively, so the api
-keeps devtools hot restart and the ui vite's hot reload. From the repository
-root:
+keeps devtools hot restart and the ui vite's hot reload. `make dev` starts all
+four; by hand, from the repository root:
 
 ```bash
 docker compose -f compose.dev.yaml up -d

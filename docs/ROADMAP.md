@@ -213,9 +213,9 @@ No open questions remain.
   `receipts-ui:dev`, and `api.yml` / `ui.yml` publish with
   `include_latest: false`, so nothing in this repository has published
   `:latest` yet.
-- `scripts/dev-setup.sh` ends by printing four commands to run by hand
-  (compose up, `db-restore.sh`, `bootRun`, `npm run dev`); no one command
-  starts or tests both layers.
+- The root `Makefile` has `setup`, `dev`, `down`, `test`, `e2e` and
+  `db-restore`; `preview` comes with the preview stack, and `db-refresh` only
+  explains that there is no production yet.
 
 ### Checklist
 
@@ -245,7 +245,8 @@ No open questions remain.
       preview `https://receipts-test.vasoft.dev`, production
       `https://receipts.vasoft.dev`, each origin in the same stack's
       `APP_CORS_ALLOWED_ORIGINS`. Also settles D16 (M2a) for the real setup
-- [ ] **Root `Makefile` (decisions 14, 15)** — targets:
+- [ ] **Root `Makefile` (decisions 14, 15)** — all but `preview` (step 4)
+      and a working `db-refresh` (step 7) are in. Targets:
       - `setup` — run `scripts/dev-setup.sh` (prerequisites, keys, `.env`, `npm ci`)
       - `dev` — start db and MailHog, then `bootRun` and vite in the
         foreground, output interleaved; Ctrl-C stops both
@@ -270,7 +271,7 @@ No open questions remain.
         it receives
       Each spec registers its own user, so specs run in parallel. Its own pull
       request after the Makefile (PR 3); not part of M1b's done-when
-- [ ] **`dev-setup.sh` ends with `make dev`** — instead of the four manual
+- [x] **`dev-setup.sh` ends with `make dev`** — instead of the four manual
       commands
 - [ ] **One dev guide (decision 6)** — fold `api/docs/DEVELOPMENT_SETUP.md` and
       `api/README.md`'s Quickstart (Windows `TESSDATA_PATH`, `export`s) into
@@ -298,9 +299,8 @@ No open questions remain.
 Stragglers:
 
 - [x] The ui's `<title>` is `Receipts`
-- [ ] `e2e/compose.yaml` hard-codes `name: receipts-e2e`, so two e2e runs on
-      one host tear each other down (seen testing D10). Name the project per
-      run
+- [x] Two e2e runs on one host tore each other down (seen testing D10):
+      each run is now its own compose project, `receipts-e2e-<run>`
 - [ ] `api/docker-compose.yml` is the old api repository's deployment file
       (`receipts-api:latest`, api and db only), duplicating
       `deploy/compose.yaml`. Delete it, and set `TZ=${TZ:-Europe/Sofia}` on the
@@ -363,7 +363,8 @@ Then, each one testable on its own:
 7. **Deploy on release tags** — `deploy/compose.yaml` pinned to `0.1.0`, the
    ui on 7820, api and MongoDB internal, production
    `APP_HOST_URL` and CORS `https://receipts.vasoft.dev`, tags defined in
-   `deploy/README.md`. *(user merges)*
+   `deploy/README.md`, and `make db-refresh` copying production into dev.
+   *(user merges)*
    *User:* copy the dev database into production, switch
    `~/docker-apps/homeapp` to the new compose, add `receipts.vasoft.dev` → the
    production ui and redirect `homeapp.vasoft.dev` to it. *Test:*

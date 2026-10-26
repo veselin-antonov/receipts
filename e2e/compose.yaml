@@ -8,8 +8,6 @@
 # Ports: the ui on E2E_UI_PORT (7830), MailHog's web API on E2E_MAILHOG_PORT
 # (7835), which the test reads the verification mail from. They are e2e's own
 # block (ROADMAP M1b decision 21), so a run fits next to the dev stack.
-name: receipts-e2e
-
 services:
   mongo:
     image: mongo:8.2
@@ -67,7 +65,7 @@ services:
       SPRING_AI_OPENAI_BASE_URL: http://openai-stub:8080
     volumes:
       # Generated per run by e2e/run.sh; never committed
-      - ./certs:/certs:ro
+      - ./certs/${E2E_RUN:?run e2e/run.sh}:/certs:ro
     depends_on:
       mongo:
         condition: service_healthy

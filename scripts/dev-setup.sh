@@ -207,8 +207,6 @@ fi
 cat <<'NEXT'
 
 Then:
-  docker compose -f compose.dev.yaml up -d   # mongo, mailhog (web on :7805)
-  scripts/db-restore.sh                      # import the backups
-  cd api && ./gradlew bootRun --args='--spring.profiles.active=dev'   # :7802
-  cd ui  && npm run dev                      # http://localhost:7800
+  make dev          # db and MailHog, then the api (:7802) and vite (http://localhost:7800)
+  make db-restore   # once, in a second terminal: import the backups
 NEXT
