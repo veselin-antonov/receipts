@@ -149,7 +149,7 @@ jobs:
               ...pulls,
               '```',
               '',
-              `📦 **Tag:** \`${tag}\` - see docs/DEV_SETUP.md, "Testing a pull request".`,
+              `📦 **Tag:** \`${tag}\` - run it at receipts-test.vasoft.dev with \`make preview PR=${issue_number}\` (docs/DEV_SETUP.md, "Testing a pull request").`,
             ].join('\n');
 
             const comments = await github.paginate(github.rest.issues.listComments, {

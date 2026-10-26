@@ -64,6 +64,9 @@ Releases up to 0.0.6 were separate; their notes are in
   `dev-setup.sh` ends by pointing at `make dev`
 - Each e2e run is a compose project of its own, with per-run keys and results,
   so two runs on one host no longer tear each other down
+- The preview stack: `make preview PR=<n> [REFRESH=1]` runs a pull request's
+  images (`:dev` for an untouched side) at `receipts-test.vasoft.dev`, ui 7810,
+  api 7812, MailHog 7815, on a MongoDB of its own copied from the dev database
 
 ### API
 
