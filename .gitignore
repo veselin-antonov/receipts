@@ -9,3 +9,5 @@ __pycache__/
 .harness/
 # Dev MongoDB data (compose.dev.yaml)
 /.mongo-data/
+# The preview stack's own JWT keys (scripts/preview.sh)
+/.preview/

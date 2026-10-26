@@ -188,7 +188,7 @@ remaining feature work.
     | Environment | ui | api | other |
     |---|---|---|---|
     | dev | 7800 (vite) | 7802 (`bootRun`) | MailHog web 7805, SMTP 1025; MongoDB 27017 on `127.0.0.1` only |
-    | preview (`receipts-test`) | 7810 | 7812 | — |
+    | preview (`receipts-test`) | 7810 | 7812 | MailHog web 7815; MongoDB internal |
     | production (`receipts`) | 7820 | internal | MongoDB internal |
     | e2e | 7830 | internal | MailHog web 7835 |
 
@@ -213,9 +213,12 @@ No open questions remain.
   `receipts-ui:dev`, and `api.yml` / `ui.yml` publish with
   `include_latest: false`, so nothing in this repository has published
   `:latest` yet.
-- The root `Makefile` has `setup`, `dev`, `down`, `test`, `e2e` and
-  `db-restore`; `preview` comes with the preview stack, and `db-refresh` only
-  explains that there is no production yet.
+- The root `Makefile` has `setup`, `dev`, `down`, `test`, `e2e`, `preview`
+  and `db-restore`; `db-refresh` only explains that there is no production
+  yet.
+- `make preview PR=<n>` runs the preview stack (`compose.preview.yaml`) on
+  7810 / 7812 with a database of its own, copied from the dev database, since
+  there is no production to copy from yet.
 
 ### Checklist
 
@@ -233,11 +236,13 @@ No open questions remain.
       it, and list it in `example.env`
 - [x] **vite behind `receipts-dev.vasoft.dev`** — `server.allowedHosts` from
       `UI_ALLOWED_HOSTS`; HMR needs only WebSockets on the proxy host
-- [ ] **Preview stack at `receipts-test.vasoft.dev` (decision 13)** — ui on
+- [x] **Preview stack at `receipts-test.vasoft.dev` (decision 13)** — ui on
       7810 and api on 7812, on `pr-<n>` images from #30, with a MongoDB of its
       own
-- [ ] **Separate databases, refreshed on demand (decision 12)** — dev,
-      preview and production never share one. `make db-refresh` copies
+- [ ] **Separate databases, refreshed on demand (decision 12)** — dev and
+      preview are separate; `make preview REFRESH=1` re-copies the source.
+      Left: `db-refresh` and switching the source to production (step 7).
+      Dev, preview and production never share one. `make db-refresh` copies
       production into dev; `make preview` can do the same for the preview
       database. Read-only against production; until step 7, the dev database
       is the source
@@ -245,8 +250,8 @@ No open questions remain.
       preview `https://receipts-test.vasoft.dev`, production
       `https://receipts.vasoft.dev`, each origin in the same stack's
       `APP_CORS_ALLOWED_ORIGINS`. Also settles D16 (M2a) for the real setup
-- [ ] **Root `Makefile` (decisions 14, 15)** — all but `preview` (step 4)
-      and a working `db-refresh` (step 7) are in. Targets:
+- [ ] **Root `Makefile` (decisions 14, 15)** — all but a working
+      `db-refresh` (step 7) are in. Targets:
       - `setup` — run `scripts/dev-setup.sh` (prerequisites, keys, `.env`, `npm ci`)
       - `dev` — start db and MailHog, then `bootRun` and vite in the
         foreground, output interleaved; Ctrl-C stops both
