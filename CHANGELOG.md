@@ -67,6 +67,12 @@ Releases up to 0.0.6 were separate; their notes are in
 - The preview stack: `make preview PR=<n> [REFRESH=1]` runs a pull request's
   images (`:dev` for an untouched side) at `receipts-test.vasoft.dev`, ui 7810,
   api 7812, MailHog 7815, on a MongoDB of its own copied from the dev database
+- One dev guide: `api/docs/DEVELOPMENT_SETUP.md` and the api README's
+  quickstart are folded into `docs/DEV_SETUP.md`, written around `make`, and
+  `api/docs/PRODUCTION_SETUP.md` into `deploy/README.md`; the
+  `.github/instructions` setup steps point at them
+- `make setup` checks the Node version: the major in `.nvmrc` (22 without
+  one), at least 22.12
 
 ### API
 

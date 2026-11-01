@@ -239,8 +239,8 @@ These config areas are especially important:
 - rate-limiting filters
 
 See:
-- [`api/docs/DEVELOPMENT_SETUP.md`](../api/docs/DEVELOPMENT_SETUP.md)
-- [`api/docs/PRODUCTION_SETUP.md`](../api/docs/PRODUCTION_SETUP.md)
+- [`DEV_SETUP.md`](DEV_SETUP.md)
+- [`deploy/README.md`](../deploy/README.md)
 - [`RECEIPT_SCANNING.md`](RECEIPT_SCANNING.md)
 
 ## Rate limiting

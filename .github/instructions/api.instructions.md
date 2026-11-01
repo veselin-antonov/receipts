@@ -234,8 +234,8 @@ See the root `example.env` for the full list. Key variables:
 # Build
 ./gradlew build
 
-# Run locally (requires .env file)
-./gradlew bootRun
+# Run locally: `make dev` from the repository root (docs/DEV_SETUP.md), or
+./gradlew bootRun --args='--spring.profiles.active=dev'
 
 # Build Docker image
 ./gradlew buildImage -PrepositoryName=<owner>/<repo>
@@ -250,11 +250,9 @@ See the root `example.env` for the full list. Key variables:
 - Compose file includes MongoDB and API containers
 - JWT keys passed as environment variables
 
-### Local Development (Windows)
-1. Copy the root `example.env` to `.env` beside it and fill values (or run `scripts/dev-setup.sh`)
-2. Generate RSA keys in `api/certs/` (see README.md); never under `src/main/resources`, the build rejects a jar containing them
-3. Install [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki) with English + Bulgarian language packs
-4. Run with `dev` profile: `./gradlew bootRun --args='--spring.profiles.active=dev'`
+### Local Development
+Setup and running, Windows included, are in `docs/DEV_SETUP.md`: `make setup`,
+then `make dev`. Production configuration is in `deploy/README.md`.
 
 ---
 

@@ -11,3 +11,5 @@ __pycache__/
 /.mongo-data/
 # The preview stack's own JWT keys (scripts/preview.sh)
 /.preview/
+# make dev run detached (docs/DEV_SETUP.md)
+/dev.log

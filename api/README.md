@@ -2,7 +2,7 @@
 
 [![API](https://github.com/veselin-antonov/receipts/actions/workflows/api.yml/badge.svg)](https://github.com/veselin-antonov/receipts/actions/workflows/api.yml)
 
-Spring Boot backend for the Home App / ReceiptsApp project.
+Spring Boot backend for Receipts.
 
 This service owns:
 - authentication and JWT cookie issuance
@@ -18,50 +18,11 @@ roadmap, decisions, and the cross-cutting docs below — live in [`../docs`](../
 
 Start with the docs that match your task:
 
-- [`docs/DEVELOPMENT_SETUP.md`](docs/DEVELOPMENT_SETUP.md) - local development setup and day-to-day workflow
-- [`docs/PRODUCTION_SETUP.md`](docs/PRODUCTION_SETUP.md) - production/runtime configuration and deployment checklist
+- [`../docs/DEV_SETUP.md`](../docs/DEV_SETUP.md) - developing the api and the ui together: `make setup`, `make dev`, `make test`
+- [`../deploy/README.md`](../deploy/README.md) - production runtime configuration and deployment checks
 - [`../docs/ARCHITECTURE_AND_FLOWS.md`](../docs/ARCHITECTURE_AND_FLOWS.md) - main components, endpoints, and request flows
 - [`../docs/API_CONTRACTS.md`](../docs/API_CONTRACTS.md) - request/response examples for active endpoints
 - [`../docs/RECEIPT_SCANNING.md`](../docs/RECEIPT_SCANNING.md) - canonical feature doc for receipt scanning, OCR, AI parsing, matching, and submit flow
-
-## Quickstart
-
-Prerequisites:
-- Java 25
-- MongoDB
-- OpenSSL for generating local JWT keys
-- OpenAI API key for LLM receipt parsing
-- Tesseract OCR with tessdata for image receipt parsing
-
-Generate local JWT keys:
-
-```bash
-mkdir -p certs   # api/certs, gitignored; never src/main/resources (D10)
-openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out certs/private.pem
-openssl rsa -in certs/private.pem -pubout -out certs/public.pem
-```
-
-Set local environment variables:
-
-```bash
-export OPENAI_API_KEY='<your-openai-api-key>'
-export TESSDATA_PATH='C:/Program Files/Tesseract-OCR/tessdata'
-export OCR_LANGUAGE='eng+bul'
-export OCR_DEBUG_OUTPUT_PATH='./ocr-debug'
-export APP_CORS_ALLOWED_ORIGINS='http://localhost:7800'
-```
-
-Run the backend in dev profile:
-
-```bash
-./gradlew bootRun --args='--spring.profiles.active=dev'
-```
-
-Run tests:
-
-```bash
-./gradlew test --console=plain
-```
 
 ## What is important to know before changing code
 
@@ -71,14 +32,13 @@ Run tests:
 - Receipt scanning accepts images and PDFs, but images and PDFs take different paths internally.
 - Production and development use different configuration sources for JWT keys, OCR paths, and infrastructure.
 
-Those conventions are documented in detail in `../docs/ARCHITECTURE_AND_FLOWS.md`, `docs/DEVELOPMENT_SETUP.md`, and `docs/PRODUCTION_SETUP.md`.
+Those conventions are documented in detail in `../docs/ARCHITECTURE_AND_FLOWS.md`, `../docs/DEV_SETUP.md`, and `../deploy/README.md`.
 
 ## Verification before committing
+
+`make test` from the repository root runs these tests and the ui's; from here:
 
 ```bash
 ./gradlew test --console=plain
 git diff --check
-git status --short
 ```
-
-If docs or generated files are touched on Windows, keep `git diff --check` in the loop to catch whitespace and line-ending issues.

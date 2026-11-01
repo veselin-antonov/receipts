@@ -35,8 +35,21 @@ else
 fi
 $java_ok || MANUAL+=("sudo apt install openjdk-25-jdk   # Gradle toolchain targets Java 25")
 
-if command -v node >/dev/null 2>&1; then ok "node $(node --version)"
-else MANUAL+=("install Node 20 or newer"); warn "node not installed"; fi
+# Node: the major in .nvmrc (CI reads it too), at least 22.12, which vite and
+# Playwright need
+node_major="$(tr -dc '0-9' < "$root/.nvmrc" 2>/dev/null || true)"
+node_major="${node_major:-22}"
+if command -v node >/dev/null 2>&1; then
+  nv="$(node --version)"; nv="${nv#v}"
+  IFS=. read -r n_major n_minor _ <<<"$nv"
+  if [[ "$n_major" -eq "$node_major" && ( "$n_major" -gt 22 || "$n_minor" -ge 12 ) ]]; then ok "node $nv"
+  else
+    warn "node $nv found, but this repository uses Node $node_major (at least $node_major.12)"
+    MANUAL+=("install Node $node_major, e.g. nvm install $node_major")
+  fi
+else
+  warn "node not installed"; MANUAL+=("install Node $node_major, e.g. nvm install $node_major")
+fi
 
 if command -v docker >/dev/null 2>&1; then ok "docker $(docker --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
 else MANUAL+=("install Docker, for MongoDB and MailHog"); warn "docker not installed"; fi
