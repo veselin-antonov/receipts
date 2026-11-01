@@ -607,6 +607,9 @@ changes the DOCKERFILE but not `.nvmrc`, which CI reads, and tags without a
 version (`nginx:alpine`) get nothing. If it is added, start with mongo alone,
 monthly.
 
+**Dependabot for `/e2e`** — the npm entry covers only `/ui`. Add `/e2e` too,
+so Playwright gets updates. Unlike the image entries, this one is worth doing.
+
 **Contracts** — generate OpenAPI instead of hand-maintaining `API_CONTRACTS.md`.
 
 **Q6** — *mostly answered: everything resolves from Maven Central, and the one
@@ -614,6 +617,10 @@ milestone left, Spring AI 2.1.0-M1, has an exit condition in
 [ADR-0008](adr/0008-spring-ai-2.1-milestone.md).* Originally: pin the Spring
 milestone and snapshot dependencies to release versions,
 so a build that works today still works after another dormant stretch.
+2.1.0-RC1 is open as #54. It moves the OpenAI chat model to message parts and
+is built against Boot 4.2.0-RC1, so it changes what the scanner sends. Before
+merging it, diff its request against 2.1.0-M1's on the local stub (ADR-0008),
+then do a full harness run. Alternatively, wait for 2.1.0 GA, which closes Q6.
 
 **Q4** — rename the `dev.vasoft.homeapp` package now that Receipts is
 standalone.
