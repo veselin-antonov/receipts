@@ -310,6 +310,11 @@ Stragglers:
       (`receipts-api:latest`, api and db only), duplicating
       `deploy/compose.yaml`. Delete it, and set `TZ=${TZ:-Europe/Sofia}` on the
       api in `deploy/compose.yaml`, which sets none, for local-time logs
+- [x] `deploy/compose.yaml` pins `mongo:8.2`, as dev, preview and e2e do;
+      `mongo:latest` would move production to the next major on any redeploy
+- [ ] **`make setup` checks the Node version** — `dev-setup.sh` checks only that
+      `node` exists; make it warn below 22.12 (the `engines` in `ui/` and
+      `e2e/`, #61) and name `.nvmrc` in `docs/DEV_SETUP.md`. With the dev guide
 - [x] `api/.env`'s unread `BACKEND_HOST` — `dev-setup.sh` drops it, with
       `UI_PORT`, when it moves the file to the root
 - [ ] **Q4**, the `dev.vasoft.homeapp` package rename, stays deferred: it is
@@ -597,6 +602,19 @@ that will actually bite.
 **Operational** — health checks beyond Actuator defaults, JWT key rotation,
 structured logging, metrics.
 
+**Dependabot for Docker images** — `.github/dependabot.yml` covers gradle, npm
+and github-actions, not the images: `node:22-bookworm` and `nginx:alpine` in
+`ui/DOCKERFILE`, `eclipse-temurin:25-jre-alpine` in `api/Dockerfile`, and
+`mongo:8.2`, `mailhog`, `python:3.13-alpine` in the compose files. The tags
+already float within their version, so patches arrive on every rebuild; the
+entries would only add major and minor bumps. Two catches: a `node` bump
+changes the DOCKERFILE but not `.nvmrc`, which CI reads, and tags without a
+version (`nginx:alpine`) get nothing. If it is added, start with mongo alone,
+monthly.
+
+**Dependabot for `/e2e`** — the npm entry covers only `/ui`. Add `/e2e` too,
+so Playwright gets updates. Unlike the image entries, this one is worth doing.
+
 **Contracts** — generate OpenAPI instead of hand-maintaining `API_CONTRACTS.md`.
 
 **Q6** — *mostly answered: everything resolves from Maven Central, and the one
@@ -604,6 +622,10 @@ milestone left, Spring AI 2.1.0-M1, has an exit condition in
 [ADR-0008](adr/0008-spring-ai-2.1-milestone.md).* Originally: pin the Spring
 milestone and snapshot dependencies to release versions,
 so a build that works today still works after another dormant stretch.
+2.1.0-RC1 is open as #54. It moves the OpenAI chat model to message parts and
+is built against Boot 4.2.0-RC1, so it changes what the scanner sends. Before
+merging it, diff its request against 2.1.0-M1's on the local stub (ADR-0008),
+then do a full harness run. Alternatively, wait for 2.1.0 GA, which closes Q6.
 
 **Q4** — rename the `dev.vasoft.homeapp` package now that Receipts is
 standalone.
