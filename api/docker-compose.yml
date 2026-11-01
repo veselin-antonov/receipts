@@ -1,6 +1,6 @@
 services:
   receipts-db:
-    image: mongo:latest
+    image: mongo:8.2
     container_name: receipts-db
     ports:
       - ${MONGODB_PORT}:${MONGODB_PORT}

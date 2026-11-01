@@ -306,6 +306,14 @@ Stragglers:
 - [x] The ui's `<title>` is `Receipts`
 - [x] Two e2e runs on one host tore each other down (seen testing D10):
       each run is now its own compose project, `receipts-e2e-<run>`
+- [x] `deploy/compose.yaml` and the old `api/docker-compose.yml` pin MongoDB
+      to `mongo:8.2`, as dev and e2e do. `latest` could move production's
+      database a major on a redeploy
+- [ ] **`make setup` checks the Node version** — `dev-setup.sh` checks only
+      that `node` exists and asks for "Node 20 or newer", but vite 8 and
+      rollup-plugin-visualizer 7 need Node 22.12 or newer. Check it against
+      the root `.nvmrc`, which CI reads, and name `.nvmrc` in
+      `docs/DEV_SETUP.md`. Goes with the dev guide, since M1b owns both files
 - [ ] `api/docker-compose.yml` is the old api repository's deployment file
       (`receipts-api:latest`, api and db only), duplicating
       `deploy/compose.yaml`. Delete it, and set `TZ=${TZ:-Europe/Sofia}` on the
@@ -604,6 +612,20 @@ milestone left, Spring AI 2.1.0-M1, has an exit condition in
 [ADR-0008](adr/0008-spring-ai-2.1-milestone.md).* Originally: pin the Spring
 milestone and snapshot dependencies to release versions,
 so a build that works today still works after another dormant stretch.
+2.1.0-RC1 is open as #54. It moves the OpenAI chat model to message parts
+and is built against Boot 4.2.0-RC1, so it changes what the scanner sends.
+Before merging it, diff its request against 2.1.0-M1's on the local stub
+(ADR-0008), then do a full harness run. Alternatively, wait for 2.1.0 GA,
+which closes Q6.
+
+**Dependency updates** — Dependabot watches Gradle in `/api`, npm in `/ui`
+and the GitHub Actions. Add npm in `/e2e`, so Playwright gets updates too.
+Optionally, add `docker` for `api/Dockerfile` and `ui/DOCKERFILE`, and
+`docker-compose` for the compose files. Both have limits: an unversioned tag
+(`nginx:alpine`) never gets a pull request, the versioned ones
+(`node:22-bookworm`, `eclipse-temurin:25-jre-alpine`, `mongo:8.2`) already
+pull their newest patch on every build, and a Node major bump in
+`ui/DOCKERFILE` must change the root `.nvmrc` in the same pull request.
 
 **Q4** — rename the `dev.vasoft.homeapp` package now that Receipts is
 standalone.
