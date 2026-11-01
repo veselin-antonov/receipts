@@ -16,6 +16,7 @@ import dev.vasoft.homeapp.receipts.purchases.api.request.ReqPurchase;
 import dev.vasoft.homeapp.receipts.purchases.api.response.ResPurchase;
 import dev.vasoft.homeapp.receipts.purchases.model.entities.Currency;
 import dev.vasoft.homeapp.receipts.purchases.model.entities.Purchase;
+import dev.vasoft.homeapp.receipts.purchases.model.entities.QuantityUnit;
 import dev.vasoft.homeapp.receipts.scanning.services.NormalizationService;
 import dev.vasoft.homeapp.receipts.stores.model.entities.Store;
 import dev.vasoft.homeapp.receipts.stores.services.StoreService;
@@ -70,7 +71,7 @@ class PurchaseServiceTest {
         ObjectId productId = new ObjectId();
         ObjectId storeId = new ObjectId();
         ReqPurchase request = new ReqPurchase(productId.toHexString(), null, storeId.toHexString(), null,
-            12.30, null, LocalDate.of(2026, 3, 7), 1.0, ReqPurchase.QuantityUnit.PIECE, 0.50);
+            12.30, null, LocalDate.of(2026, 3, 7), 1.0, QuantityUnit.PIECE, 0.50);
 
         List<ResPurchase> result = purchaseService.registerPurchases(userId, List.of(request));
 
@@ -93,7 +94,7 @@ class PurchaseServiceTest {
     void registerPurchasesCreatesNormalizedProductAndStoreWhenOnlyNamesAreSubmitted() {
         ObjectId userId = new ObjectId();
         ReqPurchase request = new ReqPurchase(null, "Coca Cola Zero", null, "Billa",
-            2.50, null, LocalDate.of(2026, 3, 7), 1.0, ReqPurchase.QuantityUnit.PIECE, 0.0);
+            2.50, null, LocalDate.of(2026, 3, 7), 1.0, QuantityUnit.PIECE, 0.0);
 
         when(productRepository.findFirstByCanonicalName("Coca Cola Zero")).thenReturn(Optional.empty());
         when(storesRepository.findFirstByCanonicalName("Billa")).thenReturn(Optional.empty());
@@ -128,7 +129,7 @@ class PurchaseServiceTest {
     void registerPurchasesStoresAnExplicitCurrencyAndReturnsEur() {
         ReqPurchase request = new ReqPurchase(new ObjectId().toHexString(), null,
             new ObjectId().toHexString(), null, 12.65, Currency.BGN, LocalDate.of(2025, 10, 3),
-            1.0, ReqPurchase.QuantityUnit.PIECE, 0.0);
+            1.0, QuantityUnit.PIECE, 0.0);
 
         List<ResPurchase> result = purchaseService.registerPurchases(new ObjectId(), List.of(request));
 
@@ -145,7 +146,7 @@ class PurchaseServiceTest {
         ObjectId productId = new ObjectId();
         ObjectId storeId = new ObjectId();
         ReqPurchase request = new ReqPurchase(productId.toHexString(), null, storeId.toHexString(), null,
-            3.29, null, LocalDate.of(2026, 9, 23), 1.0, ReqPurchase.QuantityUnit.PIECE, 0.0);
+            3.29, null, LocalDate.of(2026, 9, 23), 1.0, QuantityUnit.PIECE, 0.0);
 
         ResPurchase result = purchaseService.registerPurchase(new ObjectId(), request);
 

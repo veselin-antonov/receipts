@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { bg } from 'date-fns/locale';
 import { X } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import FormAutocomplete from '@/components/forms/form-autocomplete';
@@ -20,12 +20,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { FieldGroup } from '@/components/ui/field';
-import { parseDecimal, toIsoDate } from '@/lib/format';
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from '@/components/ui/field';
+import { QUANTITY_UNITS, parseDecimal, toIsoDate } from '@/lib/format';
 import useFetchResource from '@/lib/useFetchResource';
 import { API_URL } from '@/lib/utils';
 
 const priceRegex = new RegExp('^\\d*[.,]?\\d{0,2}$');
+const quantityRegex = new RegExp('^\\d*[.,]?\\d{0,3}$');
 
 const customBgLocale = {
   ...bg,
@@ -57,6 +63,17 @@ const formSchema = z.object({
     })
     .min(1, 'Цената е задължителна.')
     .regex(priceRegex, 'Невалидна сума!'),
+  // How much was bought; the price above is the total for all of it
+  quantity: z
+    .string({ error: 'Количеството е задължително.' })
+    .min(1, 'Количеството е задължително.')
+    .regex(quantityRegex, 'Невалидно количество!')
+    .refine((q) => parseDecimal(q) > 0, 'Количеството трябва да е над 0.'),
+  // The unit the quantity is in
+  quantityUnit: z.enum(
+    QUANTITY_UNITS.map((u) => u.value),
+    'Мерната единица е задължителна.'
+  ),
   // The store where the product was purchased
   store: z
     .string({
@@ -116,6 +133,8 @@ const FormDialog = ({
     defaultValues: {
       product: '',
       price: '',
+      quantity: '1',
+      quantityUnit: 'PIECE',
       discount: false,
       store: '',
       date: '',
@@ -132,6 +151,8 @@ const FormDialog = ({
       productName: values.product,
       storeName: values.store,
       price: parseDecimal(values.price),
+      quantity: parseDecimal(values.quantity),
+      quantityUnit: values.quantityUnit,
       date: toIsoDate(values.date),
     };
 
@@ -141,7 +162,12 @@ const FormDialog = ({
       credentials: 'same-origin',
       body: JSON.stringify(purchase),
     })
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Saving the purchase failed: ${response.status}`);
+        }
+        return response.json();
+      })
       .then((purchase) => {
         setDialogOpen(false);
         handlePurchaseCreation(purchase);
@@ -176,13 +202,50 @@ const FormDialog = ({
             />
             <FormInput
               form={form}
-              label="Сума (€)"
+              label="Обща сума (€)"
               fieldName={'price'}
               placeholder={'Сума на покупка'}
               parseInput={(input, currentValue) => {
                 return priceRegex.test(input) ? input : currentValue;
               }}
             />
+            <div className="flex flex-row gap-2">
+              <FormInput
+                form={form}
+                label="Количество"
+                fieldName="quantity"
+                inputMode="decimal"
+                parseInput={(input, currentValue) =>
+                  quantityRegex.test(input) ? input : currentValue
+                }
+              />
+              <Controller
+                name="quantityUnit"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid} className="w-24">
+                    <FieldLabel htmlFor={field.name} className="pl-1">
+                      Мярка
+                    </FieldLabel>
+                    <select
+                      id={field.name}
+                      {...field}
+                      aria-invalid={fieldState.invalid}
+                      className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border bg-transparent px-2 text-base shadow-xs outline-none focus-visible:ring-[3px] md:text-sm"
+                    >
+                      {QUANTITY_UNITS.map((u) => (
+                        <option key={u.value} value={u.value}>
+                          {u.label}
+                        </option>
+                      ))}
+                    </select>
+                    {fieldState.invalid && (
+                      <FieldError errors={[fieldState.error]} />
+                    )}
+                  </Field>
+                )}
+              />
+            </div>
             <FormCombobox
               form={form}
               label="Магазин"

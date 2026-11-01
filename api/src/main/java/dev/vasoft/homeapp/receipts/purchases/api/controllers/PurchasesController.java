@@ -5,6 +5,7 @@ import dev.vasoft.homeapp.receipts.purchases.api.request.ReqPurchase;
 import dev.vasoft.homeapp.receipts.common.api.response.ResPage;
 import dev.vasoft.homeapp.receipts.purchases.api.response.ResPurchase;
 import dev.vasoft.homeapp.receipts.purchases.services.PurchaseService;
+import jakarta.validation.Valid;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -43,7 +44,7 @@ public class PurchasesController {
 	@PostMapping
 	public ResPurchase registerPurchases(
 			@AuthenticationPrincipal Jwt jwt,
-			@RequestBody ReqPurchase reqPurchase) {
+			@Valid @RequestBody ReqPurchase reqPurchase) {
 		ObjectId userId = authenticatedUserService.getUserId(jwt);
 		return purchaseServiceLogic.registerPurchase(userId, reqPurchase);
 	}

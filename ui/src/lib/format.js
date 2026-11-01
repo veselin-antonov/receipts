@@ -42,3 +42,26 @@ export const parseDecimal = (value) => {
     .replace(',', '.');
   return /^(\d+(\.\d*)?|\.\d+)$/.test(text) ? Number(text) : Number.NaN;
 };
+
+// The units a purchase's quantity can be in, as the API names them, with
+// their Bulgarian abbreviations.
+export const QUANTITY_UNITS = [
+  { value: 'PIECE', label: 'бр.' },
+  { value: 'KILOGRAM', label: 'кг' },
+  { value: 'LITER', label: 'л' },
+  { value: 'GRAM', label: 'г' },
+  { value: 'MILLILITER', label: 'мл' },
+];
+
+const quantityFormatter = new Intl.NumberFormat('bg-BG', {
+  maximumFractionDigits: 3,
+});
+
+// "0,742 кг", "2 бр.". Nothing for a purchase without a quantity: a legacy
+// row the migration has not reached yet.
+export const formatQuantity = (quantity, unit) => {
+  const label = QUANTITY_UNITS.find((u) => u.value === unit)?.label;
+  return typeof quantity === 'number' && Number.isFinite(quantity) && label
+    ? `${quantityFormatter.format(quantity)} ${label}`
+    : '';
+};

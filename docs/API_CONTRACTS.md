@@ -217,7 +217,10 @@ Success response shape:
         "name": "Kaufland",
         "iconID": "kaufland"
       },
-      "discountAmountEur": 0.0
+      "discountAmountEur": 0.0,
+      "quantity": 1.0,
+      "quantityUnit": "PIECE",
+      "quantityAssumed": false
     }
   ],
   "pageId": 0,
@@ -261,7 +264,10 @@ Success response shape:
     "name": "Kaufland",
     "iconID": "kaufland"
   },
-  "discountAmountEur": 0.0
+  "discountAmountEur": 0.0,
+  "quantity": 1.0,
+  "quantityUnit": "PIECE",
+  "quantityAssumed": false
 }
 ```
 
@@ -284,12 +290,18 @@ It is plain text: regex characters such as `(` or `.*` match themselves.
 Product and store resolution, here and on `POST /api/receipts/submit`: a
 submitted `productId` / `storeId` wins; the name is the fallback.
 
-Quantity units accepted by the request DTO:
-- `PIECE`
-- `GRAM`
-- `KILOGRAM`
-- `MILLILITER`
-- `LITER`
+Quantity:
+- `price` is the line total, not the unit price: two pots at 1.45 are
+  `"price": 2.90, "quantity": 2.0`. The unit price is `priceEur / quantity`
+  per `quantityUnit`
+- requests must carry `quantity` greater than 0 and `quantityUnit`; without
+  them the request is a `400`, here and on `POST /api/receipts/submit`
+- `quantityUnit` is one of `PIECE`, `GRAM`, `KILOGRAM`, `MILLILITER`, `LITER`
+- responses carry `quantity`, `quantityUnit` and `quantityAssumed`.
+  `quantityAssumed` is `true` only on a legacy purchase whose quantity was
+  never recorded and was set to 1 in its product's unit by the quantity
+  migration. On a legacy purchase the migration has not reached yet,
+  `quantity` and `quantityUnit` are `null`
 
 ## Receipt scanning
 
@@ -411,7 +423,10 @@ Success response shape:
       "name": "Kaufland",
       "iconID": "kaufland"
     },
-    "discountAmountEur": 0.0
+    "discountAmountEur": 0.0,
+    "quantity": 1.0,
+    "quantityUnit": "PIECE",
+    "quantityAssumed": false
   }
 ]
 ```

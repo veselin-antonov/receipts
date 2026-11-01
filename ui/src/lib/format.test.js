@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDate, formatEur, parseDecimal, toIsoDate } from '@/lib/format';
+import {
+  formatDate,
+  formatEur,
+  formatQuantity,
+  parseDecimal,
+  toIsoDate,
+} from '@/lib/format';
 
 // Intl separates the amount and the sign with a narrow no-break space.
 const normalizeSpaces = (s) => s.replace(/[\u00a0\u202f]/g, ' ');
@@ -67,5 +73,20 @@ describe('parseDecimal', () => {
     expect(parseDecimal('')).toBeNaN();
     expect(parseDecimal('1,2,3')).toBeNaN();
     expect(parseDecimal(undefined)).toBeNaN();
+  });
+});
+
+describe('formatQuantity', () => {
+  it('renders a weighed quantity with a decimal comma and its unit', () => {
+    expect(formatQuantity(0.742, 'KILOGRAM')).toBe('0,742 кг');
+  });
+
+  it('renders whole pieces without decimals', () => {
+    expect(formatQuantity(2, 'PIECE')).toBe('2 бр.');
+  });
+
+  it('renders nothing for a purchase without a quantity', () => {
+    expect(formatQuantity(null, null)).toBe('');
+    expect(formatQuantity(1, 'BUSHEL')).toBe('');
   });
 });

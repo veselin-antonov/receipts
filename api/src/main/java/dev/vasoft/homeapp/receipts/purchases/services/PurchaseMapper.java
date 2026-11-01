@@ -25,7 +25,10 @@ public class PurchaseMapper {
             currency.toEur(p.getPrice()),
             p.getDate(),
             StoreMapper.toResStore(p.getStore()),
-            currency.toEur(discount));
+            currency.toEur(discount),
+            p.getQuantity(),
+            p.getQuantityUnit(),
+            Boolean.TRUE.equals(p.getQuantityAssumed()));
     }
 
 }

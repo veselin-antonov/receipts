@@ -24,9 +24,9 @@ spring:
       datetime:
         write-dates-as-timestamps: false
     # Jackson 3 rejects a missing primitive (400) where Jackson 2 read it as 0.
-    # The ui's manual form omits quantity and discountAmount, which are
-    # doubles in ReqPurchase, so every manual purchase would fail. Keep the
-    # Jackson 2 behaviour until those fields are nullable (M2).
+    # The ui's manual form omits discountAmount, a double in ReqPurchase, so
+    # every manual purchase would fail. Keep the Jackson 2 behaviour until it
+    # is nullable. quantity is already a nullable Double, validated instead.
     deserialization:
       fail-on-null-for-primitives: false
 

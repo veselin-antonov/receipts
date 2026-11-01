@@ -109,6 +109,15 @@ released together.
   dates not at midnight UTC (they would read as the previous day) or purchases
   without a `userId` (they would be invisible), and points at
   `migrate-backups.py`. Runs before the currency backfill
+- `quantity`, `quantityUnit` and `quantityAssumed` stored on every purchase
+  and returned by every purchase response (D1). `POST /api/purchases` and
+  `POST /api/receipts/submit` reject a purchase without a positive quantity
+  and a unit with `400`. `price` stays the line total
+- `LegacyQuantityMigration`: at startup, gives purchases recorded before
+  quantities existed quantity 1 in their product's unit, marked
+  `quantityAssumed` (Q2). The first run only writes a per-product unit
+  proposal guessed from the names and logs a dry-run report; it applies a
+  reviewed copy of that file on the next start (deploy/README.md)
 
 #### Changed
 - **Spring Boot 3.5.6 → 4.1.1** (Jackson 3, Spring Security 7) and **Spring AI
@@ -181,6 +190,9 @@ released together.
 
 - `src/lib/format.js`: `formatEur` and `formatDate`. The API now sends numbers
   and ISO dates, so the UI owns rounding and localisation
+- The manual purchase form has a quantity (default 1) and a unit (default
+  бр.), and labels the price as the total. The purchases table has a quantity
+  column; a migrated legacy quantity is shown as `≈ 1 кг`, greyed out
 
 #### Changed
 

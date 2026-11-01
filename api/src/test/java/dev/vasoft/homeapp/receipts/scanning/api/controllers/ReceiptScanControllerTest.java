@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import dev.vasoft.homeapp.auth.services.AuthenticatedUserService;
 import dev.vasoft.homeapp.receipts.purchases.api.request.ReqPurchase;
 import dev.vasoft.homeapp.receipts.purchases.api.response.ResPurchase;
+import dev.vasoft.homeapp.receipts.purchases.model.entities.QuantityUnit;
 import dev.vasoft.homeapp.receipts.scanning.api.request.ReqSubmitPurchases;
 import dev.vasoft.homeapp.receipts.scanning.services.ReceiptScanService;
 import java.time.LocalDate;
@@ -43,7 +44,7 @@ class ReceiptScanControllerTest {
     void submitPurchasesDelegatesAuthenticatedUserIdAndReviewedPurchasesToService() {
         ObjectId userId = new ObjectId();
         ReqPurchase reviewedPurchase = new ReqPurchase(null, "Coca Cola Zero", null, "Billa",
-            2.50, null, LocalDate.of(2026, 3, 7), 1.0, ReqPurchase.QuantityUnit.PIECE, 0.0);
+            2.50, null, LocalDate.of(2026, 3, 7), 1.0, QuantityUnit.PIECE, 0.0);
         ReqSubmitPurchases request = new ReqSubmitPurchases(List.of(reviewedPurchase));
         List<ResPurchase> expectedResponse = List.of();
 
