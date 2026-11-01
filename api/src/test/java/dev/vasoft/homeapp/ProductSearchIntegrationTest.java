@@ -13,39 +13,15 @@ import java.util.List;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Product search against a real MongoDB, so that the purchase-summary
  * aggregation (group by product, last purchase by date, store lookup) and its
- * mapping onto java types are checked by the server rather than by a mock. Set
- * up like {@link MongoIntegrationTest}. Needs Docker.
+ * mapping onto java types are checked by the server rather than by a mock.
+ * Shares its container and context through {@link MongoTestSupport}. Needs
+ * Docker.
  */
-@SpringBootTest(properties = "spring.data.mongodb.auto-index-creation=true")
-@ActiveProfiles("test")
-@Testcontainers
-class ProductSearchIntegrationTest {
-
-    @Container
-    static GenericContainer<?> mongo = new GenericContainer<>("mongo:8.2")
-        .withExposedPorts(27017)
-        .withCommand("--auth")
-        .withEnv("MONGO_INITDB_ROOT_USERNAME", "test")
-        .withEnv("MONGO_INITDB_ROOT_PASSWORD", "test")
-        .waitingFor(Wait.forLogMessage(".*Waiting for connections.*", 2));
-
-    @DynamicPropertySource
-    static void mongoAddress(DynamicPropertyRegistry registry) {
-        registry.add("spring.mongodb.host", mongo::getHost);
-        registry.add("spring.mongodb.port", () -> mongo.getMappedPort(27017));
-    }
+class ProductSearchIntegrationTest extends MongoTestSupport {
 
     @Autowired
     private PurchaseService purchaseService;
