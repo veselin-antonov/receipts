@@ -13,9 +13,10 @@ make dev                      # db and MailHog, then the api and vite; Ctrl-C st
 |---|---|
 | `setup` | `scripts/dev-setup.sh`: prerequisites, keys, the root `.env`, `npm ci` |
 | `dev` | `scripts/dev.sh`: starts MongoDB and MailHog, then `bootRun` (7802) and vite (7800) in the foreground, output interleaved and prefixed `[api]` / `[ui]`. Ctrl-C, or either one exiting, stops both; the containers keep running |
-| `down` | stops the dev containers; the data stays |
+| `down` | stops the dev and preview containers; the data stays |
 | `test` | the api's `./gradlew test`, then the ui's lint, format check and tests |
 | `e2e` | `e2e/run.sh` ([below](#end-to-end-smoke)) |
+| `preview PR=<n>` | `scripts/preview.sh`: that pull request's images at `receipts-test.vasoft.dev` ([below](#testing-a-pull-request-on-its-preview-images)) |
 | `db-restore` | `scripts/db-restore.sh` ([Restoring the backups](#restoring-the-backups)) |
 | `db-refresh` | not yet: it will copy production's database into dev, and there is no production stack yet |
 
@@ -288,23 +289,34 @@ to `UI_API_TARGET`, by default `http://localhost:${SERVER_PORT}`. The browser's
 
 Every pull request from a branch of this repository publishes a preview image
 for each side it touches: `ghcr.io/veselin-antonov/receipts-api:pr-<n>` and
-`ghcr.io/veselin-antonov/receipts-ui:pr-<n>`. A bot comment on the pull request
-lists the ones it built. Write the tag on the command line; `--pull always`
-matters, because a preview tag is overwritten on every push.
-
-A **ui** preview runs against the native api, on the preview ui port:
+`ghcr.io/veselin-antonov/receipts-ui:pr-<n>`; a bot comment on the pull request
+lists the ones it built. `make preview` runs them at
+`https://receipts-test.vasoft.dev`, next to the dev stack:
 
 ```bash
-docker run --rm --pull always -p 7810:80 \
-  --add-host host.docker.internal:host-gateway \
-  -e BACKEND_HOST=host.docker.internal:7802 \
-  ghcr.io/veselin-antonov/receipts-ui:pr-10
-# click through http://localhost:7810, with http://localhost:7810 in
-# APP_CORS_ALLOWED_ORIGINS
+make preview PR=28              # pull and run #28's images
+make preview PR=28 REFRESH=1    # the same, on a fresh copy of the database
 ```
 
-An **api** preview has no recipe on the dev stack: the dev MongoDB listens on
-`127.0.0.1` only, and a preview must not write to the dev database anyway. e2e
-covers it on the pull request; `make preview`
-([ROADMAP M1b](ROADMAP.md#m1b--monorepo-development-workflow), step 4) is
-where a preview stack with a database of its own comes in.
+| Service | Port | Notes |
+|---|---|---|
+| ui | 7810 | `receipts-test.vasoft.dev` points here |
+| api | 7812 | `APP_HOST_URL` and the CORS origin are `https://receipts-test.vasoft.dev` |
+| MailHog | 7815 (web) | the preview's own; verification mails link to `receipts-test` |
+| MongoDB | internal | the volume `receipts-preview_db` |
+
+- A side the pull request did not touch has no `pr-<n>` image and runs `:dev`
+  (master) instead. Images are pulled every time, because a preview tag is
+  overwritten on every push.
+- **The preview database is a copy, never shared.** The first run, and every
+  run with `REFRESH=1`, copies the dev database into it with
+  `mongodump | mongorestore --drop`, which only reads the source; nothing the
+  preview writes reaches dev. It keeps its data between pull requests otherwise.
+- The preview api has a JWT key pair of its own in `.preview/certs/`
+  (gitignored, made on the first run). It takes `OPENAI_API_KEY` and the OCR
+  and upload settings from the root `.env`; everything else is set in
+  `compose.preview.yaml`.
+- One preview runs at a time: `make preview PR=<m>` replaces the running one.
+  `make down` stops it, with the dev containers; `docker compose -f
+  compose.preview.yaml down` stops it alone. `docker logs -f
+  receipts-preview-api` follows its api.

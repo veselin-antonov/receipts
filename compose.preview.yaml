@@ -1,0 +1,103 @@
+# The preview stack: a pull request's images at receipts-test.vasoft.dev, next
+# to the dev stack and sharing nothing with it. Started by `make preview PR=<n>`
+# (scripts/preview.sh), which picks the image tags and fills the database.
+#
+# Ports are the preview block (ROADMAP M1b decision 21): ui 7810, api 7812,
+# MailHog web 7815. MongoDB is internal; its data is the `db` volume, a copy
+# made by scripts/preview.sh and never written back.
+#
+# Only OPENAI_API_KEY and the OCR and upload settings are taken from the root
+# .env beside this file; everything else the preview api needs is set here.
+name: receipts-preview
+
+services:
+  db:
+    image: mongo:8.2
+    container_name: receipts-preview-db
+    restart: unless-stopped
+    command: ['--auth']
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: preview
+      MONGO_INITDB_ROOT_PASSWORD: preview
+    volumes:
+      - db:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand("ping").ok']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: receipts-preview-mailhog
+    restart: unless-stopped
+    ports:
+      - '7815:8025' # web UI
+
+  api:
+    image: ghcr.io/veselin-antonov/receipts-api:${API_TAG:-dev}
+    container_name: receipts-preview-api
+    restart: unless-stopped
+    ports:
+      - '7812:7002'
+    environment:
+      SERVER_PORT: 7002
+      MONGODB_HOST: db
+      MONGODB_PORT: 27017
+      MONGODB_DATABASE: receipts-db
+      MONGODB_AUTH_DB: admin
+      MONGODB_USER: preview
+      MONGODB_PASS: preview
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USER: preview
+      SMTP_PASS: preview
+      # The default (production) profile speaks SMTPS; MailHog is plain SMTP
+      SPRING_MAIL_PROTOCOL: smtp
+      APP_HOST_URL: https://receipts-test.vasoft.dev
+      APP_CORS_ALLOWED_ORIGINS: https://receipts-test.vasoft.dev,http://localhost:7810
+      OCR_LANGUAGE: ${OCR_LANGUAGE:-eng+bul}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+      TZ: ${TZ:-Europe/Sofia}
+      # The image has no keys (D10); scripts/preview.sh generates a pair of the
+      # preview's own, so a dev session's cookie is no good here
+      JWT_PRIVATE_KEY: file:/certs/private.pem
+      JWT_PUBLIC_KEY: file:/certs/public.pem
+    volumes:
+      - ./.preview/certs:/certs:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    healthcheck:
+      # Any HTTP answer, including the 401 for an anonymous status check,
+      # means the api is serving (as in e2e/compose.yaml)
+      test: ['CMD-SHELL', 'wget -S -O /dev/null http://127.0.0.1:7002/api/auth/status 2>&1 | grep -q "HTTP/1.1 401"']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  ui:
+    image: ghcr.io/veselin-antonov/receipts-ui:${UI_TAG:-dev}
+    container_name: receipts-preview-ui
+    restart: unless-stopped
+    ports:
+      - '7810:80'
+    environment:
+      BACKEND_HOST: api:7002
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  db:
