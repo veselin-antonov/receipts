@@ -278,11 +278,11 @@ No open questions remain.
       request after the Makefile (PR 3); not part of M1b's done-when
 - [x] **`dev-setup.sh` ends with `make dev`** — instead of the four manual
       commands
-- [ ] **One dev guide (decision 6)** — fold `api/docs/DEVELOPMENT_SETUP.md` and
+- [x] **One dev guide (decision 6)** — fold `api/docs/DEVELOPMENT_SETUP.md` and
       `api/README.md`'s Quickstart (Windows `TESSDATA_PATH`, `export`s) into
       `docs/DEV_SETUP.md`; `api/docs/PRODUCTION_SETUP.md` into
       `deploy/README.md`; delete what is folded
-- [ ] **Point `.github/instructions` at the guide (decision 18)** — the
+- [x] **Point `.github/instructions` at the guide (decision 18)** — the
       per-layer files stay, but their setup text is stale:
       `ui.instructions.md` says the proxy goes to `http://localhost:7002` and
       `npm run dev` starts an "HTTPS dev server"; `api.instructions.md` has its

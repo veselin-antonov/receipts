@@ -1,12 +1,28 @@
 # Development environment
 
-> What is automated, what you must do by hand, and why.
+> The one guide for developing Receipts: the api and the ui together, from a
+> fresh clone to a running stack. Deploying is in
+> [`deploy/README.md`](../deploy/README.md).
 
-Run this first, then develop with `make dev`:
+## Quick start
+
+On Ubuntu 24.04, from a fresh clone:
 
 ```bash
-make setup                    # scripts/dev-setup.sh; add --https by running it directly
-make dev                      # db and MailHog, then the api and vite; Ctrl-C stops both
+sudo apt install openjdk-25-jdk tesseract-ocr tesseract-ocr-eng tesseract-ocr-bul
+# Node 22 (.nvmrc), e.g. `nvm install`; and Docker
+make setup          # checks the above, writes keys and .env, npm ci
+# put your OpenAI key in .env: OPENAI_API_KEY=sk-...
+make dev            # db and MailHog, then the api (7802) and vite (http://localhost:7800)
+make db-restore     # once, in a second terminal: the Jan-2026 backups
+```
+
+`make dev` runs in the foreground; Ctrl-C stops the api and vite. To keep it
+running after you log out, start it detached and follow the log:
+
+```bash
+setsid nohup make dev > dev.log 2>&1 < /dev/null &
+tail -f dev.log
 ```
 
 | Target | What it does |
@@ -20,70 +36,46 @@ make dev                      # db and MailHog, then the api and vite; Ctrl-C st
 | `db-restore` | `scripts/db-restore.sh` ([Restoring the backups](#restoring-the-backups)) |
 | `db-refresh` | not yet: it will copy production's database into dev, and there is no production stack yet |
 
-`dev-setup.sh` is idempotent. It never overwrites a value you have already set, and the
-only tracked file it touches is `gradlew`'s executable bit.
+Before committing, `make test` and `git diff --check`.
 
 ---
 
-## Why setup needs a script at all
+## What `make setup` does
 
-A fresh clone cannot build, test, or run. Three separate reasons:
-
-1. `gradlew` is committed non-executable, so `./gradlew` fails outright (D7).
-2. `application.yaml` has **12 placeholders with no defaults**, and
-   `spring-dotenv` reads a `.env` that is gitignored. Without it,
-   `server.port=${SERVER_PORT}` fails to parse as an `Integer` and even
-   `gradlew test` dies during context startup (D9).
-3. The `dev` profile resolves `jwt.private-key` to `file:./certs/private.pem`
-   (that is, `api/certs/`), a gitignored path that nothing else creates.
-
-None of this is documented as a test prerequisite, and CI never runs tests
-(D8), so nothing catches it.
-
----
-
-## Automated
+`scripts/dev-setup.sh` is idempotent. It never overwrites a value you have
+already set, and the only tracked file it touches is `gradlew`'s executable bit.
 
 | Step | What the script does |
 |---|---|
-| Prerequisite audit | Checks java 25, node, docker, openssl, tesseract and its `eng`/`bul` language data; reports what is missing instead of guessing |
-| `gradlew` | Sets the executable bit, and warns that the fix needs committing |
+| Prerequisite audit | Checks java 25, node (the major in `.nvmrc`, at least 22.12), docker, openssl, tesseract and its `eng`/`bul` language data; reports what is missing instead of guessing |
+| `gradlew` | Sets the executable bit if a checkout lost it |
 | JWT keys | Generates a PKCS#8 RSA keypair into the gitignored `api/certs/`, outside the resources tree so it never reaches the jar |
-| `.env` | Writes the root `.env` with all 12 undefaulted variables, plus Linux overrides for the OCR paths that `application-dev.yaml` defaults to Windows locations. An `api/.env` from an older checkout is moved there, its old default ports switched to 7800/7802 |
+| `.env` | Writes the root `.env` with the variables `application.yaml` has no default for, plus Linux overrides for the OCR paths that `application-dev.yaml` defaults to Windows locations. An `api/.env` from an older checkout is moved there, its old default ports switched to 7800/7802 |
 | UI dependencies | `npm ci` |
-| UI dev certs | Only with `--https`. Skipped by default: browsers treat `http://localhost` as a trustworthy origin, so the backend's `Secure` cookie works over plain http, and a self-signed cert just adds a warning to click through |
+| UI dev certs | Only with `scripts/dev-setup.sh --https`. Skipped by default: browsers treat `http://localhost` as a trustworthy origin, so the backend's `Secure` cookie works over plain http, and a self-signed cert just adds a warning to click through |
 
-Database restore is a second script:
+Without it a fresh clone builds and tests (the `test` profile needs no
+`.env`), but cannot run: `bootRun` needs the `.env` values, and the `dev`
+profile reads its JWT keys from `api/certs/`, which nothing else creates.
 
-```bash
-make db-restore   # with `make dev` running, or after `docker compose -f compose.dev.yaml up -d`
-```
+## What you install yourself
 
-It migrates the Jan-2026 backups onto the current schema and imports them. See
-[Restoring the backups](#restoring-the-backups).
+- **Java 25**, the Gradle toolchain's version.
+- **Node 22**, the version in `.nvmrc`, which CI reads too.
+- **Docker**, for MongoDB, MailHog, e2e and previews.
+- **Tesseract** with `eng` and `bul`. Only **image** receipts need it; PDFs take
+  the direct LLM path ([ADR-0004](adr/0004-ocr-plus-llm-parsing.md)), so you
+  can defer it and still exercise most of the scan flow.
+- **An OpenAI API key**, in the root `.env` as `OPENAI_API_KEY`. Receipt
+  parsing fails without it; nothing else does.
 
----
+**On Windows**, install Tesseract from
+<https://github.com/UB-Mannheim/tesseract/wiki> and set `TESSDATA_PATH` in
+`.env` to its `tessdata` directory; the `dev` profile's default,
+`C:/Program Files/Tesseract-OCR/tessdata`, is the installer's.
 
-## Manual
-
-Four things the script cannot do for you.
-
-### 1. Install the JDK and Tesseract
-
-Both need root. On Ubuntu 24.04 both are in apt:
-
-```bash
-sudo apt install openjdk-25-jdk
-sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-bul
-```
-
-Java 25 is required because the merge moved the Gradle toolchain from 21 to 25.
-
-Tesseract is only needed for **image** receipts. PDFs take the direct LLM path
-([ADR-0004](adr/0004-ocr-plus-llm-parsing.md)), so you can defer this and still
-exercise most of the scan flow.
-
-If you would rather not install a JDK at all, the build runs in a container:
+If you would rather not install a JDK at all, the api's tests run in a
+container, from `api/`:
 
 ```bash
 docker run --rm -u "$(id -u):$(id -g)" -v "$PWD:/work" \
@@ -91,23 +83,56 @@ docker run --rm -u "$(id -u):$(id -g)" -v "$PWD:/work" \
   -w /work eclipse-temurin:25-jdk sh gradlew test
 ```
 
-That is how this project's tests were first verified. It is fine for CI-style
-runs, but it gives up `spring-boot-devtools` hot restart, which is most of the
-value of running the backend natively.
+That gives up `spring-boot-devtools` hot restart, which is most of the value of
+running the backend natively.
 
-### 2. Provide an OpenAI API key
+**A user:** the backups contain one already-verified account. To register a
+fresh one, MailHog catches the verification mail at <http://localhost:7805>.
 
-```bash
-# in .env, at the repository root
-OPENAI_API_KEY=sk-...
-```
+---
 
-Receipt parsing fails without it. Nothing else does.
+## Configuration: profiles and `.env`
 
-### 3. Create a verified user, or restore the backup
+- `application.yaml` is the base, and what production runs: MongoDB, mail,
+  Spring AI, multipart, JWT, OCR and rate limiting, mostly from environment
+  variables.
+- `application-dev.yaml` (`--spring.profiles.active=dev`, which `make dev`
+  passes) overrides it for local work: JWT keys from `api/certs/` as `file:`
+  paths, local OCR defaults, the vite origin for CORS, plain SMTP for MailHog,
+  and verbose logging. Without the profile the JWT keys resolve to empty
+  defaults and startup fails.
+- `application-test.yaml` (`src/test/resources`) gives the tests every value
+  they need, so they read no `.env`.
+- The root `.env` supplies the rest; the root `example.env` lists every
+  variable. A shell export or an IDE run configuration overrides it. An IDE run
+  outside Gradle reads it only with `-Dspringdotenv.directory=..` and `api/` as
+  the working directory.
 
-The backup contains one already-verified account. If you would rather register
-fresh, MailHog catches the verification mail at <http://localhost:7805>.
+## Checking a change by hand
+
+The flows that unit tests do not cover end to end, at
+<http://localhost:7800>:
+
+- **Login:** `POST /api/auth/token` sets the cookie; `GET /api/auth/status`
+  returns the session's remaining time.
+- **Registration:** register, open the mail in MailHog (7805), verify, and
+  try resend-verification for an inactive user.
+- **Purchases:** add one by hand and list them; another user must not see it.
+- **Scanning:** an image receipt and a PDF; review the parsed rows and submit
+  them. If OCR looks wrong, set `OCR_DEBUG_OUTPUT_PATH` and look at the debug
+  images.
+
+## When something fails
+
+- **Auth looks broken:** the cookie is `HttpOnly`, `Secure` and
+  `SameSite=Strict`. Check that the browser kept it, that the ui sends
+  same-origin credentials, and that the origin you are on is in
+  `APP_CORS_ALLOWED_ORIGINS`. Plain-http origins other than `localhost` lose
+  the `Secure` cookie, so remote access goes through an https proxy host.
+- **The api does not start:** missing JWT key files, wrong MongoDB
+  credentials or auth database, or a `.env` value missing.
+- **Scans fail:** no `OPENAI_API_KEY`; for images, a wrong `TESSDATA_PATH` or
+  missing language data.
 
 ---
 

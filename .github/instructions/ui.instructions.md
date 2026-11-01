@@ -12,8 +12,8 @@ This is a React/Vite frontend for a receipts management application that tracks 
 - **Styling**: Tailwind CSS with shadcn/ui component library (New York style)
 - **Forms**: React Hook Form with Zod validation
 - **State Management**: React Context for authentication, local state for components
-- **API Integration**: Proxy setup routes `/api/*` to `http://localhost:7802` backend (plain HTTP: the API has no TLS since 0.0.6; terminate TLS in front of it)
-- **Development**: plain HTTP dev server by default; HTTPS only when `localhost.crt` and `localhost.key` exist (`scripts/dev-setup.sh --https` in the receipts repo)
+- **API Integration**: vite proxies `/api/*` to the api (`UI_API_TARGET`, default `http://localhost:7802`); the api has no TLS, so TLS terminates in front of it
+- **Development**: `make dev` from the repository root runs vite on 7800 with the api; setup and options are in `docs/DEV_SETUP.md`
 
 ## Project Structure Patterns
 
@@ -73,8 +73,11 @@ The app uses a stateful authentication pattern:
 
 ## Development Commands
 
+Setup, `make dev` and `make test` are in `docs/DEV_SETUP.md`. From `ui/`:
+
 ```bash
-npm run dev      # Start HTTPS dev server
+npm run dev      # vite on 7800 (make dev also starts the api)
+npm test         # vitest
 npm run build    # Production build
 npm run lint     # ESLint with React rules
 npm run preview  # Preview production build

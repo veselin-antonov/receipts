@@ -260,8 +260,8 @@ Needed locally:
 - JWT dev keys and normal backend dependencies
 
 Useful companion docs:
-- [`api/docs/DEVELOPMENT_SETUP.md`](../api/docs/DEVELOPMENT_SETUP.md)
-- [`api/docs/PRODUCTION_SETUP.md`](../api/docs/PRODUCTION_SETUP.md)
+- [`DEV_SETUP.md`](DEV_SETUP.md)
+- [`deploy/README.md`](../deploy/README.md)
 
 ### Production
 
