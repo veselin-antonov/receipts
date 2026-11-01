@@ -120,6 +120,13 @@ released together.
   reviewed copy of that file on the next start (deploy/README.md)
 - `deploy/compose.yaml` mounts `migrated/` beside it at `/app/.migrated`, where
   the api keeps one-off migrations' review files (deploy/README.md)
+- `GET /api/products/search?q=`: product search over names and aliases, word
+  order free, case and accent folded, typo and prefix tolerant, Bulgarian
+  matched in Latin letters too. Ranked by relevance, then by how often and
+  recently the user buys the product; each result carries the user's last paid
+  price in EUR, its date and store (D5)
+- `TokenSetScorer`, the word-by-word name scorer behind it, kept free of
+  Spring so that receipt matching (D12) can adopt it
 
 #### Changed
 - **Spring Boot 3.5.6 → 4.1.1** (Jackson 3, Spring Security 7) and **Spring AI

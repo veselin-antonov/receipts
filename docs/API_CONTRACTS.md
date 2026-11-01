@@ -175,6 +175,55 @@ Success response shape:
 }
 ```
 
+### GET /api/products/search?q=<text>&limit=<n>
+
+Purpose:
+- find catalog products by name or alias as the user types (SPEC F2.1), each
+  with what the authenticated user last paid for it
+
+Query parameters:
+- `q`: the text typed. Case, accents and punctuation are ignored, word order
+  does not matter, a half-typed last word matches as a prefix, and small typos
+  in words of four letters or more are tolerated. Bulgarian also matches in
+  Latin letters (`mlyako` finds `Мляко`, `нескафе` finds `Nescafe`). Blank
+  returns `[]`
+- `limit` (optional): at most this many results; default 20, capped at 50
+
+Ordering: by `relevance`, lifted by at most 0.1 for how often and how recently
+the user buys the product, then by name. So among products that each contain
+every word typed, the one the user usually buys comes first; a product missing
+a typed word stays below one that has them all. Results with relevance under
+0.55 are not returned.
+
+Success response shape:
+
+```json
+[
+  {
+    "id": "6840c5c4bcb1f563dc1d0001",
+    "name": "Прясно мляко",
+    "iconID": "milk",
+    "relevance": 1.0,
+    "purchaseCount": 12,
+    "lastPurchase": {
+      "priceEur": 1.89,
+      "date": "2026-10-20",
+      "store": {
+        "id": "6840c5c4bcb1f563dc1d0101",
+        "name": "Kaufland",
+        "iconID": "kaufland"
+      }
+    }
+  }
+]
+```
+
+- `relevance`: 0 to 1, how well `q` names the product (its best name or alias)
+- `purchaseCount`: the user's purchases of the product, `0` if none
+- `lastPurchase`: the user's most recent purchase by date, or `null` if they
+  have never bought it. `priceEur` is the price paid, converted to EUR and
+  unrounded, like every amount on the wire
+
 ## Stores
 
 ### GET /api/stores
