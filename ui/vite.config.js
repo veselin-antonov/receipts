@@ -10,7 +10,7 @@ import { defineConfig, loadEnv } from 'vite';
 // still sees only VITE_* variables.
 const env = loadEnv(
   process.env.NODE_ENV ?? 'development',
-  path.resolve(__dirname, '..'),
+  path.resolve(import.meta.dirname, '..'),
   ''
 );
 const apiTarget =
@@ -32,7 +32,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(import.meta.dirname, './src'),
     },
   },
   build: {
