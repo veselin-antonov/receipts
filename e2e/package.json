@@ -3,6 +3,9 @@
   "private": true,
   "description": "End-to-end smoke: the ui and api images, MongoDB and MailHog, driven by Playwright",
   "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "test": "playwright test"
   },

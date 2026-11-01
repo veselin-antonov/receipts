@@ -1,4 +1,5 @@
 # Stage 1: Build the Vite app
+# Node major: keep in sync with /.nvmrc
 FROM node:22-bookworm AS builder
 
 WORKDIR /app
