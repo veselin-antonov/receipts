@@ -10,6 +10,11 @@ Releases up to 0.0.6 were separate; their notes are in
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-02
+
+The first release from this repository: the api and the ui, versioned and
+released together.
+
 ### Repository
 
 - `receipts-api` and `receipts-ui` merged into this repository as `api/` and
