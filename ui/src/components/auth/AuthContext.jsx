@@ -18,6 +18,39 @@ const parseExpirationPeriod = (responseText) => {
   return expirationPeriod;
 };
 
+// Asks the server whether the session cookie is still valid. Resolves to the
+// session's expiration period, or null when there is no valid session.
+const requestAuthStatus = async () => {
+  console.log('Fetching auth status from server...');
+
+  try {
+    const response = await fetch(API_URL + '/auth/status', {
+      method: 'GET',
+      credentials: 'same-origin',
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        response.status === 401
+          ? 'Invalid or expired token'
+          : 'Unknown server error'
+      );
+    }
+
+    const responseText = await response.text();
+    const expirationPeriod = parseExpirationPeriod(responseText);
+    console.log(
+      'Fetched status. Auth expires in',
+      expirationPeriod / 1000,
+      'seconds'
+    );
+    return expirationPeriod;
+  } catch (error) {
+    console.error('Error fetching auth status:', error);
+    return null;
+  }
+};
+
 const AuthContext = createContext();
 
 export function useAuth() {
@@ -88,40 +121,25 @@ export const AuthProvider = ({ children }) => {
     return authStatus === AUTH_STATUS.EXPIRED;
   }
 
-  const fetchAuthStatus = useCallback(async () => {
-    console.log('Fetching auth status from server...');
-    setAuthStatus(AUTH_STATUS.PENDING);
-
-    try {
-      const response = await fetch(API_URL + '/auth/status', {
-        method: 'GET',
-        credentials: 'same-origin',
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          response.status === 401
-            ? 'Invalid or expired token'
-            : 'Unknown server error'
-        );
+  // Applies a requestAuthStatus result: the session's expiration period, or
+  // null when there is no valid session.
+  const applyAuthStatus = useCallback(
+    (expirationPeriod) => {
+      if (expirationPeriod === null) {
+        invalidateAuthExpiration();
+        setAuthStatus(AUTH_STATUS.UNAUTHENTICATED);
+        return false;
       }
-
-      const responseText = await response.text();
-      const expirationPeriod = parseExpirationPeriod(responseText);
-      console.log(
-        'Fetched status. Auth expires in',
-        expirationPeriod / 1000,
-        'seconds'
-      );
       saveAuthExpiration(expirationPeriod);
       return true;
-    } catch (error) {
-      console.error('Error fetching auth status:', error);
-      invalidateAuthExpiration();
-      setAuthStatus(AUTH_STATUS.UNAUTHENTICATED);
-      return false;
-    }
-  }, [invalidateAuthExpiration, saveAuthExpiration]);
+    },
+    [invalidateAuthExpiration, saveAuthExpiration]
+  );
+
+  const fetchAuthStatus = useCallback(async () => {
+    setAuthStatus(AUTH_STATUS.PENDING);
+    return applyAuthStatus(await requestAuthStatus());
+  }, [applyAuthStatus]);
 
   const value = {
     // Auth status and helpers
@@ -159,8 +177,9 @@ export const AuthProvider = ({ children }) => {
       console.log('No stored expiration. Checking server cookie');
     }
 
-    fetchAuthStatus();
-  }, [fetchAuthStatus]);
+    // Status starts as PENDING, so the mount check only applies the result.
+    requestAuthStatus().then(applyAuthStatus);
+  }, [applyAuthStatus]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
