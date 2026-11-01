@@ -101,6 +101,11 @@ released together.
 ### API
 
 #### Added
+- Barcodes on products, linked on the first scan of a pack:
+  `GET /api/products/by-barcode/{barcode}`, `PUT` and `DELETE
+  /api/products/{id}/barcodes/{barcode}`. EAN-8, UPC-A, EAN-13 and GTIN-14
+  with a check-digit test; UPC-A and GTIN-14 are stored as EAN-13. One product
+  per barcode, enforced by a partial unique index (`barcodes_unique`)
 - `currency` (`BGN` | `EUR`) stored on every purchase; optional on requests,
   defaulting to `EUR`
 - `LegacyCurrencyBackfill`: at startup, tags currency-less purchases `BGN`, and

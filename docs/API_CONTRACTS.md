@@ -175,6 +175,86 @@ Success response shape:
 }
 ```
 
+## Barcodes
+
+A barcode links a pack to one product in the shared catalog, so a scan in the
+shop opens that product. Receipts do not print barcodes; they are linked on the
+first scan of each pack (link-on-first-scan).
+
+Rules for every route below:
+- `{barcode}` is EAN-8, UPC-A, EAN-13 or GTIN-14, digits only, with a correct
+  GS1 check digit. Surrounding whitespace is ignored
+- it is stored and returned in one canonical form: UPC-A gets a leading zero
+  and a GTIN-14 with indicator digit `0` drops it, so both read as EAN-13;
+  EAN-8 stays as it is. Either form finds the product
+- one barcode belongs to at most one product; a product may have several
+- the response is the product with its `barcodes`, always a list
+- the writes are idempotent, so an offline client can queue and replay them:
+  linking a barcode the product already has, or unlinking one it does not
+  have, succeeds and changes nothing
+- failures are a `ProblemDetail` with an `error` code; branch on `error`, not
+  on the status alone
+
+Product response shape:
+
+```json
+{
+  "id": "6840c5c4bcb1f563dc1d0001",
+  "name": "Прясно мляко",
+  "iconID": "milk",
+  "barcodes": ["3800178226137"]
+}
+```
+
+Errors:
+
+| Status | `error` | When | Extra fields |
+|---|---|---|---|
+| `400` | `INVALID_BARCODE` | not digits, wrong length, or wrong check digit (usually a misread) | `barcode` |
+| `404` | `BARCODE_NOT_LINKED` | lookup of a barcode no product has; the scanner asks which product it is | `barcode` |
+| `404` | `PRODUCT_NOT_FOUND` | `{productId}` is malformed or names no product | |
+| `409` | `BARCODE_ALREADY_LINKED` | the barcode belongs to another product; it is never moved silently | `barcode`, `productId` (the product that has it) |
+
+Barcodes printed by a store's own scale (EAN-13 starting with `2`) are valid
+and can be linked, but they embed the weight or price of one pack, so a link
+only matches that pack. The scanner should not offer to link them.
+
+### GET /api/products/by-barcode/{barcode}
+
+Purpose:
+- find the product a scanned barcode is linked to
+
+Responses:
+- `200 OK` with the product
+- `404` `BARCODE_NOT_LINKED`, `400` `INVALID_BARCODE`
+
+### PUT /api/products/{productId}/barcodes/{barcode}
+
+Purpose:
+- link a barcode to a product (first scan of a pack)
+
+Example request:
+
+```http
+PUT /api/products/6840c5c4bcb1f563dc1d0001/barcodes/3800178226137 HTTP/1.1
+```
+
+Responses:
+- `200 OK` with the product, including the new barcode
+- `409` `BARCODE_ALREADY_LINKED`, `404` `PRODUCT_NOT_FOUND`, `400` `INVALID_BARCODE`
+
+To move a barcode to another product, unlink it from the one that has it, then
+link it.
+
+### DELETE /api/products/{productId}/barcodes/{barcode}
+
+Purpose:
+- remove a wrong link
+
+Responses:
+- `200 OK` with the product, without the barcode
+- `404` `PRODUCT_NOT_FOUND`, `400` `INVALID_BARCODE`
+
 ## Stores
 
 ### GET /api/stores

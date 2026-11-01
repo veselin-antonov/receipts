@@ -160,6 +160,11 @@ POST /api/users/resend-verification
 
 GET  /api/products
 POST /api/products?name=...
+
+GET    /api/products/by-barcode/{barcode}            product for a scanned barcode
+PUT    /api/products/{id}/barcodes/{barcode}         link a barcode (first scan)
+DELETE /api/products/{id}/barcodes/{barcode}         remove a wrong link
+
 GET  /api/stores
 
 GET  /api/purchases?pageNumber&pageSize&searchQuery
@@ -192,10 +197,15 @@ Stored in MongoDB. Collections and their meaningful fields:
 | `aliases` | Other names seen on receipts for this same product |
 | `normalizedAliases` | Match forms of the above |
 | `iconID` | Display icon |
+| `barcodes` | GTINs on the product's packs, canonical form; unique across products; absent when none |
 
 Aliases are how OCR noise and store-specific naming collapse onto one product.
 They are central to both matching and search, and they are currently unused by
 any write path.
+
+Barcodes come only from the user: receipts do not print them, so the first scan
+of a pack asks which product it is and links it. A barcode identifies the same
+pack for everyone, so it lives on the shared product, not per user.
 
 ### `stores`
 

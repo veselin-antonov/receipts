@@ -21,6 +21,12 @@ public class Product {
   private List<String> aliases;
   private List<String> normalizedAliases;
 	private String iconID;
+	/**
+	 * GTINs printed on this product's packaging, in the canonical form
+	 * {@code Gtin.normalize} returns. Absent rather than empty when there are
+	 * none: the unique index only covers products that have at least one.
+	 */
+	private List<String> barcodes;
 
 	public Product(String canonicalName) {
 		this.canonicalName = canonicalName;
