@@ -19,7 +19,9 @@ services:
       - receipts-api
   # Receipts API
   receipts-db:
-    image: mongo:latest
+    # Pinned like dev, preview and e2e: `latest` would move production to the
+    # next MongoDB major on any redeploy. Raise it deliberately.
+    image: mongo:8.2
     container_name: receipts-db
     ports:
       - ${MONGODB_PORT}:${MONGODB_PORT}
