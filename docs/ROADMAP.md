@@ -25,8 +25,8 @@ below; items that were Home App concerns stay in Obsidian.
 - [x] Automate dev environment setup — `scripts/dev-setup.sh`, and
       `scripts/db-restore.sh` + `migrate-backups.py` for the data
       ([DEV_SETUP.md](DEV_SETUP.md))
-- [x] Restore the backups: 1 user, 211 products, 14 stores, 717 purchases,
-      verified against a live MongoDB
+- [x] Restore the backups: users, products, stores and purchases, verified
+      against a live MongoDB
 - [x] Exclude `certs/**` and `*.env` from `processResources` **(D10)** — done
       2026-09-26: dev keys moved to `api/certs/` and are read as `file:`,
       `processResources` excludes key and env files, `verifyNoSecretsInJar`
@@ -436,7 +436,7 @@ These are not polish; they came out of the first real run.
 
 - [x] **Currency (D11)** — done together with numeric wire format (D2), per
       [SPEC §9.5](SPEC.md#95-currency-handling). `Purchase.currency` is stored
-      on every row; `LegacyCurrencyBackfill` tagged all 717 legacy rows `BGN`
+      on every row; `LegacyCurrencyBackfill` tagged all legacy rows `BGN`
       at startup (verified against the restored DB) and refuses to guess for a
       currency-less row dated 2026 or later. The API serves only
       `priceEur` / `discountAmountEur`, unrounded; `Formatter` is deleted and
@@ -511,7 +511,7 @@ after it. Fixes D1 and D2 from [SPEC §7](SPEC.md#7-known-defects-that-block-the
       records a discount *amount*. Replace the checkbox with an amount field,
       or drop it
 - [x] Drop the unused `statistics` collection, entity, and repository **(D3)**
-- [ ] Decide **Q2**: what to do about quantity for the 717 existing purchases
+- [ ] Decide **Q2**: what to do about quantity for the legacy purchases
 - [x] Decide **Q1**: currency — answered in [SPEC §9.5](SPEC.md#95-currency-handling)
       and implemented; rate 1.95583 confirmed 2026-09-23
 - [ ] Tests covering quantity round-tripping through scan → submit → read

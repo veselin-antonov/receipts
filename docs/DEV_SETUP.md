@@ -174,10 +174,10 @@ user-scoped purchases.
 
 | Collection | Migration |
 |---|---|
-| `users` (1) | `_class` rewritten. Already on the new package — this collection was re-saved after the rename, the others were not. |
-| `products` (211) | `name` → `canonicalName`, plus a computed `normalizedCanonicalName`, empty alias arrays, `_class` rewritten |
-| `stores` (14) | Same as products, `iconID` preserved |
-| `purchases` (717) | **`userId` backfilled** from the user document, `discount` boolean → `discountAmount`, **`currency: BGN`** written explicitly, dates re-anchored from midnight Europe/Sofia to midnight UTC, `_class` rewritten |
+| `users` | `_class` rewritten. Already on the new package — this collection was re-saved after the rename, the others were not. |
+| `products` | `name` → `canonicalName`, plus a computed `normalizedCanonicalName`, empty alias arrays, `_class` rewritten |
+| `stores` | Same as products, `iconID` preserved |
+| `purchases` | **`userId` backfilled** from the user document, `discount` boolean → `discountAmount`, **`currency: BGN`** written explicitly, dates re-anchored from midnight Europe/Sofia to midnight UTC, `_class` rewritten |
 
 The currency is stored rather than inferred ([SPEC §9.5](SPEC.md#95-currency-handling)).
 A database restored before this change is fixed up anyway: the API's
@@ -197,17 +197,17 @@ The `userId` backfill is the critical one. Nothing in the backup carries a
 database that looks full and an app that shows an empty list.
 
 The normalization is a port of `NormalizationService`, verified against the
-real Java implementation over all 225 product and store names with zero
+real Java implementation over every product and store name in the backups, with zero
 mismatches. It has to match exactly: the port reproduces even the quirk where
 NFD decomposition and mark-stripping turn Cyrillic **Й into И**. A divergence
 here would make imported products unmatchable by the scanner.
 
 ### What cannot be recovered
 
-- **Quantity and unit on all 717 purchases.** Never stored (D1). Without it
+- **Quantity and unit on every legacy purchase.** Never stored (D1). Without it
   there is no unit price, so cross-package-size comparison stays broken for
   historical data. This is open question Q2 in the spec.
-- **Discount amounts on 307 purchases.** The old schema stored a `true`/`false`
+- **Discount amounts on the discounted legacy purchases.** The old schema stored a `true`/`false`
   flag, not a figure. Migrated as `discountAmount: 0.0`, which here means
   "unknown", not "none".
 
