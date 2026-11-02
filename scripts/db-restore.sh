@@ -12,10 +12,12 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-SRC="${SRC:-$HOME/docker-apps/homeapp/db/db-backup}"
 OUT="${OUT:-$root/.migrated}"
 [[ -f "$root/.env" ]] || { echo "no $root/.env - run scripts/dev-setup.sh first" >&2; exit 1; }
 set -a; . "$root/.env"; set +a
+# Where the backup exports are: SRC, or BACKUP_DIR in the root .env
+SRC="${SRC:-${BACKUP_DIR:-}}"
+[[ -d "$SRC" ]] || { echo "set BACKUP_DIR in $root/.env (or SRC=...) to the backup directory" >&2; exit 1; }
 
 : "${MONGODB_HOST:?}" "${MONGODB_PORT:?}" "${MONGODB_DATABASE:?}"
 : "${MONGODB_USER:?}" "${MONGODB_PASS:?}" "${MONGODB_AUTH_DB:?}"

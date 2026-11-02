@@ -86,8 +86,8 @@ def midnight_utc(stamp: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--src", type=Path,
-                    default=Path.home() / "docker-apps/homeapp/db/db-backup")
+    ap.add_argument("--src", type=Path, required=True,
+                    help="directory with the backup exports")
     ap.add_argument("--out", type=Path, default=Path("./migrated"))
     ap.add_argument("--user-id", help="ObjectId to own every purchase "
                                       "(default: the _id from the users backup)")

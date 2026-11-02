@@ -3,8 +3,8 @@
 `compose.yaml` runs the whole product on one host, pinned to a release: the ui
 (nginx serving the built app and proxying `/api`), the api, and MongoDB. Only
 the ui is published on the host, on `UI_PORT` (7820, the production block of
-the port scheme); the api and MongoDB are reachable only inside the stack.
-`https://receipts.vasoft.dev` points at 7820.
+the port scheme); the api and MongoDB are reachable only inside the stack. A
+reverse proxy terminates https in front of the ui.
 
 ## Image tags
 
@@ -62,9 +62,8 @@ of its own with throwaway credentials.
 
 ## Where it actually runs
 
-The live deployment is `~/docker-apps/homeapp/` on the home server, which holds
-its own copy of `compose.yaml` beside the real `.env` and the Mongo data
-directory. This directory is the versioned source of that file: change it
+The server keeps its own copy of `compose.yaml` beside its `.env` and the Mongo
+data directory. This directory is the versioned source of that file: change it
 here, then copy it there.
 
 ## Its data, and the copies

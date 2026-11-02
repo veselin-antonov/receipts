@@ -98,7 +98,7 @@ See [ADR-0002](adr/0002-single-repo.md).
       `MongoIntegrationTest` runs the api against a real MongoDB. `ci.yml`
       ends in `ci-summary`, the one check to require
 - [x] Single `VERSION` and `CHANGELOG.md` at the root
-- [x] Version the deployment: `~/docker-apps/homeapp/compose.yaml` is now
+- [x] Version the deployment: the server's compose file is now
       `deploy/compose.yaml`, with `example.env`; secrets stay in the gitignored
       `.env`
 - [x] Publish as the public `veselin-antonov/receipts`, confirm both images
@@ -138,7 +138,7 @@ remaining feature work.
 4. **A root `Makefile`** (make, not just).
 5. **First monorepo release is 0.1.0.** Run `release.yml` for real, define
    what `latest` means, move `deploy/compose.yaml` from `:dev` to release tags,
-   and move the production stack (`~/docker-apps/homeapp`) to 0.1.0.
+   and move the production stack to 0.1.0.
 6. **One dev guide in `docs/`:** `api/docs/DEVELOPMENT_SETUP.md` and the setup
    parts of `api/README.md` fold into `docs/DEV_SETUP.md`;
    `api/docs/PRODUCTION_SETUP.md` folds into `deploy/README.md`.
@@ -148,8 +148,8 @@ remaining feature work.
 7. **Production moves to `receipts.vasoft.dev`**, and `homeapp.vasoft.dev`
    redirects to it. The user adds both in nginx-proxy-manager.
 8. **Production starts from the dev database.** At the switch, the current dev
-   data (migrated, 717 purchases) is copied in; from then on production is the
-   source of truth. The old `~/docker-apps/homeapp/db` is not used.
+   data (migrated) is copied in; from then on production is the source of
+   truth. The old production data directory is not used.
 9. **Production ports:** the ui on 7820 (decision 21). The api and MongoDB are
    not published on the host, only reachable inside the stack.
 10. **The dev ui container goes in step 1.** It is not used day to day; being
@@ -210,7 +210,6 @@ No open questions remain.
 - `make preview PR=<n>` runs the preview stack (`compose.preview.yaml`) on
   7810 / 7812 with a database of its own; `make db-refresh` and the preview
   copy production's database (`scripts/db-copy.sh`).
-- `homeapp.vasoft.dev` neither resolves nor redirects.
 
 ### Checklist
 
@@ -287,8 +286,8 @@ No open questions remain.
       published on the host (7820), the api and MongoDB internal
       (decision 9)
 - [ ] **Production on 0.1.0 at `receipts.vasoft.dev` (decisions 7, 8)** —
-      `~/docker-apps/homeapp` runs `deploy/compose.yaml` at 0.1.0 with a copy
-      of the dev database, not the old `~/docker-apps/homeapp/db`;
+      the server runs `deploy/compose.yaml` at 0.1.0 with a copy of the dev
+      database, not the old production data directory;
       `homeapp.vasoft.dev` redirects to `receipts.vasoft.dev`
 
 Stragglers:
@@ -366,9 +365,9 @@ Then, each one testable on its own:
    `deploy/README.md`, and `make db-refresh` copying production into dev.
    *(user merges)*
    *User:* copy the dev database into production, switch
-   `~/docker-apps/homeapp` to the new compose, add `receipts.vasoft.dev` → the
+   the server to the new compose, add `receipts.vasoft.dev` → the
    production ui and redirect `homeapp.vasoft.dev` to it. *Test:*
-   `receipts.vasoft.dev` serves 0.1.0 with 717 purchases while the dev stack
+   `receipts.vasoft.dev` serves 0.1.0 with all the data while the dev stack
    is stopped; `homeapp.vasoft.dev` redirects there; `make db-refresh` then
    copies from production.
 

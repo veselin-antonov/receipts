@@ -14,7 +14,7 @@ sudo apt install openjdk-25-jdk tesseract-ocr tesseract-ocr-eng tesseract-ocr-bu
 make setup          # checks the above, writes keys and .env, npm ci
 # put your OpenAI key in .env: OPENAI_API_KEY=sk-...
 make dev            # db and MailHog, then the api (7802) and vite (http://localhost:7800)
-make db-restore     # once, in a second terminal: the Jan-2026 backups
+make db-restore     # once, in a second terminal: the Jan-2026 backups, from BACKUP_DIR in .env
 ```
 
 `make dev` runs in the foreground; Ctrl-C stops the api and vite. To keep it
@@ -161,6 +161,10 @@ still line up unambiguously with UTC data.
 
 ## Restoring the backups
 
+`make db-restore` reads the backup exports from `BACKUP_DIR` in the root
+`.env` (or `SRC=<dir>` on the command line), migrates them into `.migrated/`
+and imports them into the dev database, replacing its collections.
+
 The Jan-2026 backups **cannot be imported as they are.** They predate three
 changes: the package rename to `dev.vasoft`, the split into per-domain
 packages, and the rename of `name` to `canonicalName`. They also predate
@@ -184,9 +188,8 @@ purchase is dated 2026-01-01 or later, since that one could be either currency.
 The API also refuses to start against **unmigrated** data (`LegacyDataGuard`):
 any purchase whose date is not midnight UTC, or that has no `userId`, stops
 startup with the counts and a pointer back here. Both are exactly what this
-migration fixes. A database the old app wrote directly will trip it: the live
-one under `~/docker-apps/homeapp/db` is where the Jan-2026 backups came from,
-and those had both problems (not checked on the live files themselves).
+migration fixes. A database the old app wrote directly will trip it: the
+Jan-2026 backups came from one, and had both problems.
 Migrate it before pointing the new API at it.
 
 The `userId` backfill is the critical one. Nothing in the backup carries a
@@ -293,9 +296,9 @@ production and e2e each have a block of their own.
 
 ### Behind a proxy host
 
-`receipts-dev.vasoft.dev` serves vite through nginx-proxy-manager, with
-WebSockets on for hot reload; the HMR client connects back to the page's own
-host and port, so vite needs no HMR settings. Three values in the root `.env`
+A reverse proxy can serve vite under a host name, with WebSockets on for hot
+reload; the HMR client connects back to the page's own host and port, so vite
+needs no HMR settings. Three values in the root `.env`
 make a proxy host work:
 
 ```bash
