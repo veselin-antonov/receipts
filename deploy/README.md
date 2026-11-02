@@ -1,15 +1,24 @@
 # Deployment
 
-`compose.yaml` runs the whole product on one host: the ui (nginx serving the
-built app and proxying `/api`), the api, and MongoDB. It pulls the images CI
-publishes:
+`compose.yaml` runs the whole product on one host, pinned to a release: the ui
+(nginx serving the built app and proxying `/api`), the api, and MongoDB. Only
+the ui is published on the host, on `UI_PORT` (7820, the production block of
+the port scheme); the api and MongoDB are reachable only inside the stack.
+`https://receipts.vasoft.dev` points at 7820.
 
-| Image | Published by | Tags |
+## Image tags
+
+| Tag | Means | Published by |
 |---|---|---|
-| `ghcr.io/veselin-antonov/receipts-api` | `.github/workflows/api.yml`, `release.yml` | `dev` and `sha-<sha>` from master; `<version>` and `latest` on release |
-| `ghcr.io/veselin-antonov/receipts-ui` | `.github/workflows/ui.yml`, `release.yml` | the same, plus `pr-<n>` previews |
+| `<version>`, e.g. `0.1.0` | a release; **production runs one**, written in `compose.yaml` | `release.yml`, run by hand after the version-bump pull request |
+| `latest` | the newest release; nothing in this repository runs it | `release.yml` |
+| `dev` | whatever master last built; the preview stack's fallback | `api.yml`, `ui.yml` on every push to master |
+| `sha-<sha>` | one master build | `api.yml`, `ui.yml` |
+| `pr-<n>` | a pull request's preview, for `make preview PR=<n>` | `ci.yml`, for this repository's branches |
 
-The compose file tracks `:dev`, i.e. whatever master last built.
+for both `ghcr.io/veselin-antonov/receipts-api` and `receipts-ui`. Upgrading
+production is a release, then a pull request raising both images in
+`compose.yaml` to it.
 
 ## Secrets stay out of git
 
@@ -21,16 +30,27 @@ cp deploy/example.env deploy/.env   # then fill it in
 docker compose -f deploy/compose.yaml up -d
 ```
 
-`example.env` lists every variable the three services read, with the optional
-ones commented out at their defaults.
+`example.env` lists every variable the stack reads, with the optional ones
+commented out at their defaults. On an empty `MONGODB_DATAPATH`, MongoDB creates
+its root user from `MONGODB_USER` / `MONGODB_PASS`, which the api then logs in
+with.
 
 ## Where it actually runs
 
 The live deployment is `~/docker-apps/homeapp/` on the home server, which holds
-its own copy of `compose.yaml` beside the real `.env`, the JWT key pair and the
-Mongo data directory. This directory is the versioned source of that file: change
-it here, then copy it there. Pointing the live directory at a checkout of this
-repository instead is a later step.
+its own copy of `compose.yaml` beside the real `.env` and the Mongo data
+directory. This directory is the versioned source of that file: change it
+here, then copy it there.
+
+## Its data, and the copies
+
+Production's database is the source of truth. The others are copies, made with
+`scripts/db-copy.sh` (`mongodump | mongorestore --drop`), which only reads the
+source and refuses production as a target:
+
+- `make db-refresh` replaces the dev database with a copy of production's.
+- `make preview` fills the preview database from production on its first run
+  and with `REFRESH=1`.
 
 ## What the api needs at runtime
 

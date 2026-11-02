@@ -34,7 +34,7 @@ tail -f dev.log
 | `e2e` | `e2e/run.sh` ([below](#end-to-end-smoke)) |
 | `preview PR=<n>` | `scripts/preview.sh`: that pull request's images at `receipts-test.vasoft.dev` ([below](#testing-a-pull-request-on-its-preview-images)) |
 | `db-restore` | `scripts/db-restore.sh` ([Restoring the backups](#restoring-the-backups)) |
-| `db-refresh` | not yet: it will copy production's database into dev, and there is no production stack yet |
+| `db-refresh` | `scripts/db-copy.sh prod dev`: replaces the dev database with a copy of production's, reading production only |
 
 Before committing, `make test` and `git diff --check`.
 
@@ -334,9 +334,10 @@ make preview PR=28 REFRESH=1    # the same, on a fresh copy of the database
   (master) instead. Images are pulled every time, because a preview tag is
   overwritten on every push.
 - **The preview database is a copy, never shared.** The first run, and every
-  run with `REFRESH=1`, copies the dev database into it with
-  `mongodump | mongorestore --drop`, which only reads the source; nothing the
-  preview writes reaches dev. It keeps its data between pull requests otherwise.
+  run with `REFRESH=1`, copies production's database into it with
+  `scripts/db-copy.sh` (`mongodump | mongorestore --drop`), which only reads
+  the source; nothing the preview writes reaches production or dev. On a host
+  without the production stack, dev's is copied instead. It keeps its data between pull requests otherwise.
 - The preview api has a JWT key pair of its own in `.preview/certs/`
   (gitignored, made on the first run). It takes `OPENAI_API_KEY` and the OCR
   and upload settings from the root `.env`; everything else is set in

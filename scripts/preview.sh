@@ -3,9 +3,9 @@
 # the preview stack (compose.preview.yaml) at receipts-test.vasoft.dev.
 #
 # A side the pull request did not touch has no :pr-<n> image; it runs :dev
-# (master) instead. The preview database is a copy of the dev database, made
-# on the first run and again with REFRESH=1; the copy only reads the source.
-# Until production exists (ROADMAP M1b step 7), dev is the source.
+# (master) instead. The preview database is a copy of production's, made on
+# the first run and again with REFRESH=1; the copy only reads the source. On a
+# host without the production stack, dev is the source instead.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -43,20 +43,12 @@ dc() { docker compose -f "$root/compose.preview.yaml" "$@"; }
 
 dc up -d --wait db mailhog
 
-# --- the database: a copy of dev, on the first run or with REFRESH=1 --------- #
-set -a; . "$root/.env"; set +a
+# --- the database: a copy, on the first run or with REFRESH=1 --------------- #
 preview_has_data="$(docker exec receipts-preview-db mongosh --quiet -u preview -p preview \
   --authenticationDatabase admin receipts-db --eval 'db.getCollectionNames().length')"
 if [[ "${REFRESH:-}" == 1 || "$preview_has_data" == 0 ]]; then
-  echo "copying the dev database into the preview database"
-  docker inspect receipts-db-dev >/dev/null 2>&1 \
-    || { echo "the dev database (receipts-db-dev) is not running: docker compose -f compose.dev.yaml up -d" >&2; exit 1; }
-  docker exec receipts-db-dev mongodump --quiet --archive \
-      -u "$MONGODB_USER" -p "$MONGODB_PASS" --authenticationDatabase "$MONGODB_AUTH_DB" \
-      --db "$MONGODB_DATABASE" \
-    | docker exec -i receipts-preview-db mongorestore --quiet --archive --drop \
-      -u preview -p preview --authenticationDatabase admin \
-      --nsFrom "$MONGODB_DATABASE.*" --nsTo 'receipts-db.*'
+  if docker inspect receipts-db >/dev/null 2>&1; then source=prod; else source=dev; fi
+  "$root/scripts/db-copy.sh" "$source" preview
 fi
 
 # --- the pull request's api and ui ------------------------------------------ #

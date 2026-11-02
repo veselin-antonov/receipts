@@ -204,22 +204,13 @@ No open questions remain.
   `.env`, which `bootRun` and vite read too. vite serves the ui on 7800,
   proxies to the api on 7802, and allows `receipts-dev.vasoft.dev`; there is
   no dev ui container.
-- `homeapp.vasoft.dev` and `receipts.vasoft.dev` are served by the **dev**
-  stack. No production container exists, and the dev `.env` lists both in
-  `APP_CORS_ALLOWED_ORIGINS` for that reason.
-- `VERSION`, `ui/package.json` and `CHANGELOG.md` are at `0.1.0`, but
-  `release.yml` (`workflow_dispatch` only) has not run yet: no tags and no
-  GitHub releases.
-  `deploy/compose.yaml` and the production compose run `receipts-api:dev` and
-  `receipts-ui:dev`, and `api.yml` / `ui.yml` publish with
-  `include_latest: false`, so nothing in this repository has published
-  `:latest` yet.
-- The root `Makefile` has `setup`, `dev`, `down`, `test`, `e2e`, `preview`
-  and `db-restore`; `db-refresh` only explains that there is no production
-  yet.
+- 0.1.0 is released (`v0.1.0`, `receipts-api` / `receipts-ui` `0.1.0` and
+  `latest`). `deploy/compose.yaml` runs it: the ui on 7820, the api and
+  MongoDB internal.
 - `make preview PR=<n>` runs the preview stack (`compose.preview.yaml`) on
-  7810 / 7812 with a database of its own, copied from the dev database, since
-  there is no production to copy from yet.
+  7810 / 7812 with a database of its own; `make db-refresh` and the preview
+  copy production's database (`scripts/db-copy.sh`).
+- `homeapp.vasoft.dev` neither resolves nor redirects.
 
 ### Checklist
 
@@ -240,19 +231,16 @@ No open questions remain.
 - [x] **Preview stack at `receipts-test.vasoft.dev` (decision 13)** — ui on
       7810 and api on 7812, on `pr-<n>` images from #30, with a MongoDB of its
       own
-- [ ] **Separate databases, refreshed on demand (decision 12)** — dev and
-      preview are separate; `make preview REFRESH=1` re-copies the source.
-      Left: `db-refresh` and switching the source to production (step 7).
-      Dev, preview and production never share one. `make db-refresh` copies
-      production into dev; `make preview` can do the same for the preview
-      database. Read-only against production; until step 7, the dev database
-      is the source
-- [ ] **`APP_HOST_URL` per environment** — dev `https://receipts-dev.vasoft.dev`,
+- [x] **Separate databases, refreshed on demand (decision 12)** — dev,
+      preview and production never share one. `make db-refresh` copies
+      production into dev; `make preview` does the same for the preview
+      database on its first run and with `REFRESH=1`. Read-only against
+      production
+- [x] **`APP_HOST_URL` per environment** — dev `https://receipts-dev.vasoft.dev`,
       preview `https://receipts-test.vasoft.dev`, production
       `https://receipts.vasoft.dev`, each origin in the same stack's
       `APP_CORS_ALLOWED_ORIGINS`. Also settles D16 (M2a) for the real setup
-- [ ] **Root `Makefile` (decisions 14, 15)** — all but a working
-      `db-refresh` (step 7) are in. Targets:
+- [x] **Root `Makefile` (decisions 14, 15)** — targets:
       - `setup` — run `scripts/dev-setup.sh` (prerequisites, keys, `.env`, `npm ci`)
       - `dev` — start db and MailHog, then `bootRun` and vite in the
         foreground, output interleaved; Ctrl-C stops both
@@ -288,12 +276,13 @@ No open questions remain.
       `ui.instructions.md` says the proxy goes to `http://localhost:7002` and
       `npm run dev` starts an "HTTPS dev server"; `api.instructions.md` has its
       own "Run locally" steps. Replace those with pointers
-- [ ] **Release 0.1.0 (decisions 5, 17)** — bump `VERSION`, `ui/package.json`
-      and `CHANGELOG.md` in a pull request, then run `release.yml`
-- [ ] **Define the tags** — `latest` is the newest release, `dev` is master,
+- [x] **Release 0.1.0 (decisions 5, 17)** — bump `VERSION`, `ui/package.json`
+      and `CHANGELOG.md` in a pull request, then run `release.yml`. Released
+      2026-11-02
+- [x] **Define the tags** — `latest` is the newest release, `dev` is master,
       `pr-<n>` a preview; production pins a version instead (decision 16).
       Write it in `deploy/README.md`, which already lists them
-- [ ] **`deploy/compose.yaml` on release tags** — `receipts-api` and
+- [x] **`deploy/compose.yaml` on release tags** — `receipts-api` and
       `receipts-ui` pinned to `0.1.0`, not `:dev` or `latest`; only the ui
       published on the host (7820), the api and MongoDB internal
       (decision 9)
@@ -307,7 +296,7 @@ Stragglers:
 - [x] The ui's `<title>` is `Receipts`
 - [x] Two e2e runs on one host tore each other down (seen testing D10):
       each run is now its own compose project, `receipts-e2e-<run>`
-- [ ] `api/docker-compose.yml` is the old api repository's deployment file
+- [x] `api/docker-compose.yml` is the old api repository's deployment file
       (`receipts-api:latest`, api and db only), duplicating
       `deploy/compose.yaml`. Delete it, and set `TZ=${TZ:-Europe/Sofia}` on the
       api in `deploy/compose.yaml`, which sets none, for local-time logs
