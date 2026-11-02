@@ -4,8 +4,8 @@
 #
 # A side the pull request did not touch has no :pr-<n> image; it runs :dev
 # (master) instead. The preview database is a copy of production's, made on
-# the first run and again with REFRESH=1; the copy only reads the source. On a
-# host without the production stack, dev is the source instead.
+# the first run and again with REFRESH=1, read as the read-only receipts-reader.
+# Without a running production stack there is nothing to copy, and it stops.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -47,8 +47,7 @@ dc up -d --wait db mailhog
 preview_has_data="$(docker exec receipts-preview-db mongosh --quiet -u preview -p preview \
   --authenticationDatabase admin receipts-db --eval 'db.getCollectionNames().length')"
 if [[ "${REFRESH:-}" == 1 || "$preview_has_data" == 0 ]]; then
-  if docker inspect receipts-db >/dev/null 2>&1; then source=prod; else source=dev; fi
-  "$root/scripts/db-copy.sh" "$source" preview
+  "$root/scripts/db-copy.sh" prod preview
 fi
 
 # --- the pull request's api and ui ------------------------------------------ #

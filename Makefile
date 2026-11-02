@@ -26,7 +26,7 @@ e2e:
 	e2e/run.sh
 
 # Pull request <n>'s preview images at receipts-test.vasoft.dev (7810), on a
-# database of its own; REFRESH=1 copies production's (or dev's) into it again
+# database of its own; REFRESH=1 copies production's into it again
 preview:
 	scripts/preview.sh $(PR)
 
