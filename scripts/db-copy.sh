@@ -14,8 +14,9 @@ stack() {
     prod)
       docker inspect receipts-db >/dev/null 2>&1 \
         || { echo "production's database (receipts-db) is not running" >&2; exit 1; }
-      # The production stack keeps its credentials in its own .env; the
-      # container's environment has them, so they never pass through here.
+      # Read as receipts-reader, which MongoDB allows nothing but reads. Its
+      # password is in the production container's environment (from that
+      # stack's own .env), so it never passes through here.
       echo "receipts-db - - admin $(docker exec receipts-db printenv MONGO_INITDB_DATABASE)" ;;
     dev)
       [[ -f "$root/.env" ]] || { echo "no $root/.env - run make setup first" >&2; exit 1; }
@@ -35,7 +36,7 @@ read -r dst_c dst_u dst_p dst_auth dst_db <<<"$(stack "$to")"
 echo "copying $from ($src_db) into $to ($dst_db), replacing its collections"
 if [[ "$src_u" == - ]]; then
   docker exec receipts-db sh -c 'exec mongodump --quiet --archive \
-    -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" \
+    -u receipts-reader -p "$MONGODB_READER_PASS" \
     --authenticationDatabase admin --db "$MONGO_INITDB_DATABASE"'
 else
   docker exec "$src_c" mongodump --quiet --archive \

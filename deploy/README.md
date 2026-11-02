@@ -31,9 +31,34 @@ docker compose -f deploy/compose.yaml up -d
 ```
 
 `example.env` lists every variable the stack reads, with the optional ones
-commented out at their defaults. On an empty `MONGODB_DATAPATH`, MongoDB creates
-its root user from `MONGODB_USER` / `MONGODB_PASS`, which the api then logs in
-with.
+commented out at their defaults.
+
+## Database logins
+
+MongoDB runs with `--auth`, and production has three logins, all in its
+`admin` database (they live in the data directory, not on the host):
+
+| Login | Roles | Used by |
+|---|---|---|
+| `MONGODB_ROOT_USER` | `root` | administration by hand only |
+| `MONGODB_USER` (`receipts-api`) | `readWrite` on `MONGODB_DATABASE` | the api |
+| `receipts-reader` | `read` on `MONGODB_DATABASE` | `scripts/db-copy.sh`, i.e. `make db-refresh` and `make preview` |
+
+`readWrite` covers everything the api does, including creating its indexes at
+startup. On an empty `MONGODB_DATAPATH`, MongoDB creates root, then runs the
+`create-users.js` config inline in `compose.yaml`, which creates the other two
+from `MONGODB_USER` / `MONGODB_PASS` and `MONGODB_READER_PASS`. On a data
+directory that already exists, create them once by hand, as root:
+
+```bash
+docker exec -it receipts-db sh -c 'mongosh -u "$MONGO_INITDB_ROOT_USERNAME" \
+  -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin \
+  "$MONGO_INITDB_DATABASE" /docker-entrypoint-initdb.d/create-users.js'
+```
+
+The reader's password reaches `db-copy.sh` only through the production
+container's environment; CI never uses any of these, since e2e runs a MongoDB
+of its own with throwaway credentials.
 
 ## Where it actually runs
 
@@ -45,8 +70,9 @@ here, then copy it there.
 ## Its data, and the copies
 
 Production's database is the source of truth. The others are copies, made with
-`scripts/db-copy.sh` (`mongodump | mongorestore --drop`), which only reads the
-source and refuses production as a target:
+`scripts/db-copy.sh` (`mongodump | mongorestore --drop`), which reads production
+as `receipts-reader`, so MongoDB refuses any write from it, and refuses
+production as a target:
 
 - `make db-refresh` replaces the dev database with a copy of production's.
 - `make preview` fills the preview database from production on its first run

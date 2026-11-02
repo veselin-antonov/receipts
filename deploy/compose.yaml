@@ -60,16 +60,43 @@ services:
     command: ['--auth']
     volumes:
       - ${MONGODB_DATAPATH:?set MONGODB_DATAPATH in .env}:/data/db
-    # Only read when the data directory is empty: they create the root user
-    # the api logs in as. MONGO_INITDB_DATABASE also tells `make db-refresh`
-    # which database to copy.
+    # On an empty data directory MongoDB creates the root user, then runs
+    # create-users.js, which adds the two logins anything else uses. Root is
+    # for administration only.
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER:?}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASS:?}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_ROOT_USER:?}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_ROOT_PASS:?}
       MONGO_INITDB_DATABASE: ${MONGODB_DATABASE:?}
+      MONGODB_API_USER: ${MONGODB_USER:?}
+      MONGODB_API_PASS: ${MONGODB_PASS:?}
+      # Also what scripts/db-copy.sh reads production with
+      MONGODB_READER_PASS: ${MONGODB_READER_PASS:?}
+    configs:
+      - source: create-users
+        target: /docker-entrypoint-initdb.d/create-users.js
     healthcheck:
       test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand("ping").ok']
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
+
+configs:
+  # Kept inline so the stack is still one file to copy. Passwords come from the
+  # container's environment, never from this text.
+  create-users:
+    content: |
+      // receipts-api: the api's login, read and write on the receipts database
+      // only (indexes included). receipts-reader: read only, for copies.
+      const admin = db.getSiblingDB('admin');
+      const name = process.env.MONGO_INITDB_DATABASE;
+      admin.createUser({
+        user: process.env.MONGODB_API_USER,
+        pwd: process.env.MONGODB_API_PASS,
+        roles: [{ role: 'readWrite', db: name }],
+      });
+      admin.createUser({
+        user: 'receipts-reader',
+        pwd: process.env.MONGODB_READER_PASS,
+        roles: [{ role: 'read', db: name }],
+      });
