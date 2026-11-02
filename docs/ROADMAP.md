@@ -207,8 +207,9 @@ No open questions remain.
 - `homeapp.vasoft.dev` and `receipts.vasoft.dev` are served by the **dev**
   stack. No production container exists, and the dev `.env` lists both in
   `APP_CORS_ALLOWED_ORIGINS` for that reason.
-- `release.yml` (`workflow_dispatch` only) has never run: no runs, no tags, no
-  GitHub releases. `VERSION` and `ui/package.json` are `0.0.6`.
+- `VERSION`, `ui/package.json` and `CHANGELOG.md` are at `0.1.0`, but
+  `release.yml` (`workflow_dispatch` only) has not run yet: no tags and no
+  GitHub releases.
   `deploy/compose.yaml` and the production compose run `receipts-api:dev` and
   `receipts-ui:dev`, and `api.yml` / `ui.yml` publish with
   `include_latest: false`, so nothing in this repository has published
