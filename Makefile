@@ -26,7 +26,7 @@ e2e:
 	e2e/run.sh
 
 # Pull request <n>'s preview images at receipts-test.vasoft.dev (7810), on a
-# database of its own; REFRESH=1 copies the dev database into it again
+# database of its own; REFRESH=1 copies production's into it again
 preview:
 	scripts/preview.sh $(PR)
 
@@ -34,6 +34,6 @@ preview:
 db-restore:
 	scripts/db-restore.sh
 
+# Replace the dev database with a copy of production's (read-only on production)
 db-refresh:
-	@echo "db-refresh copies production's database into dev; there is no production stack yet (ROADMAP M1b step 7)" >&2
-	@exit 1
+	scripts/db-copy.sh prod dev

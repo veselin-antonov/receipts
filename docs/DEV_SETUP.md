@@ -14,7 +14,7 @@ sudo apt install openjdk-25-jdk tesseract-ocr tesseract-ocr-eng tesseract-ocr-bu
 make setup          # checks the above, writes keys and .env, npm ci
 # put your OpenAI key in .env: OPENAI_API_KEY=sk-...
 make dev            # db and MailHog, then the api (7802) and vite (http://localhost:7800)
-make db-restore     # once, in a second terminal: the Jan-2026 backups
+make db-restore     # once, in a second terminal: the Jan-2026 backups, from BACKUP_DIR in .env
 ```
 
 `make dev` runs in the foreground; Ctrl-C stops the api and vite. To keep it
@@ -34,7 +34,7 @@ tail -f dev.log
 | `e2e` | `e2e/run.sh` ([below](#end-to-end-smoke)) |
 | `preview PR=<n>` | `scripts/preview.sh`: that pull request's images at `receipts-test.vasoft.dev` ([below](#testing-a-pull-request-on-its-preview-images)) |
 | `db-restore` | `scripts/db-restore.sh` ([Restoring the backups](#restoring-the-backups)) |
-| `db-refresh` | not yet: it will copy production's database into dev, and there is no production stack yet |
+| `db-refresh` | `scripts/db-copy.sh prod dev`: replaces the dev database with a copy of production's, reading production only |
 
 Before committing, `make test` and `git diff --check`.
 
@@ -161,6 +161,10 @@ still line up unambiguously with UTC data.
 
 ## Restoring the backups
 
+`make db-restore` reads the backup exports from `BACKUP_DIR` in the root
+`.env` (or `SRC=<dir>` on the command line), migrates them into `.migrated/`
+and imports them into the dev database, replacing its collections.
+
 The Jan-2026 backups **cannot be imported as they are.** They predate three
 changes: the package rename to `dev.vasoft`, the split into per-domain
 packages, and the rename of `name` to `canonicalName`. They also predate
@@ -170,10 +174,10 @@ user-scoped purchases.
 
 | Collection | Migration |
 |---|---|
-| `users` (1) | `_class` rewritten. Already on the new package — this collection was re-saved after the rename, the others were not. |
-| `products` (211) | `name` → `canonicalName`, plus a computed `normalizedCanonicalName`, empty alias arrays, `_class` rewritten |
-| `stores` (14) | Same as products, `iconID` preserved |
-| `purchases` (717) | **`userId` backfilled** from the user document, `discount` boolean → `discountAmount`, **`currency: BGN`** written explicitly, dates re-anchored from midnight Europe/Sofia to midnight UTC, `_class` rewritten |
+| `users` | `_class` rewritten. Already on the new package — this collection was re-saved after the rename, the others were not. |
+| `products` | `name` → `canonicalName`, plus a computed `normalizedCanonicalName`, empty alias arrays, `_class` rewritten |
+| `stores` | Same as products, `iconID` preserved |
+| `purchases` | **`userId` backfilled** from the user document, `discount` boolean → `discountAmount`, **`currency: BGN`** written explicitly, dates re-anchored from midnight Europe/Sofia to midnight UTC, `_class` rewritten |
 
 The currency is stored rather than inferred ([SPEC §9.5](SPEC.md#95-currency-handling)).
 A database restored before this change is fixed up anyway: the API's
@@ -184,9 +188,8 @@ purchase is dated 2026-01-01 or later, since that one could be either currency.
 The API also refuses to start against **unmigrated** data (`LegacyDataGuard`):
 any purchase whose date is not midnight UTC, or that has no `userId`, stops
 startup with the counts and a pointer back here. Both are exactly what this
-migration fixes. A database the old app wrote directly will trip it: the live
-one under `~/docker-apps/homeapp/db` is where the Jan-2026 backups came from,
-and those had both problems (not checked on the live files themselves).
+migration fixes. A database the old app wrote directly will trip it: the
+Jan-2026 backups came from one, and had both problems.
 Migrate it before pointing the new API at it.
 
 The `userId` backfill is the critical one. Nothing in the backup carries a
@@ -194,17 +197,17 @@ The `userId` backfill is the critical one. Nothing in the backup carries a
 database that looks full and an app that shows an empty list.
 
 The normalization is a port of `NormalizationService`, verified against the
-real Java implementation over all 225 product and store names with zero
+real Java implementation over every product and store name in the backups, with zero
 mismatches. It has to match exactly: the port reproduces even the quirk where
 NFD decomposition and mark-stripping turn Cyrillic **Й into И**. A divergence
 here would make imported products unmatchable by the scanner.
 
 ### What cannot be recovered
 
-- **Quantity and unit on all 717 purchases.** Never stored (D1). Without it
+- **Quantity and unit on every legacy purchase.** Never stored (D1). Without it
   there is no unit price, so cross-package-size comparison stays broken for
   historical data. This is open question Q2 in the spec.
-- **Discount amounts on 307 purchases.** The old schema stored a `true`/`false`
+- **Discount amounts on the discounted legacy purchases.** The old schema stored a `true`/`false`
   flag, not a figure. Migrated as `discountAmount: 0.0`, which here means
   "unknown", not "none".
 
@@ -293,9 +296,9 @@ production and e2e each have a block of their own.
 
 ### Behind a proxy host
 
-`receipts-dev.vasoft.dev` serves vite through nginx-proxy-manager, with
-WebSockets on for hot reload; the HMR client connects back to the page's own
-host and port, so vite needs no HMR settings. Three values in the root `.env`
+A reverse proxy can serve vite under a host name, with WebSockets on for hot
+reload; the HMR client connects back to the page's own host and port, so vite
+needs no HMR settings. Three values in the root `.env`
 make a proxy host work:
 
 ```bash
@@ -334,9 +337,10 @@ make preview PR=28 REFRESH=1    # the same, on a fresh copy of the database
   (master) instead. Images are pulled every time, because a preview tag is
   overwritten on every push.
 - **The preview database is a copy, never shared.** The first run, and every
-  run with `REFRESH=1`, copies the dev database into it with
-  `mongodump | mongorestore --drop`, which only reads the source; nothing the
-  preview writes reaches dev. It keeps its data between pull requests otherwise.
+  run with `REFRESH=1`, copies production's database into it with
+  `scripts/db-copy.sh` (`mongodump | mongorestore --drop`), which only reads
+  the source; nothing the preview writes reaches production or dev. Without a
+  running production stack it stops with an error. It keeps its data between pull requests otherwise.
 - The preview api has a JWT key pair of its own in `.preview/certs/`
   (gitignored, made on the first run). It takes `OPENAI_API_KEY` and the OCR
   and upload settings from the root `.env`; everything else is set in

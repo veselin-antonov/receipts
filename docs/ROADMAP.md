@@ -25,8 +25,8 @@ below; items that were Home App concerns stay in Obsidian.
 - [x] Automate dev environment setup — `scripts/dev-setup.sh`, and
       `scripts/db-restore.sh` + `migrate-backups.py` for the data
       ([DEV_SETUP.md](DEV_SETUP.md))
-- [x] Restore the backups: 1 user, 211 products, 14 stores, 717 purchases,
-      verified against a live MongoDB
+- [x] Restore the backups: users, products, stores and purchases, verified
+      against a live MongoDB
 - [x] Exclude `certs/**` and `*.env` from `processResources` **(D10)** — done
       2026-09-26: dev keys moved to `api/certs/` and are read as `file:`,
       `processResources` excludes key and env files, `verifyNoSecretsInJar`
@@ -98,7 +98,7 @@ See [ADR-0002](adr/0002-single-repo.md).
       `MongoIntegrationTest` runs the api against a real MongoDB. `ci.yml`
       ends in `ci-summary`, the one check to require
 - [x] Single `VERSION` and `CHANGELOG.md` at the root
-- [x] Version the deployment: `~/docker-apps/homeapp/compose.yaml` is now
+- [x] Version the deployment: the server's compose file is now
       `deploy/compose.yaml`, with `example.env`; secrets stay in the gitignored
       `.env`
 - [x] Publish as the public `veselin-antonov/receipts`, confirm both images
@@ -138,7 +138,7 @@ remaining feature work.
 4. **A root `Makefile`** (make, not just).
 5. **First monorepo release is 0.1.0.** Run `release.yml` for real, define
    what `latest` means, move `deploy/compose.yaml` from `:dev` to release tags,
-   and move the production stack (`~/docker-apps/homeapp`) to 0.1.0.
+   and move the production stack to 0.1.0.
 6. **One dev guide in `docs/`:** `api/docs/DEVELOPMENT_SETUP.md` and the setup
    parts of `api/README.md` fold into `docs/DEV_SETUP.md`;
    `api/docs/PRODUCTION_SETUP.md` folds into `deploy/README.md`.
@@ -148,8 +148,8 @@ remaining feature work.
 7. **Production moves to `receipts.vasoft.dev`**, and `homeapp.vasoft.dev`
    redirects to it. The user adds both in nginx-proxy-manager.
 8. **Production starts from the dev database.** At the switch, the current dev
-   data (migrated, 717 purchases) is copied in; from then on production is the
-   source of truth. The old `~/docker-apps/homeapp/db` is not used.
+   data (migrated) is copied in; from then on production is the source of
+   truth. The old production data directory is not used.
 9. **Production ports:** the ui on 7820 (decision 21). The api and MongoDB are
    not published on the host, only reachable inside the stack.
 10. **The dev ui container goes in step 1.** It is not used day to day; being
@@ -204,22 +204,12 @@ No open questions remain.
   `.env`, which `bootRun` and vite read too. vite serves the ui on 7800,
   proxies to the api on 7802, and allows `receipts-dev.vasoft.dev`; there is
   no dev ui container.
-- `homeapp.vasoft.dev` and `receipts.vasoft.dev` are served by the **dev**
-  stack. No production container exists, and the dev `.env` lists both in
-  `APP_CORS_ALLOWED_ORIGINS` for that reason.
-- `VERSION`, `ui/package.json` and `CHANGELOG.md` are at `0.1.0`, but
-  `release.yml` (`workflow_dispatch` only) has not run yet: no tags and no
-  GitHub releases.
-  `deploy/compose.yaml` and the production compose run `receipts-api:dev` and
-  `receipts-ui:dev`, and `api.yml` / `ui.yml` publish with
-  `include_latest: false`, so nothing in this repository has published
-  `:latest` yet.
-- The root `Makefile` has `setup`, `dev`, `down`, `test`, `e2e`, `preview`
-  and `db-restore`; `db-refresh` only explains that there is no production
-  yet.
+- 0.1.0 is released (`v0.1.0`, `receipts-api` / `receipts-ui` `0.1.0` and
+  `latest`). `deploy/compose.yaml` runs it: the ui on 7820, the api and
+  MongoDB internal.
 - `make preview PR=<n>` runs the preview stack (`compose.preview.yaml`) on
-  7810 / 7812 with a database of its own, copied from the dev database, since
-  there is no production to copy from yet.
+  7810 / 7812 with a database of its own; `make db-refresh` and the preview
+  copy production's database (`scripts/db-copy.sh`).
 
 ### Checklist
 
@@ -240,19 +230,16 @@ No open questions remain.
 - [x] **Preview stack at `receipts-test.vasoft.dev` (decision 13)** — ui on
       7810 and api on 7812, on `pr-<n>` images from #30, with a MongoDB of its
       own
-- [ ] **Separate databases, refreshed on demand (decision 12)** — dev and
-      preview are separate; `make preview REFRESH=1` re-copies the source.
-      Left: `db-refresh` and switching the source to production (step 7).
-      Dev, preview and production never share one. `make db-refresh` copies
-      production into dev; `make preview` can do the same for the preview
-      database. Read-only against production; until step 7, the dev database
-      is the source
-- [ ] **`APP_HOST_URL` per environment** — dev `https://receipts-dev.vasoft.dev`,
+- [x] **Separate databases, refreshed on demand (decision 12)** — dev,
+      preview and production never share one. `make db-refresh` copies
+      production into dev; `make preview` does the same for the preview
+      database on its first run and with `REFRESH=1`. Read-only against
+      production
+- [x] **`APP_HOST_URL` per environment** — dev `https://receipts-dev.vasoft.dev`,
       preview `https://receipts-test.vasoft.dev`, production
       `https://receipts.vasoft.dev`, each origin in the same stack's
       `APP_CORS_ALLOWED_ORIGINS`. Also settles D16 (M2a) for the real setup
-- [ ] **Root `Makefile` (decisions 14, 15)** — all but a working
-      `db-refresh` (step 7) are in. Targets:
+- [x] **Root `Makefile` (decisions 14, 15)** — targets:
       - `setup` — run `scripts/dev-setup.sh` (prerequisites, keys, `.env`, `npm ci`)
       - `dev` — start db and MailHog, then `bootRun` and vite in the
         foreground, output interleaved; Ctrl-C stops both
@@ -288,18 +275,19 @@ No open questions remain.
       `ui.instructions.md` says the proxy goes to `http://localhost:7002` and
       `npm run dev` starts an "HTTPS dev server"; `api.instructions.md` has its
       own "Run locally" steps. Replace those with pointers
-- [ ] **Release 0.1.0 (decisions 5, 17)** — bump `VERSION`, `ui/package.json`
-      and `CHANGELOG.md` in a pull request, then run `release.yml`
-- [ ] **Define the tags** — `latest` is the newest release, `dev` is master,
+- [x] **Release 0.1.0 (decisions 5, 17)** — bump `VERSION`, `ui/package.json`
+      and `CHANGELOG.md` in a pull request, then run `release.yml`. Released
+      2026-11-02
+- [x] **Define the tags** — `latest` is the newest release, `dev` is master,
       `pr-<n>` a preview; production pins a version instead (decision 16).
       Write it in `deploy/README.md`, which already lists them
-- [ ] **`deploy/compose.yaml` on release tags** — `receipts-api` and
+- [x] **`deploy/compose.yaml` on release tags** — `receipts-api` and
       `receipts-ui` pinned to `0.1.0`, not `:dev` or `latest`; only the ui
       published on the host (7820), the api and MongoDB internal
       (decision 9)
 - [ ] **Production on 0.1.0 at `receipts.vasoft.dev` (decisions 7, 8)** —
-      `~/docker-apps/homeapp` runs `deploy/compose.yaml` at 0.1.0 with a copy
-      of the dev database, not the old `~/docker-apps/homeapp/db`;
+      the server runs `deploy/compose.yaml` at 0.1.0 with a copy of the dev
+      database, not the old production data directory;
       `homeapp.vasoft.dev` redirects to `receipts.vasoft.dev`
 
 Stragglers:
@@ -307,7 +295,7 @@ Stragglers:
 - [x] The ui's `<title>` is `Receipts`
 - [x] Two e2e runs on one host tore each other down (seen testing D10):
       each run is now its own compose project, `receipts-e2e-<run>`
-- [ ] `api/docker-compose.yml` is the old api repository's deployment file
+- [x] `api/docker-compose.yml` is the old api repository's deployment file
       (`receipts-api:latest`, api and db only), duplicating
       `deploy/compose.yaml`. Delete it, and set `TZ=${TZ:-Europe/Sofia}` on the
       api in `deploy/compose.yaml`, which sets none, for local-time logs
@@ -377,9 +365,9 @@ Then, each one testable on its own:
    `deploy/README.md`, and `make db-refresh` copying production into dev.
    *(user merges)*
    *User:* copy the dev database into production, switch
-   `~/docker-apps/homeapp` to the new compose, add `receipts.vasoft.dev` → the
+   the server to the new compose, add `receipts.vasoft.dev` → the
    production ui and redirect `homeapp.vasoft.dev` to it. *Test:*
-   `receipts.vasoft.dev` serves 0.1.0 with 717 purchases while the dev stack
+   `receipts.vasoft.dev` serves 0.1.0 with all the data while the dev stack
    is stopped; `homeapp.vasoft.dev` redirects there; `make db-refresh` then
    copies from production.
 
@@ -448,7 +436,7 @@ These are not polish; they came out of the first real run.
 
 - [x] **Currency (D11)** — done together with numeric wire format (D2), per
       [SPEC §9.5](SPEC.md#95-currency-handling). `Purchase.currency` is stored
-      on every row; `LegacyCurrencyBackfill` tagged all 717 legacy rows `BGN`
+      on every row; `LegacyCurrencyBackfill` tagged all legacy rows `BGN`
       at startup (verified against the restored DB) and refuses to guess for a
       currency-less row dated 2026 or later. The API serves only
       `priceEur` / `discountAmountEur`, unrounded; `Formatter` is deleted and
@@ -523,7 +511,7 @@ after it. Fixes D1 and D2 from [SPEC §7](SPEC.md#7-known-defects-that-block-the
       records a discount *amount*. Replace the checkbox with an amount field,
       or drop it
 - [x] Drop the unused `statistics` collection, entity, and repository **(D3)**
-- [ ] Decide **Q2**: what to do about quantity for the 717 existing purchases
+- [ ] Decide **Q2**: what to do about quantity for the legacy purchases
 - [x] Decide **Q1**: currency — answered in [SPEC §9.5](SPEC.md#95-currency-handling)
       and implemented; rate 1.95583 confirmed 2026-09-23
 - [ ] Tests covering quantity round-tripping through scan → submit → read

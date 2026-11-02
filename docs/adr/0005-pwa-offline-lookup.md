@@ -24,7 +24,8 @@ for the cache to store.
 
 ## Why
 
-The dataset makes this nearly free. **211 products, 14 stores, 717 purchases** —
+The dataset makes this nearly free. **A few hundred products, a dozen or so
+stores, several hundred purchases** —
 well under a megabyte of JSON. There is no pagination problem, no sync protocol,
 no partial-cache complexity. The entire corpus fits in memory on any phone.
 

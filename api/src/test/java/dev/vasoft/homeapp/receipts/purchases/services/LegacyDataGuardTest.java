@@ -40,11 +40,11 @@ class LegacyDataGuardTest {
 
     @Test
     void refusesSofiaAnchoredDatesThatWouldReadAsThePreviousDay() {
-        counts(717, 0);
+        counts(500, 0);
 
         assertThatThrownBy(() -> new LegacyDataGuard(mongoTemplate).afterPropertiesSet())
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("717 purchases have a date that is not midnight UTC")
+            .hasMessageContaining("500 purchases have a date that is not midnight UTC")
             .hasMessageContaining("migrate-backups.py");
     }
 

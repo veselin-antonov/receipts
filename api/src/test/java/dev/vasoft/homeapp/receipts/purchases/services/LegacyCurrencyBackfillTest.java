@@ -31,7 +31,7 @@ class LegacyCurrencyBackfillTest {
     void tagsEveryCurrencylessPurchaseAsBgn() {
         when(mongoTemplate.count(any(Query.class), eq(Purchase.class))).thenReturn(0L);
         when(mongoTemplate.updateMulti(any(Query.class), any(Update.class), eq(Purchase.class)))
-            .thenReturn(UpdateResult.acknowledged(717, 717L, null));
+            .thenReturn(UpdateResult.acknowledged(500, 500L, null));
 
         new LegacyCurrencyBackfill(mongoTemplate).afterPropertiesSet();
 

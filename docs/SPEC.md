@@ -45,8 +45,8 @@ multi-module household app to reach it defeats the purpose. See
 ## 2. Users and scale
 
 - **One real user today.** Design for single digits, not for scale.
-- Existing data: **717 purchases, 211 products, 14 stores, 1 account**, spanning
-  roughly 14 months.
+- Existing data: **several hundred purchases, a few hundred products, a dozen
+  or so stores, one account**, spanning roughly 14 months.
 - Growth: on the order of a few hundred purchases per year.
 
 The dataset is *tiny*. This is a design asset, not a limitation:
@@ -249,7 +249,7 @@ because the `Purchase` entity has no fields to hold them.
 bad one. Every price comparison across differently-sized packages is currently
 wrong.
 
-This also means the **717 existing purchases have no quantity data**, and it
+This also means the **existing (legacy) purchases have no quantity data**, and it
 cannot be recovered from the database. See [ROADMAP](ROADMAP.md) M2 for the
 backfill decision.
 
@@ -633,7 +633,7 @@ current user through `AuthenticatedUserService` first.
 
 ### 9.3 Statistics are computed, not stored
 
-There is no `statistics` collection. With 717 purchases, a MongoDB aggregation
+There is no `statistics` collection. With hundreds of purchases, a MongoDB aggregation
 computes every statistic in this spec faster than a cache could be invalidated
 correctly. A stale-cache bug that quietly reports a wrong "lowest price" would
 undermine the one thing the product is for.
@@ -644,7 +644,7 @@ The dataset spans Bulgaria's euro changeover, so it is **permanently mixed**:
 
 | | Currency | Count today |
 |---|---|---|
-| Legacy purchases (to Oct 2025) | **BGN** | 717 |
+| Legacy purchases (to Oct 2025) | **BGN** | all of them |
 | New purchases | **EUR** | grows from here |
 | Display, everywhere | **EUR** | — |
 
@@ -665,7 +665,7 @@ Rules:
    large enough to invert a "good price" verdict.
 5. **Round only at display.** 12.65 BGN is 6.4678… EUR. Keep full precision
    through statistics and comparison; round in the UI. Rounding early and then
-   averaging accumulates error across 717 rows.
+   averaging accumulates error across hundreds of rows.
 6. **Watch the scan path.** During the dual-display transition Bulgarian
    receipts print both BGN and EUR. The parser must be explicit about which
    figure it takes, and record the matching currency. Taking the wrong column
@@ -684,7 +684,7 @@ Rules:
    undefined. Useful corollary: receipts state the rate themselves, so a parser
    that reads it can verify the constant rather than trusting a hard-coded one.
 
-Migration for the existing rows: set `currency: BGN` on all 717. They predate
+Migration for the existing rows: set `currency: BGN` on all of them. They predate
 the changeover, so this is unambiguous — but it must be an explicit stored
 value, not an inferred one.
 
@@ -745,7 +745,7 @@ depends on it.
   dataset is permanently mixed. Design in [§9.5](#95-currency-handling).
   The rate **1 EUR = 1.95583 BGN** was confirmed on 2026-09-23 and is
   implemented as `Currency.BGN_PER_EUR`.
-- **Q2 — Quantity backfill.** The 717 existing purchases have no quantity or
+- **Q2 — Quantity backfill.** The legacy purchases have no quantity or
   unit and it cannot be recovered automatically. Options: leave them
   unit-price-less and show unit price only for new data; bulk-assign a default
   unit per product; or re-scan nothing and accept the gap. *Blocks M2.*

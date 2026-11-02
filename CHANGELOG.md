@@ -10,6 +10,25 @@ Releases up to 0.0.6 were separate; their notes are in
 
 ## [Unreleased]
 
+### Repository
+
+- **Production runs a release:** `deploy/compose.yaml` pins `receipts-api` and
+  `receipts-ui` to `0.1.0` and publishes only the ui, on 7820; the api and
+  MongoDB are internal, with healthchecks, `restart: unless-stopped`,
+  `TZ=Europe/Sofia` on the api. `deploy/README.md` defines the image tags
+- **Least-privilege database logins in production:** the api logs in as its
+  own `receipts-api` (`readWrite` on its database), copies read as
+  `receipts-reader` (`read`), and root is for administration only. MongoDB
+  creates all three on an empty data directory (`create-users.js`, inline in
+  `deploy/compose.yaml`)
+- `make db-refresh` replaces the dev database with a copy of production's, and
+  `make preview` fills the preview database from production
+  (`scripts/db-copy.sh`, read-only on the source)
+
+### Removed
+
+- `api/docker-compose.yml`, the old api repository's deployment file
+
 ## [0.1.0] - 2026-11-02
 
 The first release from this repository: the api and the ui, versioned and

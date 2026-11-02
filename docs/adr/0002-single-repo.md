@@ -52,7 +52,7 @@ where both `master`s are mutually inconsistent.
 - Independent release cadence is given up. Acceptable, since it was never
   exercised.
 - Both histories survive the merge; nothing is lost.
-- The deployment directory, currently unversioned at `~/docker-apps/homeapp/`,
+- The server's deployment directory, unversioned at the time,
   can finally be versioned alongside the code it deploys.
 - A clone is larger and the tooling roots are no longer unambiguous — `/api` is
   a Gradle project and `/ui` is an npm project, and tooling must be pointed at
