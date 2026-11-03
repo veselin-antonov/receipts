@@ -106,6 +106,19 @@ default), an OpenAI API key and an RSA JWT key pair.
   ui's nginx `client_max_body_size`; keep the two services equal. Scanning has
   a strict rate limit, and the sensitive endpoints per-IP and per-user ones.
 
+## One-off data migrations
+
+Some releases carry a startup migration that needs a person's review before it
+writes anything. The api reads and writes its review files in `migrated/`,
+beside `compose.yaml` (mounted at `/app/.migrated`). Those files hold personal
+data, so they never go into git.
+
+- **Legacy quantity** (`LegacyQuantityMigration`, SPEC §6): while any
+  purchase has no quantity, the first start writes
+  `migrated/legacy-quantity-units.proposed.tsv` and logs a dry-run report,
+  without writing to the database. Review the unit column, save the file as
+  `migrated/legacy-quantity-units.tsv`, and restart the api to apply it.
+
 ## After a deployment
 
 - Log in (`POST /api/auth/token`), then `GET /api/auth/status` answers with the

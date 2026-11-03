@@ -118,6 +118,8 @@ released together.
   `quantityAssumed` (Q2). The first run only writes a per-product unit
   proposal guessed from the names and logs a dry-run report; it applies a
   reviewed copy of that file on the next start (deploy/README.md)
+- `deploy/compose.yaml` mounts `migrated/` beside it at `/app/.migrated`, where
+  the api keeps one-off migrations' review files (deploy/README.md)
 
 #### Changed
 - **Spring Boot 3.5.6 → 4.1.1** (Jackson 3, Spring Security 7) and **Spring AI

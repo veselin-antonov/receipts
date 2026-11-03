@@ -39,6 +39,11 @@ services:
       MONGODB_PORT: 27017
       # Log timestamps only; stored dates are UTC by construction
       TZ: ${TZ:-Europe/Sofia}
+    # One-off data migrations' review files (the api's working directory is
+    # /app): LegacyQuantityMigration writes its proposal here and reads the
+    # reviewed file back. They hold product names, so they stay on the host.
+    volumes:
+      - ./migrated:/app/.migrated
     depends_on:
       receipts-db:
         condition: service_healthy
