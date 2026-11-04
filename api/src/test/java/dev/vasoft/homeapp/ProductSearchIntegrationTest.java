@@ -7,6 +7,7 @@ import dev.vasoft.homeapp.receipts.products.api.response.ResProductSearchResult;
 import dev.vasoft.homeapp.receipts.products.services.ProductService;
 import dev.vasoft.homeapp.receipts.purchases.api.request.ReqPurchase;
 import dev.vasoft.homeapp.receipts.purchases.model.entities.Currency;
+import dev.vasoft.homeapp.receipts.purchases.model.entities.QuantityUnit;
 import dev.vasoft.homeapp.receipts.purchases.services.PurchaseService;
 import java.time.LocalDate;
 import java.util.List;
@@ -34,7 +35,7 @@ class ProductSearchIntegrationTest extends MongoTestSupport {
     private void buy(String product, String store, double price, Currency currency,
                      LocalDate date) {
         purchaseService.registerPurchase(userId, new ReqPurchase(null, product, null, store,
-            price, currency, date, 1, null, 0));
+            price, currency, date, 1.0, QuantityUnit.PIECE, 0));
     }
 
     @Test
