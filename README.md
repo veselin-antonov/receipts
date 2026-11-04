@@ -14,7 +14,7 @@ The whole Receipts product in one repository (see
 |---|---|---|
 | [`api/`](api) | Spring Boot backend — auth, purchases, receipt scanning | Gradle, Java 25 |
 | [`ui/`](ui) | React + Vite frontend, served by nginx | npm, Node 22 |
-| [`docs/`](docs) | Spec, roadmap, decisions, cross-cutting docs | — |
+| [`docs/`](docs) | Spec, decision records, cross-cutting docs | — |
 | [`deploy/`](deploy) | The compose file that runs it | Docker Compose |
 | [`scripts/`](scripts) | Dev setup, backup restore, scan harness, upload-limit test | bash, Python |
 
@@ -29,18 +29,22 @@ The whole Receipts product in one repository (see
 | 1 | [docs/SPEC.md](docs/SPEC.md) | What we are building and why. **The spec we follow.** |
 | 2 | [docs/DEV_SETUP.md](docs/DEV_SETUP.md) | How to get it running locally, and what is automated. |
 | 3 | [docs/SCANNING_PATHS.md](docs/SCANNING_PATHS.md) | How an uploaded receipt is routed, OCRed, parsed and matched, and why PDFs and images fail differently. |
-| 4 | [docs/ROADMAP.md](docs/ROADMAP.md) | The order we build it in. |
-| 5 | [docs/adr/](docs/adr/) | Decisions, with the reasoning that produced them. |
-| 6 | [docs/ARCHITECTURE_AND_FLOWS.md](docs/ARCHITECTURE_AND_FLOWS.md) | The API's components and request flows. |
-| 7 | [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md) | Request and response shapes, endpoint by endpoint. |
-| 8 | [docs/RECEIPT_SCANNING.md](docs/RECEIPT_SCANNING.md) | The scanning feature: OCR, LLM parsing, matching, submit. |
+| 4 | [docs/adr/](docs/adr/) | Decisions, with the reasoning that produced them. |
+| 5 | [docs/ARCHITECTURE_AND_FLOWS.md](docs/ARCHITECTURE_AND_FLOWS.md) | The API's components and request flows. |
+| 6 | [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md) | Request and response shapes, endpoint by endpoint. |
+| 7 | [docs/RECEIPT_SCANNING.md](docs/RECEIPT_SCANNING.md) | The scanning feature: OCR, LLM parsing, matching, submit. |
 
 ## Documentation ownership
 
 One rule, to stop docs scattering again:
 
 > **If a document changes because code changed, it lives in this repo.
-> If it changes because an idea changed, it lives in Obsidian.**
+> If it changes because a plan changed, it lives in the project's planning
+> workspace.**
+
+The roadmap, tasks, known defects, open questions, evaluations and research
+are tracked outside the repository, in the project's planning workspace (Dart).
+This repository describes the product as it is.
 
 And one for what goes in them:
 
@@ -48,12 +52,12 @@ And one for what goes in them:
 > ADRs and git: no "Fixed on …" banners over stale text, no "until …, it used
 > to …" asides, no one-time migration steps. Keep a sentence about the past only
 > if it stops someone undoing a choice, and then say it as the reason, not the
-> story. A fixed defect in SPEC §7 shrinks to one line; dated measurements stay,
-> because the date is part of the result.
+> story.
 
 | Kind | Home |
 |---|---|
-| Product spec, roadmap, decisions | `docs/` here |
+| Product spec, architecture decisions (ADRs) | `docs/` here |
+| Roadmap, tasks, defects, open questions, evaluations, research | the planning workspace |
 | Build / run / test instructions | `api/README.md`, `ui/README.md`, `api/docs/` |
 | API contracts | `docs/` here, next to the spec |
 | Release notes | `CHANGELOG.md` + GitHub releases |

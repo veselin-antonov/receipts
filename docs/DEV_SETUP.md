@@ -277,9 +277,9 @@ docker compose -f compose.dev.yaml up -d
 | MailHog | 7805 (web), 1025 (SMTP) | |
 | MongoDB | 27017 | bound to `127.0.0.1` only |
 
-These are the dev block of the port scheme in
-[ROADMAP M1b decision 21](ROADMAP.md#decisions--2026-10-24); previews,
-production and e2e each have a block of their own.
+These are the dev block of the port scheme: each environment has a block of
+its own, the ui on its first port, the api two above it and tools five above
+(dev 7800, preview 7810, production 7820, e2e 7830).
 
 - **One `.env`, at the root.** Compose interpolates from it because it sits
   next to `compose.dev.yaml`, and `bootRun` reads it through spring-dotenv:

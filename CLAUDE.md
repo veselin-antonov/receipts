@@ -9,6 +9,10 @@ descriptions and comments, is public.
   data-migration or switch-over commands for a real server, or counts and other
   details of real user data. Steps like those go to the person you are working
   with directly, not into the repository or a pull request.
+- Planning lives outside the repository, in the project's Dart workspace:
+  the roadmap, tasks, defects, open questions, decisions that are not ADRs,
+  evaluations and research. Do not add roadmap, task lists or measurement
+  write-ups to the repository; record them in Dart.
 - Docs describe how things are now. History belongs in `CHANGELOG.md`, the ADRs
   and git; see README.md, "Documentation ownership".
 - `master` is protected: every change goes through a pull request.
