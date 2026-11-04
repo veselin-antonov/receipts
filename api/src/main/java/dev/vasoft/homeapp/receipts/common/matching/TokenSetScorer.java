@@ -9,7 +9,7 @@ import java.util.Set;
 /**
  * Scores how well a piece of text names a product, word by word rather than as
  * one string, so that word order does not matter: {@code "мляко прясно"} finds
- * {@code "Прясно мляко"} (ROADMAP D12, SPEC F2.1).
+ * {@code "Прясно мляко"} (SPEC F2.1).
  *
  * <p>Both sides are folded the way product names are normalized everywhere
  * ({@link NormalizationService}): lower case, accents and other combining marks

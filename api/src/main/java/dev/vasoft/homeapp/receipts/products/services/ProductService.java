@@ -73,7 +73,7 @@ public class ProductService {
     }
 
     /**
-     * Searches the catalog for {@code query} (SPEC F2.1, defect D5). Each
+     * Searches the catalog for {@code query} (SPEC F2.1). Each
      * product is scored on its canonical name and every alias by
      * {@link TokenSetScorer}, keeping its best; results under
      * {@value #MIN_RELEVANCE} are dropped. The order is relevance, lifted by at

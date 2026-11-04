@@ -124,9 +124,9 @@ released together.
   order free, case and accent folded, typo and prefix tolerant, Bulgarian
   matched in Latin letters too. Ranked by relevance, then by how often and
   recently the user buys the product; each result carries the user's last paid
-  price in EUR, its date and store (D5)
+  price in EUR, its date and store
 - `TokenSetScorer`, the word-by-word name scorer behind it, kept free of
-  Spring so that receipt matching (D12) can adopt it
+  Spring so that receipt matching can adopt it
 
 #### Changed
 - **Spring Boot 3.5.6 → 4.1.1** (Jackson 3, Spring Security 7) and **Spring AI

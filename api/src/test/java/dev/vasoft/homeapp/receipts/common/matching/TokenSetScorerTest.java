@@ -20,7 +20,7 @@ class TokenSetScorerTest {
 
     @Test
     void wordOrderDoesNotMatter() {
-        // ROADMAP D12: the whole-string matcher missed this on word order alone
+        // The old whole-string matcher missed this on word order alone
         assertThat(score("мляко прясно", "Прясно мляко")).isEqualTo(1.0);
     }
 
@@ -38,7 +38,7 @@ class TokenSetScorerTest {
 
     @Test
     void sharingOnlyAConnectingWordIsNoMatch() {
-        // ROADMAP D12: the old matcher confidently paired these
+        // The old whole-string matcher confidently paired these
         assertThat(score("кафе на зърна", "карфиол на брой")).isZero();
     }
 
