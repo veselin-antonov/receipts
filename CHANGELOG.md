@@ -109,6 +109,12 @@ released together.
   dates not at midnight UTC (they would read as the previous day) or purchases
   without a `userId` (they would be invisible), and points at
   `migrate-backups.py`. Runs before the currency backfill
+- `GET /api/products/{id}/prices`: a product's purchases newest first, with
+  the typical (median), lowest and last unit price with store and date, the
+  usual store, a per-store comparison and a dated series for the history
+  graph. Unit prices are EUR per kilogram, litre or piece, computed on each
+  request from `price / quantity`; purchases without a quantity are listed but
+  not counted (D4)
 
 #### Changed
 - **Spring Boot 3.5.6 → 4.1.1** (Jackson 3, Spring Security 7) and **Spring AI
