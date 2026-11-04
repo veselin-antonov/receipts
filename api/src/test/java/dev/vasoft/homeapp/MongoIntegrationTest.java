@@ -20,15 +20,7 @@ import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 
 /**
  * The whole application against a real MongoDB, the same major as the dev and
@@ -45,28 +37,12 @@ import org.testcontainers.containers.wait.strategy.Wait;
  * {@code spring.mongodb.*} properties, with authentication on, using the test
  * profile's credentials. Only host and port come from the container. A
  * {@code @ServiceConnection} would bypass the properties and miss a rename.
+ * The container and context are shared with every other whole-application
+ * test; see {@link MongoTestSupport}.
  *
  * <p>Needs Docker. Runs in api-checks on every api change.
  */
-@SpringBootTest(properties = "spring.data.mongodb.auto-index-creation=true")
-@ActiveProfiles("test")
-@Testcontainers
-class MongoIntegrationTest {
-
-    @Container
-    static GenericContainer<?> mongo = new GenericContainer<>("mongo:8.2")
-        .withExposedPorts(27017)
-        .withCommand("--auth")
-        // The same root credentials application-test.yaml logs in with
-        .withEnv("MONGO_INITDB_ROOT_USERNAME", "test")
-        .withEnv("MONGO_INITDB_ROOT_PASSWORD", "test")
-        .waitingFor(Wait.forLogMessage(".*Waiting for connections.*", 2));
-
-    @DynamicPropertySource
-    static void mongoAddress(DynamicPropertyRegistry registry) {
-        registry.add("spring.mongodb.host", mongo::getHost);
-        registry.add("spring.mongodb.port", () -> mongo.getMappedPort(27017));
-    }
+class MongoIntegrationTest extends MongoTestSupport {
 
     @Autowired
     private PurchaseService purchaseService;

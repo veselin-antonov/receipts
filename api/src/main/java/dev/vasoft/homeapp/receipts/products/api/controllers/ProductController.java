@@ -1,10 +1,15 @@
 package dev.vasoft.homeapp.receipts.products.api.controllers;
 
+import dev.vasoft.homeapp.auth.services.AuthenticatedUserService;
 import dev.vasoft.homeapp.receipts.products.api.response.ResProduct;
+import dev.vasoft.homeapp.receipts.products.api.response.ResProductSearchResult;
 import dev.vasoft.homeapp.receipts.products.services.ProductService;
+import org.bson.types.ObjectId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,16 +23,32 @@ import java.util.List;
 public class ProductController {
 	private final Logger logger;
 	private final ProductService productServiceLogic;
+	private final AuthenticatedUserService authenticatedUserService;
 
 	@Autowired
-	public ProductController(ProductService productServiceLogic) {
+	public ProductController(ProductService productServiceLogic,
+			AuthenticatedUserService authenticatedUserService) {
 		this.logger = LoggerFactory.getLogger(ProductController.class);
 		this.productServiceLogic = productServiceLogic;
+		this.authenticatedUserService = authenticatedUserService;
 	}
 
 	@GetMapping
 	public List<ResProduct> getAllProducts() {
 		return productServiceLogic.getAllProducts();
+	}
+
+	/**
+	 * Products whose name or an alias matches {@code q}, best first, each with
+	 * what the authenticated user last paid for it (SPEC F2.1).
+	 */
+	@GetMapping("/search")
+	public List<ResProductSearchResult> search(
+			@AuthenticationPrincipal Jwt jwt,
+			@RequestParam(defaultValue = "") String q,
+			@RequestParam(defaultValue = "0") int limit) {
+		ObjectId userId = authenticatedUserService.getUserId(jwt);
+		return productServiceLogic.search(userId, q, limit);
 	}
 
 	@PostMapping
