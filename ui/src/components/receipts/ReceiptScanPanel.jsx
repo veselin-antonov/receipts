@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Autocomplete from '@/components/ui/autocomplete';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { parseDecimal } from '@/lib/format';
+import { QUANTITY_UNITS, parseDecimal } from '@/lib/format';
 import { API_URL } from '@/lib/utils';
 
 const toInitialReviewPurchase = (scanResult, purchase) => {
@@ -200,6 +200,7 @@ const ReceiptScanPanel = ({ onPurchasesCreated }) => {
       (purchase) =>
         !Number.isFinite(purchase.price) ||
         !Number.isFinite(purchase.quantity) ||
+        purchase.quantity <= 0 ||
         !Number.isFinite(purchase.discountAmount)
     );
     if (hasInvalidAmount) {
@@ -275,7 +276,7 @@ const ReceiptScanPanel = ({ onPurchasesCreated }) => {
           <div className="space-y-3">
             {reviewPurchases.map((purchase, index) => (
               <div
-                className="grid gap-3 rounded-md border p-3 md:grid-cols-[1.5fr_1.5fr_1fr]"
+                className="grid gap-3 rounded-md border p-3 md:grid-cols-[1.5fr_1.5fr_1fr_1fr_0.75fr]"
                 key={`${purchase.rawProductName}-${index}`}
               >
                 <div className="text-muted-foreground text-sm">
@@ -328,7 +329,7 @@ const ReceiptScanPanel = ({ onPurchasesCreated }) => {
                   />
                 </label>
                 <label className="space-y-1 text-sm">
-                  <span>Цена (€)</span>
+                  <span>Сума (€)</span>
                   <Input
                     aria-label={`Цена за ред ${index + 1}`}
                     inputMode="decimal"
@@ -344,6 +345,48 @@ const ReceiptScanPanel = ({ onPurchasesCreated }) => {
                       )
                     }
                   />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span>Количество</span>
+                  <Input
+                    aria-label={`Количество за ред ${index + 1}`}
+                    inputMode="decimal"
+                    value={purchase.quantity}
+                    onChange={(event) =>
+                      setReviewPurchases((current) =>
+                        updatePurchaseAt(
+                          current,
+                          index,
+                          'quantity',
+                          event.target.value
+                        )
+                      )
+                    }
+                  />
+                </label>
+                <label className="space-y-1 text-sm">
+                  <span>Мярка</span>
+                  <select
+                    aria-label={`Мярка за ред ${index + 1}`}
+                    value={purchase.quantityUnit}
+                    onChange={(event) =>
+                      setReviewPurchases((current) =>
+                        updatePurchaseAt(
+                          current,
+                          index,
+                          'quantityUnit',
+                          event.target.value
+                        )
+                      )
+                    }
+                    className="border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border bg-transparent px-2 text-base shadow-xs outline-none focus-visible:ring-[3px] md:text-sm"
+                  >
+                    {QUANTITY_UNITS.map((u) => (
+                      <option key={u.value} value={u.value}>
+                        {u.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </div>
             ))}

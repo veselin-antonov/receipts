@@ -208,12 +208,23 @@ any write path.
 | `userId` | **Every read and write is scoped to this. Non-negotiable.** |
 | `product` | Reference |
 | `store` | Reference |
-| `price` | What was paid, in `currency`. Never rewritten |
+| `price` | What was paid, in `currency`, for the whole line, so the unit price is `price / quantity` ([F2.0](#f20-note-on-how-price-is-recorded)). Never rewritten |
 | `currency` | `BGN` or `EUR`, stored on every row — see [§9.5](#95-currency-handling) |
 | `date` | When |
 | `discountAmount` | Discount applied, in `currency` |
-| `quantity` | **Missing — see D1** |
-| `quantityUnit` | **Missing — see D1** |
+| `quantity` | How much, in `quantityUnit`; required on every new purchase |
+| `quantityUnit` | `PIECE`, `GRAM`, `KILOGRAM`, `MILLILITER` or `LITER` |
+| `quantityAssumed` | `true` only on a legacy purchase, whose quantity was never recorded and was set by the quantity migration |
+
+Purchases recorded before quantities existed (Q2) carried the unit price, with
+the unit in the product name (`Лук (цена за кг)`). `LegacyQuantityMigration`
+gives each one quantity 1 in its product's unit, so its price stays the unit
+price, and marks it `quantityAssumed`. The unit per product is guessed from the
+name (per kg → `KILOGRAM`, per litre → `LITER`, anything else, a stated pack
+size included, → `PIECE`) and reviewed by a person before anything is written:
+the first start writes a proposal and changes nothing, and a reviewed copy of
+it is applied on a later start ([deploy/README.md](../deploy/README.md), "One-off
+data migrations"). Product names are left as they are.
 
 ### `users`
 
@@ -262,8 +273,7 @@ Requirements to consider F1 done:
 - **F1.2** Parsed rows are reviewable and correctable before saving.
 - **F1.3** Unmatched products and stores are surfaced clearly, not silently
   created with a bad name.
-- **F1.4** Submitted purchases are saved **with quantity and unit** (blocked on
-  D1).
+- **F1.4** Submitted purchases are saved **with quantity and unit**.
 - **F1.5** Scan endpoints are rate-limited more aggressively than normal traffic,
   because each call costs money at the LLM provider.
 

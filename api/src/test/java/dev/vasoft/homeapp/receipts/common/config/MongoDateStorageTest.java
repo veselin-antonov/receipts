@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.mongodb.MongoClientSettings;
 import dev.vasoft.homeapp.receipts.purchases.model.entities.Currency;
 import dev.vasoft.homeapp.receipts.purchases.model.entities.Purchase;
+import dev.vasoft.homeapp.receipts.purchases.model.entities.QuantityUnit;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -59,7 +60,8 @@ class MongoDateStorageTest {
 
     /** Maps the purchase, then encodes it exactly as the driver would send it. */
     private static BsonDocument stored(MappingMongoConverter converter) {
-        Purchase purchase = new Purchase(new ObjectId(), null, 3.29, Currency.EUR, DAY, null, 0.0);
+        Purchase purchase = new Purchase(new ObjectId(), null, 3.29, Currency.EUR, DAY, null, 0.0,
+            1.0, QuantityUnit.PIECE);
         Document document = new Document();
         converter.write(purchase, document);
         BsonDocument bson = new BsonDocument();

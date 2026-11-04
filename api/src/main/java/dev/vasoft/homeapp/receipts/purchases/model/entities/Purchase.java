@@ -24,9 +24,23 @@ public class Purchase {
 	@DocumentReference
 	private Store store;
 	private Double discountAmount;
+	/**
+	 * How much was bought, in {@link #quantityUnit}. {@link #price} is the line
+	 * total, so the unit price is {@code price / quantity} (SPEC F2.0). Null only
+	 * on a legacy row the quantity migration has not reached yet.
+	 */
+	private Double quantity;
+	private QuantityUnit quantityUnit;
+	/**
+	 * True when the quantity was not recorded but assumed by
+	 * {@code LegacyQuantityMigration}: one of the product's unit, so that the
+	 * stored price stays the unit price. False on everything recorded since.
+	 */
+	private Boolean quantityAssumed;
 
 	public Purchase(ObjectId userId, Product product, Double price, Currency currency,
-		LocalDate date, Store store, Double discountAmount) {
+		LocalDate date, Store store, Double discountAmount, Double quantity,
+		QuantityUnit quantityUnit) {
 		this.userId = userId;
 		this.product = product;
 		this.price = price;
@@ -34,5 +48,8 @@ public class Purchase {
 		this.date = date;
 		this.store = store;
 		this.discountAmount = discountAmount;
+		this.quantity = quantity;
+		this.quantityUnit = quantityUnit;
+		this.quantityAssumed = false;
 	}
 }

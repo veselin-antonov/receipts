@@ -121,7 +121,8 @@ public class PurchaseService {
             Product product = resolveSubmittedProduct(reqPurchase);
 
             Purchase purchase = new Purchase(userId, product, reqPurchase.price(),
-                currencyOf(reqPurchase), reqPurchase.date(), store, reqPurchase.discountAmount());
+                currencyOf(reqPurchase), reqPurchase.date(), store, reqPurchase.discountAmount(),
+                reqPurchase.quantity(), reqPurchase.quantityUnit());
 
             purchase = purchasesRepository.save(purchase);
             results.add(PurchaseMapper.toResPurchase(purchase));

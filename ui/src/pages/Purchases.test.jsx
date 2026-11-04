@@ -70,4 +70,40 @@ describe('Purchases', () => {
     expect(screen.getByText('27.10.2025')).toBeInTheDocument();
     expect(screen.queryByText(/лв/)).not.toBeInTheDocument();
   });
+
+  it('shows the quantity, and marks one the migration assumed', () => {
+    const purchase = (id, quantity, quantityUnit, quantityAssumed) => ({
+      id,
+      product: { id: `x${id}`, name: `Продукт ${id}`, iconID: null },
+      priceEur: 1.85,
+      date: '2026-10-02',
+      store: { id: 's', name: 'Lidl', iconID: 'lidl' },
+      discountAmountEur: 0,
+      quantity,
+      quantityUnit,
+      quantityAssumed,
+    });
+    usePaginatedResourceMock.mockReturnValue({
+      data: {
+        contents: [
+          purchase('1', 0.742, 'KILOGRAM', false),
+          purchase('2', 1, 'KILOGRAM', true),
+          purchase('3', null, null, false),
+        ],
+        pageId: 0,
+        totalPages: 1,
+      },
+      isLoading: false,
+      error: null,
+      searchQuery: '',
+      setSearchQuery: vi.fn(),
+      fetchPage: vi.fn(),
+    });
+
+    render(<Purchases />);
+
+    expect(screen.getByText('0,742 кг')).toBeInTheDocument();
+    const assumed = screen.getByText('≈ 1 кг');
+    expect(assumed).toHaveAttribute('title', expect.stringContaining('стара'));
+  });
 });

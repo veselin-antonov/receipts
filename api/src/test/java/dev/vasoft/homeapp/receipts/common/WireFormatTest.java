@@ -7,6 +7,7 @@ import dev.vasoft.homeapp.receipts.products.model.entities.Product;
 import dev.vasoft.homeapp.receipts.purchases.api.request.ReqPurchase;
 import dev.vasoft.homeapp.receipts.purchases.model.entities.Currency;
 import dev.vasoft.homeapp.receipts.purchases.model.entities.Purchase;
+import dev.vasoft.homeapp.receipts.purchases.model.entities.QuantityUnit;
 import dev.vasoft.homeapp.receipts.purchases.services.PurchaseMapper;
 import dev.vasoft.homeapp.receipts.scanning.api.response.ResScanResult;
 import dev.vasoft.homeapp.receipts.stores.model.entities.Store;
@@ -47,15 +48,28 @@ class WireFormatTest {
     }
 
     @Test
-    void manualFormPayloadWithoutQuantityOrDiscountIsAccepted() throws Exception {
-        // Exactly what the ui's new-purchase form sends. Jackson 3 would
-        // reject the missing primitives unless told otherwise.
+    void aMissingDiscountReadsAsZeroAndAMissingQuantityAsNull() throws Exception {
+        // Jackson 3 would reject the missing primitive discount unless told
+        // otherwise. A missing quantity stays null, so validation rejects it
+        // instead of storing a made-up 0 (D1).
         ReqPurchase req = objectMapper.readValue(
             "{\"productName\":\"Мляко\",\"storeName\":\"Billa\",\"price\":3.29,"
                 + "\"date\":\"2026-09-23\"}", ReqPurchase.class);
 
-        assertThat(req.quantity()).isZero();
+        assertThat(req.quantity()).isNull();
+        assertThat(req.quantityUnit()).isNull();
         assertThat(req.discountAmount()).isZero();
+    }
+
+    @Test
+    void requestQuantityAndUnitAreRead() throws Exception {
+        ReqPurchase req = objectMapper.readValue(
+            "{\"productName\":\"Банани\",\"storeName\":\"Lidl\",\"price\":1.85,"
+                + "\"date\":\"2026-09-23\",\"quantity\":0.742,\"quantityUnit\":\"KILOGRAM\"}",
+            ReqPurchase.class);
+
+        assertThat(req.quantity()).isEqualTo(0.742);
+        assertThat(req.quantityUnit()).isEqualTo(QuantityUnit.KILOGRAM);
     }
 
     @Test
@@ -68,7 +82,7 @@ class WireFormatTest {
     @Test
     void purchaseResponsesCarryNumbersAndIsoDates() {
         Purchase p = new Purchase(new ObjectId(), new Product(new ObjectId()), 12.65, Currency.BGN,
-            LocalDate.of(2025, 10, 3), new Store(new ObjectId()), 0.0);
+            LocalDate.of(2025, 10, 3), new Store(new ObjectId()), 0.0, 0.75, QuantityUnit.KILOGRAM);
         p.setId(new ObjectId());
 
         JsonNode json = objectMapper.valueToTree(PurchaseMapper.toResPurchase(p));
@@ -78,6 +92,9 @@ class WireFormatTest {
         assertThat(json.get("priceEur").asDouble()).isEqualTo(12.65 / 1.95583);
         assertThat(json.get("discountAmountEur").isNumber()).isTrue();
         assertThat(json.has("price")).isFalse();
+        assertThat(json.get("quantity").asDouble()).isEqualTo(0.75);
+        assertThat(json.get("quantityUnit").asString()).isEqualTo("KILOGRAM");
+        assertThat(json.get("quantityAssumed").asBoolean()).isFalse();
     }
 
     @Test

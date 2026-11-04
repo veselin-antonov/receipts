@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatDate, formatEur } from '@/lib/format';
+import { formatDate, formatEur, formatQuantity } from '@/lib/format';
 import usePaginatedResource from '@/lib/usePaginatedResource';
 
 const toTableRow = (purchase) => {
@@ -35,6 +35,17 @@ const toTableRow = (purchase) => {
         </div>
       </TableCell>
       <TableCell>{formatEur(purchase.priceEur)}</TableCell>
+      <TableCell
+        className={purchase.quantityAssumed ? 'text-muted-foreground' : ''}
+        title={
+          purchase.quantityAssumed
+            ? 'Количеството не е записано: стара покупка, приета за 1'
+            : undefined
+        }
+      >
+        {purchase.quantityAssumed ? '≈ ' : ''}
+        {formatQuantity(purchase.quantity, purchase.quantityUnit)}
+      </TableCell>
       <TableCell>
         <div className="flex flex-row items-center gap-2">
           <Icon iconId={purchase.store.iconID} /> {purchase.store.name}
@@ -107,8 +118,9 @@ export const Purchases = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[50%]">Продукт</TableHead>
+                  <TableHead className="w-[40%]">Продукт</TableHead>
                   <TableHead className="w-[10%]">Сума</TableHead>
+                  <TableHead className="w-[10%]">Количество</TableHead>
                   <TableHead className="w-[20%]">Магазин</TableHead>
                   <TableHead className="w-[5%] text-center">
                     Намаление
@@ -121,7 +133,7 @@ export const Purchases = () => {
                   purchasesPage.contents.map(toTableRow)
                 ) : (
                   <TableRow>
-                    <TableCell className="h-24 text-center" colSpan="5">
+                    <TableCell className="h-24 text-center" colSpan="6">
                       Няма намерени покупки.
                     </TableCell>
                   </TableRow>
