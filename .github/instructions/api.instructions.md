@@ -258,14 +258,8 @@ then `make dev`. Production configuration is in `deploy/README.md`.
 
 ## Roadmap Reference
 
-See `docs/ROADMAP.md` for planned features including:
-- Account lockout mechanism
-- Password reset functionality
-- Refresh token implementation
-- Role-based access control (RBAC)
-- Multi-factor authentication
-- Microservices restructure
-- Additional services (Tools & Appliances, Outfit Wear)
+Planned work is tracked in the project's planning workspace, not in the
+repository.
 
 ---
 

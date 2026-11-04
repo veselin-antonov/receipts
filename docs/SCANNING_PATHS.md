@@ -149,9 +149,11 @@ reduced to a safe last path segment first. Unset, nothing is written.
 `receipts.scanning.vision-for-images`, default `false`. When `true`, images skip
 OCR and go through `parseReceipt` like a PDF, as media under the document
 prompt. It exists to re-measure the OCR-versus-vision choice for a future model
-with a config change; vision was measured worse on real photos (see
-[below](#measured-vision-vs-ocr-for-photographed-receipts-2026-09-23) and
-[ADR-0004](adr/0004-ocr-plus-llm-parsing.md)), so it stays off.
+with a config change; vision was measured worse on real photos: it reads prices about as well but
+invents product names ([ADR-0004](adr/0004-ocr-plus-llm-parsing.md)), so it
+stays off. Any comparison involving vision must be scored against ground-truth
+names, never L0 alone, since invented names next to correctly read prices
+still reconcile to the total ([ADR-0007](adr/0007-how-scanning-changes-are-measured.md)).
 
 ---
 
@@ -243,8 +245,7 @@ the local threshold with it.
 5 binarize internally, per region. Handing it a pre-binarized 1-bit image
 throws away information it would otherwise have used. Passing clean
 **grayscale** and letting Tesseract decide is often better than any hand-rolled
-binarization, and it is worth measuring before investing in Sauvola. Both are
-open items in ROADMAP M0a.
+binarization, and it is worth measuring before investing in Sauvola.
 
 ---
 
@@ -338,8 +339,8 @@ Breach returns `429` with `RATE_LIMIT_EXCEEDED`.
 
 ### Timeouts
 
-A scan runs OCR and an LLM call. Measured **34–78 s** on real photos in the
-2026-09-18 baseline below.
+A scan runs OCR and an LLM call. Measured **34–78 s** on real photos
+(2026-09-18).
 
 | Layer | Setting | Value |
 |---|---|---|
@@ -377,80 +378,6 @@ came out at 11.8 MB.
 
 Abuse is bounded by the rate limit (10 scans/hour/user), not by file size.
 
-## Measured baseline, 2026-09-18
-
-Four photographs of **one** Kaufland receipt — 7 items, per-line discounts,
-mixed piece and weight quantities, dual BGN/EUR totals — differing only in
-surface and angle. All four took the preprocessed OCR route (none was a PNG), on
-the pipeline before `cropToReceipt` existed, when images were still split by a
-PNG test. This is what M0a must improve on.
-
-| | Store extracted | Date | Items (of 7) | Time |
-|---|---|---|---|---|
-| **white** | `Кауфланд България ЕООД и Ко. КД` | none | **7/7, all correct** | 52 s |
-| **shadow** | `Хипермаркет Кауфланд Варна-Трошево` | `2021-05-21` (invented) | 4/7, **rows cross-contaminated** | 74 s |
-| **angled** | `Авто Султан ТА` (**invented**) | none | 8 rows, mostly wrong | 78 s |
-| **wood** | `Кауфланд` | `1970-01-01` (null) | **0/7** | 34 s |
-
-### The parser is good; the image pipeline is not
-
-On the clean shot, extraction is close to flawless: every price, every
-quantity — including `0.318` and `0.636` **KILOGRAM** for weighed goods — and
-every per-line discount. Only two trivial OCR slips (`кр. сир.` read as
-`kp. cup`). The LLM parsing stage is not the problem.
-
-Everything below that row is the image pipeline degrading its input.
-
-### Failure severity is the opposite of what it looks like
-
-- **wood — fails loudly.** Zero items. Useless, but obvious; nobody submits it.
-- **shadow — fails quietly.** Four rows, but data is mismatched *across* rows:
-  `Йоанна закв. сметана` is given `19.74` and quantity `6.0`, which belong to
-  `Р.тон в раст.масло`. A plausible row carrying another row's numbers.
-- **angled — fails dangerously.** Eight rows of confident fiction. `Ширацаца`
-  is not a word. `Р.тон в раст.масло` (tuna in oil) became `Растително масло`
-  (vegetable oil) — a different product at the same price. The store is
-  invented outright.
-
-A wrong price entering price history is worse than no price, because the
-lookup loop will later present it as fact. **Angled and shadow are more
-dangerous than wood**, and any confidence threshold must treat quiet corruption
-as the primary risk, not empty results.
-
-### Four names for one store
-
-The same receipt produced four different store strings:
-
-```text
-Кауфланд
-Кауфланд България ЕООД и Ко. КД
-Хипермаркет Кауфланд Варна-Трошево
-Авто Султан ТА          ← invented
-```
-
-**`matched` was `None` for all four**, including the bare `Кауфланд`, which
-should match the catalog's `Kaufland` on transliteration alone (D13).
-
-This is the empirical case for the alias design in D18: no parsing rule
-normalises those four into one store, but a human picking once — and the raw
-string being stored as an alias — handles every one of them, and the next
-receipt from that shop matches directly.
-
-### Other confirmations
-
-- **`price` is the line total *before* discount.** The seven extracted prices
-  sum to 84.32; the seven discounts sum to 2.00; the receipt total is 82.32.
-  Exactly consistent, so `discountAmount` is deducted separately, not baked in.
-- **Product matching is weak (D12).** `Хляб с лимец 500г` matched nothing,
-  though the catalog holds `Вита хляб лимец`.
-- **Date extraction is broken on all four**, and missing dates serialise
-  inconsistently as both `null` and `1970-01-01`.
-- **Every run exceeded the 30 s target**, at 34–78 s.
-- All prices came from the BGN column, which is correct — but by luck, since
-  nothing records a currency. *(2026-09-23: purchases now store a currency,
-  but the parser still does not emit one, so a scanned submission is recorded
-  as EUR whichever column was read. Tracked in ROADMAP M2a.)*
-
 ## Testing implications
 
 The two paths fail differently, which is diagnostically useful:
@@ -459,55 +386,11 @@ The two paths fail differently, which is diagnostically useful:
 |---|---|
 | PDFs work, images fail | OCR: the Tesseract runtime, tessdata, or `OCR_LANGUAGE` |
 | Images work, PDFs fail | the LLM client, API key, or the document prompt |
-| Text PDFs work, scanned PDFs return 422 | the document path has no OCR; seen in the 2026-09-23 baseline |
+| Text PDFs work, scanned PDFs return 422 | the document path has no OCR |
 | A photo returns 422, "No purchases could be read" | nothing usable came out of OCR or the model; set `OCR_DEBUG_OUTPUT_PATH` and look at what Tesseract was given |
-| Plausible rows with wrong or swapped numbers | image quality (shadow, angle); see the 2026-09-18 baseline — this is the dangerous case |
+| Plausible rows with wrong or swapped numbers | image quality (shadow, angle) — this is the dangerous case |
 
 A fixture set needs PDFs (text and scanned) as well as images, and images in
 more than one format, including a photo exported as PNG and a screenshot saved
 as JPEG: the pipeline must not depend on the format. The fixtures live outside
 the repository, next to the checkout; see `receipt-fixtures/README.md` there.
-
-## Measured: vision vs OCR for photographed receipts (2026-09-23)
-
-Photos go OCR text to LLM; PDFs go straight to the vision model. That asymmetry
-means Tesseract's output is the ceiling for every photo, so it was worth asking
-whether photos should use vision too. They should not.
-
-Run on all 64 fixtures, `receipts.scanning.vision-for-images=true`, everything
-else held constant (gpt-6-luna, medium reasoning, same prompt). Restricted to
-the 42 fixtures scored in both runs, so the denominator is identical:
-
-| | OCR text | vision |
-|---|---|---|
-| line items matched | 263 | 179 |
-| items with the right price | **253** | **165** |
-| ground-truth prices present anywhere in the output | 75% | 69% |
-| passed L0 (self-consistency) | 24 | **30** |
-| HTTP 200 | 53 | 56 |
-
-Vision reads the price column about as well (75% vs 69%) but **invents the
-product names**. From `kaufland_17_flat.jpeg`, same prices, same positions:
-
-| ground truth | OCR text | vision |
-|---|---|---|
-| `Жарено филе, кг` | `Жарено филе` | `Картофи фини, кг` |
-| `DrKeskin св трици 200` | `Drkeskin ов трици200` | `Бисквити` |
-| `DorBlu Синьо сирене` | `DorBlu Синьо сирене` | `Добруджа бяло саламурено сирене` |
-
-The model recognises the receipt's layout and fills the name column with
-plausible Bulgarian grocery items instead of reading the small dense text.
-OCR's names are mangled but recoverable; vision's are clean, confident and
-wrong, which is worse for a price-history product whose entire value is
-knowing *which* product a price belongs to.
-
-### L0 is not a safe metric on the vision path
-
-L0 went **up** (24 to 30) while the data got materially worse. L0 checks the
-receipt's own arithmetic, and hallucinated names attached to correctly-read
-prices still reconcile to the total. Any future comparison involving vision
-must be scored against ground-truth names, never L0 alone.
-
-The flag stays in `ReceiptScanService` and stays `false`. It costs nothing and
-makes re-running this against a future model a config change. Re-test before
-assuming the result still holds; do not re-derive it from scratch.
