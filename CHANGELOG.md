@@ -195,6 +195,8 @@ released together.
 - The manual purchase form has a quantity (default 1) and a unit (default
   бр.), and labels the price as the total. The purchases table has a quantity
   column; a migrated legacy quantity is shown as `≈ 1 кг`, greyed out
+- The scan review shows each row's quantity and unit for correction, and labels
+  the price as the line total
 
 #### Changed
 

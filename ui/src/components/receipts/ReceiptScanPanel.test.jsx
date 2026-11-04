@@ -262,4 +262,44 @@ describe('ReceiptScanPanel review safety', () => {
     ).toBeInTheDocument();
     expect(submittedPurchases()).toBeUndefined();
   });
+
+  it('shows the scanned quantity and unit and submits the corrected ones', async () => {
+    const user = userEvent.setup();
+    render(<ReceiptScanPanel />);
+    await scan(user);
+    await screen.findByText('MILK 1L');
+
+    expect(screen.getByLabelText(/количество за ред 1/i)).toHaveValue('1');
+    expect(screen.getByLabelText(/мярка за ред 1/i)).toHaveValue('PIECE');
+
+    await user.clear(screen.getByLabelText(/количество за ред 2/i));
+    await user.type(screen.getByLabelText(/количество за ред 2/i), '0,742');
+    await user.selectOptions(
+      screen.getByLabelText(/мярка за ред 2/i),
+      'KILOGRAM'
+    );
+    await user.click(screen.getByRole('button', { name: /запази покупките/i }));
+
+    await waitFor(() => expect(submittedPurchases()).toBeDefined());
+    expect(submittedPurchases()[1]).toMatchObject({
+      quantity: 0.742,
+      quantityUnit: 'KILOGRAM',
+    });
+  });
+
+  it('refuses to submit a zero quantity', async () => {
+    const user = userEvent.setup();
+    render(<ReceiptScanPanel />);
+    await scan(user);
+    await screen.findByText('MILK 1L');
+
+    await user.clear(screen.getByLabelText(/количество за ред 1/i));
+    await user.type(screen.getByLabelText(/количество за ред 1/i), '0');
+    await user.click(screen.getByRole('button', { name: /запази покупките/i }));
+
+    expect(
+      await screen.findByText(/невалидна сума в някой от редовете/i)
+    ).toBeInTheDocument();
+    expect(submittedPurchases()).toBeUndefined();
+  });
 });
