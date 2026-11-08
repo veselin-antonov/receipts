@@ -224,6 +224,141 @@ Success response shape:
   have never bought it. `priceEur` is the price paid, converted to EUR and
   unrounded, like every amount on the wire
 
+## Price history
+
+### GET /api/products/{id}/prices
+
+Purpose:
+- a product's price history and the verdict figures (SPEC F2.2, F2.4), for the
+  authenticated user's purchases only
+- computed on every request, never cached (SPEC 9.3)
+
+Rules:
+- every price is a **unit price in EUR**, unrounded: the line total divided by
+  the quantity, converted from the currency paid. The discount is reported but
+  not subtracted, so prices compare with a shelf price
+- grams and millilitres are priced per kilogram and per litre; `PIECE` is one
+  package, whatever its size
+- `unit` is what the figures are per. A product bought in more than one unit is
+  compared in its most frequent one (ties: the most recent purchase's unit)
+- a purchase without a positive quantity and a unit (a legacy row the quantity
+  migration has not reached) is listed with `unitPriceEur: null` and left out
+  of every figure; `comparable` says whether a purchase is counted
+- `quantityAssumed: true` marks a legacy row whose quantity the migration set
+  to 1; `stats.assumedCount` counts them
+- `stats` is `null` when nothing is comparable. `typicalUnitPriceEur` is the
+  median; `lowest` breaks ties to the most recent purchase; `usualStore` is
+  the store bought at most often, ties to the most recent
+- `stores` is cheapest typical price first; purchases without a store count in
+  `stats` but not in `stores` or `usualStore`
+- `series` is oldest first, one point per comparable purchase; `storeId`
+  matches a `stores[].store.id`
+- `purchases` is every purchase of the product, newest first; same-day
+  purchases in the order they were saved
+
+Status codes:
+- `200` with empty lists and `stats: null` for a product the user never bought
+- `404` for an unknown or malformed product id
+
+Success response shape:
+
+```json
+{
+  "product": { "id": "6840c5c4bcb1f563dc1d0001", "name": "Банани", "iconID": null },
+  "unit": "KILOGRAM",
+  "stats": {
+    "count": 3,
+    "assumedCount": 1,
+    "typicalUnitPriceEur": 2.49,
+    "lowest": {
+      "purchaseId": "6840c5c4bcb1f563dc1d1002",
+      "unitPriceEur": 2.4,
+      "store": { "id": "6840c5c4bcb1f563dc1d0101", "name": "Lidl", "iconID": "lidl" },
+      "date": "2026-03-01"
+    },
+    "last": {
+      "purchaseId": "6840c5c4bcb1f563dc1d1003",
+      "unitPriceEur": 2.49,
+      "store": { "id": "6840c5c4bcb1f563dc1d0101", "name": "Lidl", "iconID": "lidl" },
+      "date": "2026-10-01"
+    },
+    "usualStore": { "id": "6840c5c4bcb1f563dc1d0101", "name": "Lidl", "iconID": "lidl" }
+  },
+  "stores": [
+    {
+      "store": { "id": "6840c5c4bcb1f563dc1d0101", "name": "Lidl", "iconID": "lidl" },
+      "count": 2,
+      "typicalUnitPriceEur": 2.445,
+      "lowestUnitPriceEur": 2.4,
+      "last": {
+        "purchaseId": "6840c5c4bcb1f563dc1d1003",
+        "unitPriceEur": 2.49,
+        "store": { "id": "6840c5c4bcb1f563dc1d0101", "name": "Lidl", "iconID": "lidl" },
+        "date": "2026-10-01"
+      }
+    },
+    {
+      "store": { "id": "6840c5c4bcb1f563dc1d0102", "name": "Billa", "iconID": "billa" },
+      "count": 1,
+      "typicalUnitPriceEur": 2.49,
+      "lowestUnitPriceEur": 2.49,
+      "last": {
+        "purchaseId": "6840c5c4bcb1f563dc1d1001",
+        "unitPriceEur": 2.49,
+        "store": { "id": "6840c5c4bcb1f563dc1d0102", "name": "Billa", "iconID": "billa" },
+        "date": "2025-05-01"
+      }
+    }
+  ],
+  "series": [
+    { "purchaseId": "6840c5c4bcb1f563dc1d1001", "date": "2025-05-01", "unitPriceEur": 2.49, "storeId": "6840c5c4bcb1f563dc1d0102", "quantityAssumed": true },
+    { "purchaseId": "6840c5c4bcb1f563dc1d1002", "date": "2026-03-01", "unitPriceEur": 2.4, "storeId": "6840c5c4bcb1f563dc1d0101", "quantityAssumed": false },
+    { "purchaseId": "6840c5c4bcb1f563dc1d1003", "date": "2026-10-01", "unitPriceEur": 2.49, "storeId": "6840c5c4bcb1f563dc1d0101", "quantityAssumed": false }
+  ],
+  "purchases": [
+    {
+      "id": "6840c5c4bcb1f563dc1d1003",
+      "date": "2026-10-01",
+      "store": { "id": "6840c5c4bcb1f563dc1d0101", "name": "Lidl", "iconID": "lidl" },
+      "priceEur": 3.0876,
+      "discountAmountEur": 0.0,
+      "quantity": 1.24,
+      "quantityUnit": "KILOGRAM",
+      "quantityAssumed": false,
+      "unitPriceEur": 2.49,
+      "unit": "KILOGRAM",
+      "comparable": true
+    },
+    {
+      "id": "6840c5c4bcb1f563dc1d1002",
+      "date": "2026-03-01",
+      "store": { "id": "6840c5c4bcb1f563dc1d0101", "name": "Lidl", "iconID": "lidl" },
+      "priceEur": 1.2,
+      "discountAmountEur": 0.0,
+      "quantity": 500.0,
+      "quantityUnit": "GRAM",
+      "quantityAssumed": false,
+      "unitPriceEur": 2.4,
+      "unit": "KILOGRAM",
+      "comparable": true
+    },
+    {
+      "id": "6840c5c4bcb1f563dc1d1001",
+      "date": "2025-05-01",
+      "store": { "id": "6840c5c4bcb1f563dc1d0102", "name": "Billa", "iconID": "billa" },
+      "priceEur": 2.49,
+      "discountAmountEur": 0.0,
+      "quantity": 1.0,
+      "quantityUnit": "KILOGRAM",
+      "quantityAssumed": true,
+      "unitPriceEur": 2.49,
+      "unit": "KILOGRAM",
+      "comparable": true
+    }
+  ]
+}
+```
+
 ## Stores
 
 ### GET /api/stores
